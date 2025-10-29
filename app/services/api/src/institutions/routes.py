@@ -77,9 +77,6 @@ async def delete_institution(db: DB, institution_id: str):
         db: Database dependency
         institution_id: ID of the institution to delete
 
-    Returns:
-        None
-
     Raises:
         HTTPException: If there is an error deleting the institution or if not found
     """
@@ -105,3 +102,24 @@ async def update_institution(db: DB, institution_id: str, request: dto_in.Update
         HTTPException: If there is an error updating the institution or if not found
     """
     return service.update_institution(db, institution_id, request)
+
+
+@router.get("/{institution_id}/courses",
+            status_code=status.HTTP_200_OK,
+            response_model=dto_out.GetInstitutionCourses)
+async def get_institution_courses(db: DB, institution_id: str):
+    """
+    Get all courses for a specific institution
+
+    Args:
+        db: Database dependency
+        institution_id: ID of the institution
+
+    Returns:
+        GetInstitutionCourses: List of courses for the institution
+
+    Raises:
+        HTTPException: If there is an error retrieving the courses
+            or if the institution is not found
+    """
+    return service.get_institution_courses(db, institution_id)

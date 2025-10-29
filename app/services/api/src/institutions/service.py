@@ -6,9 +6,6 @@ from app.libs.db import models
 from app.services.api.src.institutions import dto_in, dto_out
 
 
-COLLECTION_NAME = "institutions"
-
-
 def get_institutions(db: Database) -> dto_out.GetAllInstitutions:
     """
     Get all institutions
@@ -22,7 +19,7 @@ def get_institutions(db: Database) -> dto_out.GetAllInstitutions:
     Raises:
         HTTPException: If there is an error retrieving institutions
     """
-    collection = db.get_collection(COLLECTION_NAME)
+    collection = db.get_collection(models.Institution.COLLECTION_NAME)
 
     try:
         institutions_data = collection.find({}).to_list()
@@ -54,7 +51,7 @@ def get_institution_by_id(db: Database, institution_id: str) -> dto_out.GetInsti
     Raises:
         HTTPException: If there is an error retrieving the institution or if not found
     """
-    collection = db.get_collection(COLLECTION_NAME)
+    collection = db.get_collection(models.Institution.COLLECTION_NAME)
 
     try:
         institution_data = collection.find_one({"_id": institution_id})
@@ -75,10 +72,7 @@ def get_institution_by_id(db: Database, institution_id: str) -> dto_out.GetInsti
     return dto_out.GetInstitution(institution=institution)
 
 
-def create_institution(
-        db: Database,
-        request: dto_in.CreateInstitution
-) -> dto_out.GetInstitution:
+def create_institution(db: Database, request: dto_in.CreateInstitution) -> dto_out.GetInstitution:
     """
     Create a new institution
 
@@ -92,7 +86,7 @@ def create_institution(
     Raises:
         HTTPException: If there is an error creating the institution
     """
-    collection = db.get_collection(COLLECTION_NAME)
+    collection = db.get_collection(models.Institution.COLLECTION_NAME)
 
     institution = models.Institution(**request.model_dump())
 
@@ -115,13 +109,10 @@ def delete_institution(db: Database, institution_id: str) -> None:
         db: Database dependency
         institution_id: ID of the institution to delete
 
-    Returns:
-        None
-
     Raises:
         HTTPException: If there is an error deleting the institution or if not found
     """
-    collection = db.get_collection(COLLECTION_NAME)
+    collection = db.get_collection(models.Institution.COLLECTION_NAME)
 
     try:
         result = collection.delete_one({"_id": institution_id})
@@ -157,7 +148,7 @@ def update_institution(
     Raises:
         HTTPException: If there is an error updating the institution or if not found
     """
-    collection = db.get_collection(COLLECTION_NAME)
+    collection = db.get_collection(models.Institution.COLLECTION_NAME)
 
     updated_data = request.model_dump(exclude_unset=True)
 
@@ -178,7 +169,38 @@ def update_institution(
             detail=f"Institution with id {institution_id} not found."
         )
 
-    updated_institution_data = collection.find_one({"_id": institution_id})
-    updated_institution = models.Institution(**updated_institution_data)
+    return get_institution_by_id(db, institution_id)
 
-    return dto_out.GetInstitution(institution=updated_institution)
+
+def get_institution_courses(db: Database, institution_id: str) -> dto_out.GetInstitutionCourses:
+    """
+    Get courses of an institution
+
+    Args:
+        db: Database dependency
+        institution_id: ID of the institution
+
+    Returns:
+        GetInstitutionCourses: List of courses
+
+    Raises:
+        HTTPException: If there is an error retrieving courses
+    """
+    get_institution_by_id(db, institution_id)
+
+    courses_collection = db.get_collection(models.Course.COLLECTION_NAME)
+
+    try:
+        courses_data = courses_collection.find({"institution_id": institution_id}).to_list()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error retrieving courses for institution with id {institution_id}: {str(e)}"
+        )
+
+    courses = [
+        models.Course(**course)
+        for course in courses_data
+    ]
+
+    return dto_out.GetInstitutionCourses(courses=courses)

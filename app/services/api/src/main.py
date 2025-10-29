@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 
 from app.services.api.src.institutions.routes import router as institutions_router
+from app.services.api.src.courses.routes import router as courses_router
 
 app = FastAPI(
     title="ODES API",
@@ -10,6 +11,7 @@ app = FastAPI(
 )
 
 app.include_router(institutions_router)
+app.include_router(courses_router)
 
 
 @app.get("/", include_in_schema=False)

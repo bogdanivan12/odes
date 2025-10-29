@@ -17,3 +17,10 @@ class GetInstitution(BaseModel):
     DTO for retrieving an institution
     """
     institution: models.Institution
+
+
+class GetInstitutionCourses(BaseModel):
+    """
+    DTO for retrieving courses of an institution
+    """
+    courses: List[models.Course]

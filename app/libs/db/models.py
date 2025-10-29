@@ -1,7 +1,7 @@
 import uuid
 from enum import Enum
 from datetime import datetime, timezone
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, ClassVar
 
 from pydantic import BaseModel, Field
 
@@ -17,6 +17,8 @@ class Institution(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
     name: str
     time_grid_config: TimeGridConfig
+
+    COLLECTION_NAME: ClassVar[str] = "institutions"
 
     class Config:
         populate_by_name = True
@@ -42,6 +44,8 @@ class User(BaseModel):
     institution_ids: List[str] = Field(default_factory=list)
     group_ids: List[str] = Field(default_factory=list)
 
+    COLLECTION_NAME: ClassVar[str] = "users"
+
     class Config:
         populate_by_name = True
 
@@ -51,6 +55,8 @@ class Group(BaseModel):
     institution_id: str
     name: str
     parent_group_id: Optional[str] = None
+
+    Collection_NAME: ClassVar[str] = "groups"
 
     class Config:
         populate_by_name = True
@@ -62,6 +68,8 @@ class Room(BaseModel):
     name: str
     capacity: int
     features: List[str] = Field(default_factory=list)
+
+    COLLECTION_NAME: ClassVar[str] = "rooms"
 
     class Config:
         populate_by_name = True
@@ -80,6 +88,8 @@ class Course(BaseModel):
     name: str
     # mapping activity type to its duration in slots
     activities_duration_slots: Dict[ActivityType, int] = Field(default_factory=dict)
+
+    COLLECTION_NAME: ClassVar[str] = "courses"
 
     class Config:
         populate_by_name = True
@@ -109,6 +119,8 @@ class Activity(BaseModel):
     frequency: Frequency
     selected_timeslot: Optional[SelectedTimeslot] = None
 
+    COLLECTION_NAME: ClassVar[str] = "activities"
+
     class Config:
         populate_by_name = True
 
@@ -128,6 +140,8 @@ class Schedule(BaseModel):
     status: ScheduleStatus = ScheduleStatus.DRAFT
     error_message: Optional[str] = None
 
+    COLLECTION_NAME: ClassVar[str] = "schedules"
+
     class Config:
         populate_by_name = True
 
@@ -139,6 +153,8 @@ class ScheduledActivity(BaseModel):
     room_id: str
     start_timeslot: int
     active_weeks: List[int] = Field(default_factory=list)
+
+    COLLECTION_NAME: ClassVar[str] = "scheduled_activities"
 
     class Config:
         populate_by_name = True
