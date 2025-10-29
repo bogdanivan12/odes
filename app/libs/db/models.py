@@ -1,9 +1,9 @@
+import uuid
 from enum import Enum
 from datetime import datetime, timezone
 from typing import Optional, List, Dict
 
 from pydantic import BaseModel, Field
-from beanie import Document, PydanticObjectId
 
 
 class TimeGridConfig(BaseModel):
@@ -13,13 +13,13 @@ class TimeGridConfig(BaseModel):
     max_timeslots_per_day_per_group: int
 
 
-class Institution(Document):
-    _id: Optional[PydanticObjectId] = None
+class Institution(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
     name: str
     time_grid_config: TimeGridConfig
 
-    class Settings:
-        name = "institutions"
+    class Config:
+        populate_by_name = True
 
 
 class UserRole(str, Enum):
@@ -29,42 +29,42 @@ class UserRole(str, Enum):
 
 
 class UserInstitutionRole(BaseModel):
-    institution_id: PydanticObjectId
+    institution_id: str
     roles: List[UserRole] = Field(default_factory=list)
 
 
-class User(Document):
-    _id: Optional[PydanticObjectId] = None
+class User(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
     name: str
     email: str
     hashed_password: str
     user_roles: List[UserInstitutionRole] = Field(default_factory=list)
-    institution_ids: List[PydanticObjectId] = Field(default_factory=list)
-    group_ids: List[PydanticObjectId] = Field(default_factory=list)
+    institution_ids: List[str] = Field(default_factory=list)
+    group_ids: List[str] = Field(default_factory=list)
 
-    class Settings:
-        name = "users"
+    class Config:
+        populate_by_name = True
 
 
-class Group(Document):
-    _id: Optional[PydanticObjectId] = None
-    institution_id: PydanticObjectId
+class Group(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    institution_id: str
     name: str
-    parent_group_id: Optional[PydanticObjectId] = None
+    parent_group_id: Optional[str] = None
 
-    class Settings:
-        name = "groups"
+    class Config:
+        populate_by_name = True
 
 
-class Room(Document):
-    _id: Optional[PydanticObjectId] = None
-    institution_id: PydanticObjectId
+class Room(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    institution_id: str
     name: str
     capacity: int
     features: List[str] = Field(default_factory=list)
 
-    class Settings:
-        name = "rooms"
+    class Config:
+        populate_by_name = True
 
 
 class ActivityType(str, Enum):
@@ -74,15 +74,15 @@ class ActivityType(str, Enum):
     OTHER = "other"
 
 
-class Course(Document):
-    _id: Optional[PydanticObjectId] = None
-    institution_id: PydanticObjectId
+class Course(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    institution_id: str
     name: str
     # mapping activity type to its duration in slots
     activities_duration_slots: Dict[ActivityType, int] = Field(default_factory=dict)
 
-    class Settings:
-        name = "courses"
+    class Config:
+        populate_by_name = True
 
 
 class SelectedTimeslot(BaseModel):
@@ -97,20 +97,20 @@ class Frequency(str, Enum):
     BIWEEKLY_EVEN = "biweekly_even"
 
 
-class Activity(Document):
-    _id: Optional[PydanticObjectId] = None
-    institution_id: PydanticObjectId
+class Activity(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    institution_id: str
     activity_type: ActivityType
-    course_id: PydanticObjectId
+    course_id: str
     duration_slots: int
-    group_id: PydanticObjectId
-    professor_id: PydanticObjectId
+    group_id: str
+    professor_id: str
     required_room_features: List[str] = Field(default_factory=list)
     frequency: Frequency
     selected_timeslot: Optional[SelectedTimeslot] = None
 
-    class Settings:
-        name = "activities"
+    class Config:
+        populate_by_name = True
 
 
 class ScheduleStatus(str, Enum):
@@ -120,25 +120,25 @@ class ScheduleStatus(str, Enum):
     FAILED = "failed"
 
 
-class Schedule(Document):
-    _id: Optional[PydanticObjectId] = None
-    institution_id: PydanticObjectId
+class Schedule(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    institution_id: str
     time_grid_config: TimeGridConfig
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     status: ScheduleStatus = ScheduleStatus.DRAFT
     error_message: Optional[str] = None
 
-    class Settings:
-        name = "schedules"
+    class Config:
+        populate_by_name = True
 
 
-class ScheduledActivity(Document):
-    _id: Optional[PydanticObjectId] = None
-    schedule_id: PydanticObjectId
-    activity_id: PydanticObjectId
-    room_id: PydanticObjectId
+class ScheduledActivity(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    schedule_id: str
+    activity_id: str
+    room_id: str
     start_timeslot: int
     active_weeks: List[int] = Field(default_factory=list)
 
-    class Settings:
-        name = "scheduled_activities"
+    class Config:
+        populate_by_name = True

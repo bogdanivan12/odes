@@ -1,2 +1,5 @@
-beanie==2.0.0
 pydantic==2.12.3
+fastapi==0.120.1
+uvicorn==0.38.0
+python-dotenv==1.2.1
+certifi==2025.10.5
