@@ -12,31 +12,96 @@ router = APIRouter(prefix="/api/v1/institutions", tags=["institutions"])
             status_code=status.HTTP_200_OK,
             response_model=dto_out.GetAllInstitutions)
 async def get_institutions(db: DB):
+    """
+    Get all institutions
+
+    Args:
+        db: Database dependency
+
+    Returns:
+        GetAllInstitutions: List of institutions
+
+    Raises:
+        HTTPException: If there is an error retrieving institutions
+    """
     return service.get_institutions(db)
 
 
 @router.get("/{institution_id}",
             status_code=status.HTTP_200_OK,
-            response_model=dto_out.GetInstitutionById)
+            response_model=dto_out.GetInstitution)
 async def get_institution_by_id(db: DB, institution_id: str):
+    """
+    Get institution by ID
+
+    Args:
+        db: Database dependency
+        institution_id: ID of the institution
+
+    Returns:
+        GetInstitutionById: Institution data
+
+    Raises:
+        HTTPException: If there is an error retrieving the institution or if not found
+    """
     return service.get_institution_by_id(db, institution_id)
 
 
 @router.post("/",
              status_code=status.HTTP_201_CREATED,
-             response_model=dto_out.GetInstitutionById)
+             response_model=dto_out.GetInstitution)
 async def create_institution(db: DB, request: dto_in.CreateInstitution):
+    """
+    Create a new institution
+
+    Args:
+        db: Database dependency
+        request: CreateInstitution DTO
+
+    Returns:
+        GetInstitutionById: Created institution data
+
+    Raises:
+        HTTPException: If there is an error creating the institution
+    """
     return service.create_institution(db, request)
 
 
 @router.delete("/{institution_id}",
                status_code=status.HTTP_204_NO_CONTENT)
 async def delete_institution(db: DB, institution_id: str):
+    """
+    Delete an institution by ID
+
+    Args:
+        db: Database dependency
+        institution_id: ID of the institution to delete
+
+    Returns:
+        None
+
+    Raises:
+        HTTPException: If there is an error deleting the institution or if not found
+    """
     return service.delete_institution(db, institution_id)
 
 
 @router.put("/{institution_id}",
             status_code=status.HTTP_200_OK,
-            response_model=dto_out.GetInstitutionById)
+            response_model=dto_out.GetInstitution)
 async def update_institution(db: DB, institution_id: str, request: dto_in.UpdateInstitution):
+    """
+    Update an institution by ID
+
+    Args:
+        db: Database dependency
+        institution_id: ID of the institution to update
+        request: UpdateInstitution DTO
+
+    Returns:
+        GetInstitutionById: Updated institution data
+
+    Raises:
+        HTTPException: If there is an error updating the institution or if not found
+    """
     return service.update_institution(db, institution_id, request)

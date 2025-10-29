@@ -5,10 +5,23 @@ from pymongo.synchronous.database import Database
 from app.libs.db import models
 from app.services.api.src.institutions import dto_in, dto_out
 
+
 COLLECTION_NAME = "institutions"
 
 
 def get_institutions(db: Database) -> dto_out.GetAllInstitutions:
+    """
+    Get all institutions
+
+    Args:
+        db: Database dependency
+
+    Returns:
+        GetAllInstitutions: List of institutions
+
+    Raises:
+        HTTPException: If there is an error retrieving institutions
+    """
     collection = db.get_collection(COLLECTION_NAME)
 
     try:
@@ -27,7 +40,20 @@ def get_institutions(db: Database) -> dto_out.GetAllInstitutions:
     return dto_out.GetAllInstitutions(institutions=institutions)
 
 
-def get_institution_by_id(db: Database, institution_id: str) -> dto_out.GetInstitutionById:
+def get_institution_by_id(db: Database, institution_id: str) -> dto_out.GetInstitution:
+    """
+    Get institution by ID
+
+    Args:
+        db: Database dependency
+        institution_id: ID of the institution
+
+    Returns:
+        GetInstitutionById: Institution data
+
+    Raises:
+        HTTPException: If there is an error retrieving the institution or if not found
+    """
     collection = db.get_collection(COLLECTION_NAME)
 
     try:
@@ -46,13 +72,26 @@ def get_institution_by_id(db: Database, institution_id: str) -> dto_out.GetInsti
 
     institution = models.Institution(**institution_data)
 
-    return dto_out.GetInstitutionById(institution=institution)
+    return dto_out.GetInstitution(institution=institution)
 
 
 def create_institution(
         db: Database,
         request: dto_in.CreateInstitution
-) -> dto_out.GetInstitutionById:
+) -> dto_out.GetInstitution:
+    """
+    Create a new institution
+
+    Args:
+        db: Database dependency
+        request: CreateInstitution DTO
+
+    Returns:
+        GetInstitutionById: Created institution data
+
+    Raises:
+        HTTPException: If there is an error creating the institution
+    """
     collection = db.get_collection(COLLECTION_NAME)
 
     institution = models.Institution(**request.model_dump())
@@ -65,10 +104,23 @@ def create_institution(
             detail=f"Error creating institution: {str(e)}"
         )
 
-    return dto_out.GetInstitutionById(institution=institution)
+    return dto_out.GetInstitution(institution=institution)
 
 
 def delete_institution(db: Database, institution_id: str) -> None:
+    """
+    Delete an institution by ID
+
+    Args:
+        db: Database dependency
+        institution_id: ID of the institution to delete
+
+    Returns:
+        None
+
+    Raises:
+        HTTPException: If there is an error deleting the institution or if not found
+    """
     collection = db.get_collection(COLLECTION_NAME)
 
     try:
@@ -90,7 +142,21 @@ def update_institution(
         db: Database,
         institution_id: str,
         request: dto_in.UpdateInstitution
-) -> dto_out.GetInstitutionById:
+) -> dto_out.GetInstitution:
+    """
+    Update an institution by ID
+
+    Args:
+        db: Database dependency
+        institution_id: ID of the institution to update
+        request: UpdateInstitution DTO
+
+    Returns:
+        GetInstitutionById: Updated institution data
+
+    Raises:
+        HTTPException: If there is an error updating the institution or if not found
+    """
     collection = db.get_collection(COLLECTION_NAME)
 
     updated_data = request.model_dump(exclude_unset=True)
@@ -115,4 +181,4 @@ def update_institution(
     updated_institution_data = collection.find_one({"_id": institution_id})
     updated_institution = models.Institution(**updated_institution_data)
 
-    return dto_out.GetInstitutionById(institution=updated_institution)
+    return dto_out.GetInstitution(institution=updated_institution)

@@ -6,8 +6,14 @@ from app.libs.db import models
 
 
 class GetAllInstitutions(BaseModel):
+    """
+    DTO for retrieving all institutions
+    """
     institutions: List[models.Institution]
 
 
-class GetInstitutionById(BaseModel):
+class GetInstitution(BaseModel):
+    """
+    DTO for retrieving an institution
+    """
     institution: models.Institution
