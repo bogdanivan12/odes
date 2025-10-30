@@ -6,7 +6,10 @@ from pymongo.synchronous.database import Database
 
 from app.libs.db import models
 from app.services.api.src.dtos.input import course as dto_in
-from app.services.api.src.repositories import courses as courses_repo
+from app.services.api.src.repositories import (
+    courses as courses_repo,
+    institutions as institutions_repo
+)
 
 
 def get_courses(db: Database) -> List[models.Course]:
@@ -30,10 +33,7 @@ def get_courses(db: Database) -> List[models.Course]:
             detail=f"Error retrieving courses: {str(e)}"
         )
 
-    courses = [
-        models.Course(**course)
-        for course in courses_data
-    ]
+    courses = [models.Course(**course) for course in courses_data]
 
     return courses
 
@@ -85,7 +85,7 @@ def create_course(db: Database, request: dto_in.CreateCourse) -> models.Course:
     Raises:
         HTTPException: If there is an error creating the course
     """
-    institution = institutions_repo.get_institution_by_id(db, request.institution_id)
+    institution = institutions_repo.find_institution_by_id(db, request.institution_id)
     if not institution:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -117,7 +117,7 @@ def delete_course(db: Database, course_id: str) -> None:
         HTTPException: If there is an error deleting the course or if not found
     """
     try:
-        result = courses_repo.delete_course(db, course_id)
+        result = courses_repo.delete_course_by_id(db, course_id)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
@@ -149,7 +149,7 @@ def update_course(db: Database, course_id: str, request: dto_in.UpdateCourse) ->
     update_data = request.model_dump(exclude_unset=True)
 
     try:
-        result = courses_repo.update_course(db, course_id, update_data)
+        result = courses_repo.update_course_by_id(db, course_id, update_data)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
