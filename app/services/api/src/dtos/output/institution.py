@@ -24,3 +24,10 @@ class GetInstitutionCourses(BaseModel):
     DTO for retrieving courses of an institution
     """
     courses: List[models.Course]
+
+
+class GetInstitutionRooms(BaseModel):
+    """
+    DTO for retrieving rooms of an institution
+    """
+    rooms: List[models.Room]

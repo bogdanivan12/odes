@@ -7,6 +7,7 @@ from pymongo.synchronous.database import Database
 from app.libs.db import models
 from app.services.api.src.dtos.input import institution as dto_in
 from app.services.api.src.repositories import (
+    rooms as rooms_repo,
     courses as courses_repo,
     institutions as institutions_repo
 )
@@ -33,10 +34,7 @@ def get_institutions(db: Database) -> List[models.Institution]:
             detail=f"Error retrieving institutions: {str(e)}"
         )
 
-    institutions = [
-        models.Institution(**institiution)
-        for institiution in institutions_data
-    ]
+    institutions = [models.Institution(**institiution) for institiution in institutions_data]
 
     return institutions
 
@@ -113,7 +111,7 @@ def delete_institution(db: Database, institution_id: str) -> None:
         HTTPException: If there is an error deleting the institution or if not found
     """
     try:
-        result = institutions_repo.delete_institution(db, institution_id)
+        result = institutions_repo.delete_institution_by_id(db, institution_id)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
@@ -149,7 +147,7 @@ def update_institution(
     updated_data = request.model_dump(exclude_unset=True)
 
     try:
-        result = institutions_repo.update_institution(db, institution_id, updated_data)
+        result = institutions_repo.update_institution_by_id(db, institution_id, updated_data)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
@@ -189,9 +187,35 @@ def get_institution_courses(db: Database, institution_id: str) -> List[models.Co
             detail=f"Error retrieving courses for institution with id {institution_id}: {str(e)}"
         )
 
-    courses = [
-        models.Course(**course)
-        for course in courses_data
-    ]
+    courses = [models.Course(**course) for course in courses_data]
 
     return courses
+
+
+def get_institution_rooms(db: Database, institution_id: str) -> List[models.Room]:
+    """
+    Get rooms of an institution
+
+    Args:
+        db: Database dependency
+        institution_id: ID of the institution
+
+    Returns:
+        GetInstitutionRooms: List of rooms
+
+    Raises:
+        HTTPException: If there is an error retrieving rooms
+    """
+    get_institution_by_id(db, institution_id)
+
+    try:
+        rooms_data = rooms_repo.find_rooms_by_institution_id(db, institution_id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error retrieving rooms for institution with id {institution_id}: {str(e)}"
+        )
+
+    rooms = [models.Room(**room) for room in rooms_data]
+
+    return rooms

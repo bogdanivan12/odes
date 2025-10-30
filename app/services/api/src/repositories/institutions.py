@@ -18,11 +18,11 @@ def insert_institution(db: Database, institution: models.Institution):
     return collection.insert_one(institution.model_dump(by_alias=True))
 
 
-def update_institution(db: Database, institution_id: str, update_data: dict):
+def update_institution_by_id(db: Database, institution_id: str, update_data: dict):
     collection = db.get_collection(models.Institution.COLLECTION_NAME)
     return collection.update_one({"_id": institution_id}, {"$set": update_data})
 
 
-def delete_institution(db: Database, institution_id: str):
+def delete_institution_by_id(db: Database, institution_id: str):
     collection = db.get_collection(models.Institution.COLLECTION_NAME)
     return collection.delete_one({"_id": institution_id})

@@ -130,3 +130,21 @@ async def get_institution_courses(db: DB, institution_id: str):
     """
     courses = service.get_institution_courses(db, institution_id)
     return dto_out.GetInstitutionCourses(courses=courses)
+
+
+@router.get("/{institution_id}/rooms",
+            status_code=status.HTTP_200_OK,
+            response_model=dto_out.GetInstitutionRooms)
+async def get_institution_rooms(db: DB, institution_id: str):
+    """
+    Get all rooms for a specific institution
+
+    Args:
+        db: Database dependency
+        institution_id: ID of the institution
+
+    Returns:
+        GetInstitutionRooms: List of rooms for the institution
+    """
+    rooms = service.get_institution_rooms(db, institution_id)
+    return dto_out.GetInstitutionRooms(rooms=rooms)
