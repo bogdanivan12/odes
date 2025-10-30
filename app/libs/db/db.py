@@ -17,6 +17,7 @@ DB_NAME = os.getenv("DB_NAME", "odes")
 
 
 def get_db():
+    """Dependency that provides a MongoDB database connection"""
     client = MongoClient(
         MONGODB_URI,
         server_api=ServerApi("1"),
@@ -27,5 +28,6 @@ def get_db():
         yield db
     finally:
         client.close()
+
 
 DB: TypeAlias = Annotated[Database, Depends(get_db)]
