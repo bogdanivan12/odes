@@ -1,12 +1,18 @@
+from typing import List
+
 from starlette import status
 from fastapi.exceptions import HTTPException
 from pymongo.synchronous.database import Database
 
 from app.libs.db import models
-from app.services.api.src.institutions import dto_in, dto_out
+from app.services.api.src.dtos.input import institution as dto_in
+from app.services.api.src.repositories import (
+    courses as courses_repo,
+    institutions as institutions_repo
+)
 
 
-def get_institutions(db: Database) -> dto_out.GetAllInstitutions:
+def get_institutions(db: Database) -> List[models.Institution]:
     """
     Get all institutions
 
@@ -19,10 +25,8 @@ def get_institutions(db: Database) -> dto_out.GetAllInstitutions:
     Raises:
         HTTPException: If there is an error retrieving institutions
     """
-    collection = db.get_collection(models.Institution.COLLECTION_NAME)
-
     try:
-        institutions_data = collection.find({}).to_list()
+        institutions_data = institutions_repo.find_all_institutions(db)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
@@ -34,10 +38,10 @@ def get_institutions(db: Database) -> dto_out.GetAllInstitutions:
         for institiution in institutions_data
     ]
 
-    return dto_out.GetAllInstitutions(institutions=institutions)
+    return institutions
 
 
-def get_institution_by_id(db: Database, institution_id: str) -> dto_out.GetInstitution:
+def get_institution_by_id(db: Database, institution_id: str) -> models.Institution:
     """
     Get institution by ID
 
@@ -51,10 +55,8 @@ def get_institution_by_id(db: Database, institution_id: str) -> dto_out.GetInsti
     Raises:
         HTTPException: If there is an error retrieving the institution or if not found
     """
-    collection = db.get_collection(models.Institution.COLLECTION_NAME)
-
     try:
-        institution_data = collection.find_one({"_id": institution_id})
+        institution_data = institutions_repo.find_institution_by_id(db, institution_id)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
@@ -69,10 +71,10 @@ def get_institution_by_id(db: Database, institution_id: str) -> dto_out.GetInsti
 
     institution = models.Institution(**institution_data)
 
-    return dto_out.GetInstitution(institution=institution)
+    return institution
 
 
-def create_institution(db: Database, request: dto_in.CreateInstitution) -> dto_out.GetInstitution:
+def create_institution(db: Database, request: dto_in.CreateInstitution) -> models.Institution:
     """
     Create a new institution
 
@@ -86,19 +88,17 @@ def create_institution(db: Database, request: dto_in.CreateInstitution) -> dto_o
     Raises:
         HTTPException: If there is an error creating the institution
     """
-    collection = db.get_collection(models.Institution.COLLECTION_NAME)
-
     institution = models.Institution(**request.model_dump())
 
     try:
-        collection.insert_one(institution.model_dump(by_alias=True))
+        institutions_repo.insert_institution(db, institution)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
             detail=f"Error creating institution: {str(e)}"
         )
 
-    return dto_out.GetInstitution(institution=institution)
+    return institution
 
 
 def delete_institution(db: Database, institution_id: str) -> None:
@@ -112,10 +112,8 @@ def delete_institution(db: Database, institution_id: str) -> None:
     Raises:
         HTTPException: If there is an error deleting the institution or if not found
     """
-    collection = db.get_collection(models.Institution.COLLECTION_NAME)
-
     try:
-        result = collection.delete_one({"_id": institution_id})
+        result = institutions_repo.delete_institution(db, institution_id)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
@@ -133,7 +131,7 @@ def update_institution(
         db: Database,
         institution_id: str,
         request: dto_in.UpdateInstitution
-) -> dto_out.GetInstitution:
+) -> models.Institution:
     """
     Update an institution by ID
 
@@ -148,15 +146,10 @@ def update_institution(
     Raises:
         HTTPException: If there is an error updating the institution or if not found
     """
-    collection = db.get_collection(models.Institution.COLLECTION_NAME)
-
     updated_data = request.model_dump(exclude_unset=True)
 
     try:
-        result = collection.update_one(
-            {"_id": institution_id},
-            {"$set": updated_data}
-        )
+        result = institutions_repo.update_institution(db, institution_id, updated_data)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
@@ -172,7 +165,7 @@ def update_institution(
     return get_institution_by_id(db, institution_id)
 
 
-def get_institution_courses(db: Database, institution_id: str) -> dto_out.GetInstitutionCourses:
+def get_institution_courses(db: Database, institution_id: str) -> List[models.Course]:
     """
     Get courses of an institution
 
@@ -188,10 +181,8 @@ def get_institution_courses(db: Database, institution_id: str) -> dto_out.GetIns
     """
     get_institution_by_id(db, institution_id)
 
-    courses_collection = db.get_collection(models.Course.COLLECTION_NAME)
-
     try:
-        courses_data = courses_collection.find({"institution_id": institution_id}).to_list()
+        courses_data = courses_repo.find_courses_by_institution_id(db, institution_id)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
@@ -203,4 +194,4 @@ def get_institution_courses(db: Database, institution_id: str) -> dto_out.GetIns
         for course in courses_data
     ]
 
-    return dto_out.GetInstitutionCourses(courses=courses)
+    return courses

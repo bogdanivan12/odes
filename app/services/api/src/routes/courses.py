@@ -2,10 +2,12 @@ from starlette import status
 from fastapi import APIRouter
 
 from app.libs.db.db import DB
-from app.services.api.src.courses import service, dto_in, dto_out
-
+from app.services.api.src.services import courses as service
+from app.services.api.src.dtos.input import course as dto_in
+from app.services.api.src.dtos.output import course as dto_out
 
 router = APIRouter(prefix="/api/v1/courses", tags=["courses"])
+
 
 @router.get("/",
             status_code=status.HTTP_200_OK,
@@ -23,7 +25,8 @@ async def get_courses(db: DB):
     Raises:
         HTTPException: If there is an error retrieving courses
     """
-    return service.get_courses(db)
+    courses = service.get_courses(db)
+    return dto_out.GetAllCourses(courses=courses)
 
 
 @router.get("/{course_id}",
@@ -43,7 +46,8 @@ async def get_course_by_id(db: DB, course_id: str):
     Raises:
         HTTPException: If there is an error retrieving the course or if not found
     """
-    return service.get_course_by_id(db, course_id)
+    course = service.get_course_by_id(db, course_id)
+    return dto_out.GetCourse(course=course)
 
 
 @router.post("/",
@@ -63,7 +67,8 @@ async def create_course(db: DB, request: dto_in.CreateCourse):
     Raises:
         HTTPException: If there is an error creating the course
     """
-    return service.create_course(db, request)
+    course = service.create_course(db, request)
+    return dto_out.GetCourse(course=course)
 
 
 @router.put("/{course_id}",
@@ -84,7 +89,8 @@ async def update_course(db: DB, course_id: str, request: dto_in.UpdateCourse):
     Raises:
         HTTPException: If there is an error updating the course or if not found
     """
-    return service.update_course(db, course_id, request)
+    course = service.update_course(db, course_id, request)
+    return dto_out.GetCourse(course=course)
 
 
 @router.delete("/{course_id}",
@@ -103,4 +109,4 @@ async def delete_course(db: DB, course_id: str):
     Raises:
         HTTPException: If there is an error deleting the course or if not found
     """
-    return service.delete_course(db, course_id)
+    service.delete_course(db, course_id)

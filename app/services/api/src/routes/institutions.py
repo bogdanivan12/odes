@@ -2,7 +2,9 @@ from starlette import status
 from fastapi import APIRouter
 
 from app.libs.db.db import DB
-from app.services.api.src.institutions import service, dto_in, dto_out
+from app.services.api.src.services import institutions as service
+from app.services.api.src.dtos.input import institution as dto_in
+from app.services.api.src.dtos.output import institution as dto_out
 
 
 router = APIRouter(prefix="/api/v1/institutions", tags=["institutions"])
@@ -24,7 +26,8 @@ async def get_institutions(db: DB):
     Raises:
         HTTPException: If there is an error retrieving institutions
     """
-    return service.get_institutions(db)
+    institutions = service.get_institutions(db)
+    return dto_out.GetAllInstitutions(institutions=institutions)
 
 
 @router.get("/{institution_id}",
@@ -44,7 +47,8 @@ async def get_institution_by_id(db: DB, institution_id: str):
     Raises:
         HTTPException: If there is an error retrieving the institution or if not found
     """
-    return service.get_institution_by_id(db, institution_id)
+    institution = service.get_institution_by_id(db, institution_id)
+    return dto_out.GetInstitution(institution=institution)
 
 
 @router.post("/",
@@ -64,7 +68,8 @@ async def create_institution(db: DB, request: dto_in.CreateInstitution):
     Raises:
         HTTPException: If there is an error creating the institution
     """
-    return service.create_institution(db, request)
+    institution = service.create_institution(db, request)
+    return dto_out.GetInstitution(institution=institution)
 
 
 @router.delete("/{institution_id}",
@@ -80,7 +85,7 @@ async def delete_institution(db: DB, institution_id: str):
     Raises:
         HTTPException: If there is an error deleting the institution or if not found
     """
-    return service.delete_institution(db, institution_id)
+    service.delete_institution(db, institution_id)
 
 
 @router.put("/{institution_id}",
@@ -101,7 +106,8 @@ async def update_institution(db: DB, institution_id: str, request: dto_in.Update
     Raises:
         HTTPException: If there is an error updating the institution or if not found
     """
-    return service.update_institution(db, institution_id, request)
+    institution = service.update_institution(db, institution_id, request)
+    return dto_out.GetInstitution(institution=institution)
 
 
 @router.get("/{institution_id}/courses",
@@ -122,4 +128,5 @@ async def get_institution_courses(db: DB, institution_id: str):
         HTTPException: If there is an error retrieving the courses
             or if the institution is not found
     """
-    return service.get_institution_courses(db, institution_id)
+    courses = service.get_institution_courses(db, institution_id)
+    return dto_out.GetInstitutionCourses(courses=courses)
