@@ -56,7 +56,7 @@ class Group(BaseModel):
     name: str
     parent_group_id: Optional[str] = None
 
-    Collection_NAME: ClassVar[str] = "groups"
+    COLLECTION_NAME: ClassVar[str] = "groups"
 
     class Config:
         populate_by_name = True

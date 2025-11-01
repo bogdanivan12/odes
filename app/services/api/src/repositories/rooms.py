@@ -31,3 +31,8 @@ def delete_room_by_id(db: Database, room_id: str):
 def find_rooms_by_institution_id(db: Database, institution_id: str):
     collection = db.get_collection(models.Room.COLLECTION_NAME)
     return collection.find({"institution_id": institution_id}).to_list()
+
+
+def delete_rooms_by_institution_id(db: Database, institution_id: str):
+    collection = db.get_collection(models.Room.COLLECTION_NAME)
+    return collection.delete_many({"institution_id": institution_id})

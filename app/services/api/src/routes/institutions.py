@@ -148,3 +148,21 @@ async def get_institution_rooms(db: DB, institution_id: str):
     """
     rooms = service.get_institution_rooms(db, institution_id)
     return dto_out.GetInstitutionRooms(rooms=rooms)
+
+
+@router.get("/{institution_id}/groups",
+            status_code=status.HTTP_200_OK,
+            response_model=dto_out.GetInstitutionGroups)
+async def get_institution_groups(db: DB, institution_id: str):
+    """
+    Get all groups for a specific institution
+
+    Args:
+        db: Database dependency
+        institution_id: ID of the institution
+
+    Returns:
+        GetInstitutionGroups: List of groups for the institution
+    """
+    groups = service.get_institution_groups(db, institution_id)
+    return dto_out.GetInstitutionGroups(groups=groups)

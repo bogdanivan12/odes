@@ -8,6 +8,7 @@ from app.libs.db import models
 from app.services.api.src.dtos.input import institution as dto_in
 from app.services.api.src.repositories import (
     rooms as rooms_repo,
+    groups as groups_repo,
     courses as courses_repo,
     institutions as institutions_repo
 )
@@ -34,7 +35,7 @@ def get_institutions(db: Database) -> List[models.Institution]:
             detail=f"Error retrieving institutions: {str(e)}"
         )
 
-    institutions = [models.Institution(**institiution) for institiution in institutions_data]
+    institutions = [models.Institution(**institution) for institution in institutions_data]
 
     return institutions
 
@@ -116,6 +117,17 @@ def delete_institution(db: Database, institution_id: str) -> None:
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
             detail=f"Error deleting institution with id {institution_id}: {str(e)}"
+        )
+
+    try:
+        courses_repo.delete_courses_by_institution_id(db, institution_id)
+        rooms_repo.delete_rooms_by_institution_id(db, institution_id)
+        groups_repo.delete_groups_by_institution_id(db, institution_id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error deleting related data for institution"
+                   f" with id {institution_id}: {str(e)}"
         )
 
     if result.deleted_count == 0:
@@ -219,3 +231,32 @@ def get_institution_rooms(db: Database, institution_id: str) -> List[models.Room
     rooms = [models.Room(**room) for room in rooms_data]
 
     return rooms
+
+
+def get_institution_groups(db: Database, institution_id: str) -> List[models.Group]:
+    """
+    Get groups of an institution
+
+    Args:
+        db: Database dependency
+        institution_id: ID of the institution
+
+    Returns:
+        GetInstitutionGroups: List of groups
+
+    Raises:
+        HTTPException: If there is an error retrieving groups
+    """
+    get_institution_by_id(db, institution_id)
+
+    try:
+        groups_data = groups_repo.find_groups_by_institution_id(db, institution_id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error retrieving groups for institution with id {institution_id}: {str(e)}"
+        )
+
+    groups = [models.Group(**group) for group in groups_data]
+
+    return groups

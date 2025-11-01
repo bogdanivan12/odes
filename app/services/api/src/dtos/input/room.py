@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -17,6 +17,6 @@ class UpdateRoom(BaseModel):
     """
     DTO for updating a room
     """
-    name: str | None = None
-    capacity: int | None = None
-    features: List[str] | None = None
+    name: Optional[str] = None
+    capacity: Optional[int] = None
+    features: Optional[List[str]] = None

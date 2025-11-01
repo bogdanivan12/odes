@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel
 
 from app.libs.db import models
@@ -15,5 +17,5 @@ class UpdateInstitution(BaseModel):
     """
     DTO for updating an existing institution
     """
-    name: str | None = None
-    time_grid_config: models.TimeGridConfig | None = None
+    name: Optional[str] = None
+    time_grid_config: Optional[models.TimeGridConfig] = None

@@ -31,3 +31,8 @@ def delete_course_by_id(db: Database, course_id: str):
 def find_courses_by_institution_id(db: Database, institution_id: str):
     collection = db.get_collection(models.Course.COLLECTION_NAME)
     return collection.find({"institution_id": institution_id}).to_list()
+
+
+def delete_courses_by_institution_id(db: Database, institution_id: str):
+    collection = db.get_collection(models.Course.COLLECTION_NAME)
+    return collection.delete_many({"institution_id": institution_id})
