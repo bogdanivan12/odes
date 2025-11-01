@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Optional
 
 from pydantic import BaseModel, Field
 
@@ -18,5 +18,5 @@ class UpdateCourse(BaseModel):
     """
     DTO for updating an existing course
     """
-    name: str | None = None
-    activities_duration_slots: Dict[models.ActivityType, int] | None = None
+    name: Optional[str] = None
+    activities_duration_slots: Optional[Dict[models.ActivityType, int]] = None

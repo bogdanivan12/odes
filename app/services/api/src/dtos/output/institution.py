@@ -31,3 +31,10 @@ class GetInstitutionRooms(BaseModel):
     DTO for retrieving rooms of an institution
     """
     rooms: List[models.Room]
+
+
+class GetInstitutionGroups(BaseModel):
+    """
+    DTO for retrieving groups of an institution
+    """
+    groups: List[models.Group]
