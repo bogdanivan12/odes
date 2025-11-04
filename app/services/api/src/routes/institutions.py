@@ -166,3 +166,12 @@ async def get_institution_groups(db: DB, institution_id: str):
     """
     groups = service.get_institution_groups(db, institution_id)
     return dto_out.GetInstitutionGroups(groups=groups)
+
+
+@router.get("/{institution_id}/users",
+            status_code=status.HTTP_200_OK,
+            response_model=dto_out.GetInstitutionUsers)
+async def get_institution_users(db: DB, institution_id: str):
+    """Get all users for a specific institution"""
+    users = service.get_institution_users(db, institution_id)
+    return dto_out.GetInstitutionUsers(users=users)

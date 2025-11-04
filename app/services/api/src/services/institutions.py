@@ -8,6 +8,7 @@ from app.libs.db import models
 from app.services.api.src.dtos.input import institution as dto_in
 from app.services.api.src.repositories import (
     rooms as rooms_repo,
+    users as users_repo,
     groups as groups_repo,
     courses as courses_repo,
     institutions as institutions_repo
@@ -260,3 +261,32 @@ def get_institution_groups(db: Database, institution_id: str) -> List[models.Gro
     groups = [models.Group(**group) for group in groups_data]
 
     return groups
+
+
+def get_institution_users(db: Database, institution_id: str) -> List[models.User]:
+    """
+    Get users of an institution
+
+    Args:
+        db: Database dependency
+        institution_id: ID of the institution
+
+    Returns:
+        GetInstitutionUsers: List of users
+
+    Raises:
+        HTTPException: If there is an error retrieving users
+    """
+    get_institution_by_id(db, institution_id)
+
+    try:
+        users_data = users_repo.find_users_by_institution_id(db, institution_id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error retrieving users for institution with id {institution_id}: {str(e)}"
+        )
+
+    users = [models.User(**user) for user in users_data]
+
+    return users

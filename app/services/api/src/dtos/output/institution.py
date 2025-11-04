@@ -38,3 +38,10 @@ class GetInstitutionGroups(BaseModel):
     DTO for retrieving groups of an institution
     """
     groups: List[models.Group]
+
+
+class GetInstitutionUsers(BaseModel):
+    """
+    DTO for retrieving users of an institution
+    """
+    users: List[models.User]
