@@ -88,7 +88,13 @@ def create_group(db: Database, request: dto_in.CreateGroup) -> models.Group:
     group = models.Group(**request.model_dump())
 
     if group.parent_group_id:
-        get_group_by_id(db, group.parent_group_id)
+        parent_group = get_group_by_id(db, group.parent_group_id)
+
+        if parent_group.institution_id != group.institution_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Parent group must be from the same institution."
+            )
 
     try:
         groups_repo.insert_group(db, group)
@@ -150,6 +156,8 @@ def update_group(db: Database, group_id: str, request: dto_in.UpdateGroup) -> mo
     Raises:
         HTTPException: If there is an error updating the group or if not found
     """
+    group = get_group_by_id(db, group_id)
+
     if request.parent_group_id == group_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -159,7 +167,13 @@ def update_group(db: Database, group_id: str, request: dto_in.UpdateGroup) -> mo
     updated_data = request.model_dump(exclude_unset=True)
 
     if "parent_group_id" in updated_data and updated_data["parent_group_id"] is not None:
-        get_group_by_id(db, updated_data["parent_group_id"])
+        parent_group = get_group_by_id(db, updated_data["parent_group_id"])
+
+        if parent_group.institution_id != group.institution_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Parent group must be from the same institution."
+            )
 
     try:
         result = groups_repo.update_group_by_id(db, group_id, updated_data)
