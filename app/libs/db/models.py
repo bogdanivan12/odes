@@ -30,18 +30,13 @@ class UserRole(str, Enum):
     ADMIN = "admin"
 
 
-class UserInstitutionRole(BaseModel):
-    institution_id: str
-    roles: List[UserRole] = Field(default_factory=list)
-
-
 class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
     name: str
     email: str
-    hashed_password: str
-    user_roles: List[UserInstitutionRole] = Field(default_factory=list)
-    institution_ids: List[str] = Field(default_factory=list)
+    hashed_password: str = Field(exclude=True) # make hashed_password invisible in responses
+    # mapping institution_id to list of roles
+    user_roles: Dict[str, List[UserRole]] = Field(default_factory=dict)
     group_ids: List[str] = Field(default_factory=list)
 
     COLLECTION_NAME: ClassVar[str] = "users"
