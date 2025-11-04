@@ -81,8 +81,6 @@ class Course(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
     institution_id: str
     name: str
-    # mapping activity type to its duration in slots
-    activities_duration_slots: Dict[ActivityType, int] = Field(default_factory=dict)
 
     COLLECTION_NAME: ClassVar[str] = "courses"
 
@@ -111,7 +109,7 @@ class Activity(BaseModel):
     group_id: str
     professor_id: str
     required_room_features: List[str] = Field(default_factory=list)
-    frequency: Frequency
+    frequency: Frequency = Frequency.WEEKLY
     selected_timeslot: Optional[SelectedTimeslot] = None
 
     COLLECTION_NAME: ClassVar[str] = "activities"

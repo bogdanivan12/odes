@@ -110,3 +110,24 @@ async def delete_course(db: DB, course_id: str):
         HTTPException: If there is an error deleting the course or if not found
     """
     service.delete_course(db, course_id)
+
+
+@router.get("/{course_id}/activities",
+            status_code=status.HTTP_200_OK,
+            response_model=dto_out.GetCourseActivities)
+async def get_course_activities(db: DB, course_id: str):
+    """
+    Get all activities for a specific course
+
+    Args:
+        db: Database dependency
+        course_id: ID of the course
+
+    Returns:
+        GetCourseActivities: List of activities for the course
+
+    Raises:
+        HTTPException: If there is an error retrieving activities or if course not found
+    """
+    activities = service.get_course_activities(db, course_id)
+    return dto_out.GetCourseActivities(activities=activities)

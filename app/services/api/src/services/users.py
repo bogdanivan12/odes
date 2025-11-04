@@ -7,7 +7,10 @@ from pymongo.synchronous.database import Database
 from app.libs.db import models
 from app.libs.stringproc import stringproc
 from app.services.api.src.dtos.input import user as dto_in
-from app.services.api.src.repositories import users as users_repo
+from app.services.api.src.repositories import (
+    users as users_repo,
+    activities as activities_repo
+)
 
 
 def get_users(db: Database) -> List[models.User]:
@@ -196,3 +199,20 @@ def remove_user_from_institution(db: Database, user_id: str, institution_id: str
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
             detail=f"Error removing user from institution with id {institution_id}: {str(e)}"
         )
+
+
+def get_professor_activities(db: Database, professor_id: str) -> List[models.Activity]:
+    """Get all activities for a specific professor"""
+    get_user_by_id(db, professor_id)
+
+    try:
+        activities_data = activities_repo.find_activities_by_professor_id(db, professor_id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error retrieving activities for professor with id {professor_id}: {str(e)}"
+        )
+
+    activities = [models.Activity(**activity) for activity in activities_data]
+
+    return activities

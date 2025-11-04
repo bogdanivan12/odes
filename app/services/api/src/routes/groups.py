@@ -108,3 +108,24 @@ async def update_group(db: DB, group_id: str, request: dto_in.UpdateGroup):
     """
     group = service.update_group(db, group_id, request)
     return dto_out.GetGroup(group=group)
+
+
+@router.get("/{group_id}/activities",
+            status_code=status.HTTP_200_OK,
+            response_model=dto_out.GetGroupActivities)
+async def get_group_activities(db: DB, group_id: str):
+    """
+    Get all activities for a specific group
+
+    Args:
+        db: Database dependency
+        group_id: ID of the group
+
+    Returns:
+        GetGroupActivities: List of activities for the group
+
+    Raises:
+        HTTPException: If there is an error retrieving activities or group not found
+    """
+    activities = service.get_group_activities(db, group_id)
+    return dto_out.GetGroupActivities(activities=activities)

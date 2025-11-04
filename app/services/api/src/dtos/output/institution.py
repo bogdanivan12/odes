@@ -45,3 +45,10 @@ class GetInstitutionUsers(BaseModel):
     DTO for retrieving users of an institution
     """
     users: List[models.User]
+
+
+class GetInstitutionActivities(BaseModel):
+    """
+    DTO for retrieving activities of an institution
+    """
+    activities: List[models.Activity]

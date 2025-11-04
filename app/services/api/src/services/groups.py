@@ -6,7 +6,10 @@ from pymongo.synchronous.database import Database
 
 from app.libs.db import models
 from app.services.api.src.dtos.input import group as dto_in
-from app.services.api.src.repositories import groups as groups_repo
+from app.services.api.src.repositories import (
+    groups as groups_repo,
+    activities as activities_repo
+)
 
 
 def get_groups(db: Database) -> List[models.Group]:
@@ -173,3 +176,33 @@ def update_group(db: Database, group_id: str, request: dto_in.UpdateGroup) -> mo
         )
 
     return get_group_by_id(db, group_id)
+
+
+def get_group_activities(db: Database, group_id: str) -> List[models.Activity]:
+    """
+    Get activities for a specific group
+
+    Args:
+        db: Database dependency
+        group_id: ID of the group
+
+    Returns:
+        List[Activity]: List of activities for the group
+
+    Raises:
+        HTTPException: If there is an error retrieving activities or if group not found
+    """
+    # Verify group exists
+    get_group_by_id(db, group_id)
+
+    try:
+        activities_data = activities_repo.find_activities_by_group_id(db, group_id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error retrieving activities for group with id {group_id}: {str(e)}"
+        )
+
+    activities = [models.Activity(**activity) for activity in activities_data]
+
+    return activities

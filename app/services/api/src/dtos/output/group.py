@@ -17,3 +17,10 @@ class GetGroup(BaseModel):
     DTO for retrieving a group
     """
     group: models.Group
+
+
+class GetGroupActivities(BaseModel):
+    """
+    DTO for retrieving group activities
+    """
+    activities: List[models.Activity]

@@ -175,3 +175,12 @@ async def get_institution_users(db: DB, institution_id: str):
     """Get all users for a specific institution"""
     users = service.get_institution_users(db, institution_id)
     return dto_out.GetInstitutionUsers(users=users)
+
+
+@router.get("/{institution_id}/activities",
+            status_code=status.HTTP_200_OK,
+            response_model=dto_out.GetInstitutionActivities)
+async def get_institution_activities(db: DB, institution_id: str):
+    """Get all activities for a specific institution"""
+    activities = service.get_institution_activities(db, institution_id)
+    return dto_out.GetInstitutionActivities(activities=activities)

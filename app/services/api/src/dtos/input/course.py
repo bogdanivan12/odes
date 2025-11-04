@@ -11,7 +11,6 @@ class CreateCourse(BaseModel):
     """
     institution_id: str
     name: str
-    activities_duration_slots: Dict[models.ActivityType, int] = Field(default_factory=dict)
 
 
 class UpdateCourse(BaseModel):
@@ -19,4 +18,3 @@ class UpdateCourse(BaseModel):
     DTO for updating an existing course
     """
     name: Optional[str] = None
-    activities_duration_slots: Optional[Dict[models.ActivityType, int]] = None

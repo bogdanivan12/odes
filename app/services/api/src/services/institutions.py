@@ -11,6 +11,7 @@ from app.services.api.src.repositories import (
     users as users_repo,
     groups as groups_repo,
     courses as courses_repo,
+    activities as activities_repo,
     institutions as institutions_repo
 )
 
@@ -290,3 +291,33 @@ def get_institution_users(db: Database, institution_id: str) -> List[models.User
     users = [models.User(**user) for user in users_data]
 
     return users
+
+
+def get_institution_activities(db: Database, institution_id: str) -> List[models.Activity]:
+    """
+    Get activities of an institution
+
+    Args:
+        db: Database dependency
+        institution_id: ID of the institution
+
+    Returns:
+        GetInstitutionActivities: List of activities
+
+    Raises:
+        HTTPException: If there is an error retrieving activities
+    """
+    get_institution_by_id(db, institution_id)
+
+    try:
+        activities_data = activities_repo.find_activities_by_institution_id(db, institution_id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error retrieving activities for institution with id {institution_id}: "
+                   f"{str(e)}"
+        )
+
+    activities = [models.Activity(**activity) for activity in activities_data]
+
+    return activities
