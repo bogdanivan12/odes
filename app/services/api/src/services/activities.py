@@ -67,6 +67,14 @@ def create_activity(db: Database, request: dto_in.CreateActivity) -> models.Acti
             detail=f"Course with id {request.course_id} not found."
         )
 
+    course = models.Course(**course)
+    if course.institution_id != request.institution_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Course with id {request.course_id} does not belong to"
+                   f" institution with id {request.institution_id}."
+        )
+
     group = groups_repo.find_group_by_id(db, request.group_id)
     if not group:
         raise HTTPException(
@@ -74,11 +82,27 @@ def create_activity(db: Database, request: dto_in.CreateActivity) -> models.Acti
             detail=f"Group with id {request.group_id} not found."
         )
 
+    group = models.Group(**group)
+    if group.institution_id != request.institution_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Group with id {request.group_id} does not belong to"
+                   f" institution with id {request.institution_id}."
+        )
+
     professor = users_repo.find_user_by_id(db, request.professor_id)
     if not professor:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Professor with id {request.professor_id} not found."
+        )
+
+    professor = models.User(**professor)
+    if models.UserRole.PROFESSOR not in professor.user_roles.get(request.institution_id, []):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"User with id {request.professor_id} is not a professor"
+                   f" for institution with id {request.institution_id}."
         )
 
     activity = models.Activity(**request.model_dump())
@@ -117,6 +141,8 @@ def update_activity(
         request: dto_in.UpdateActivity
 ) -> models.Activity:
     """Update an activity by ID"""
+    activity = get_activity_by_id(db, activity_id)
+
     updated_data = request.model_dump(exclude_unset=True)
 
     if "course_id" in updated_data:
@@ -127,6 +153,14 @@ def update_activity(
                 detail=f"Course with id {updated_data['course_id']} not found."
             )
 
+        course = models.Course(**course)
+        if course.institution_id != activity.institution_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Course with id {course.id} does not belong to"
+                       f" institution with id {activity.institution_id}."
+            )
+
     if "group_id" in updated_data:
         group = groups_repo.find_group_by_id(db, updated_data["group_id"])
         if not group:
@@ -135,12 +169,28 @@ def update_activity(
                 detail=f"Group with id {updated_data['group_id']} not found."
             )
 
+        group = models.Group(**group)
+        if group.institution_id != activity.institution_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Group with id {group.id} does not belong to"
+                       f" institution with id {activity.institution_id}."
+            )
+
     if "professor_id" in updated_data:
         professor = users_repo.find_user_by_id(db, updated_data["professor_id"])
         if not professor:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Professor with id {updated_data['professor_id']} not found."
+            )
+
+        professor = models.User(**professor)
+        if models.UserRole.PROFESSOR not in professor.user_roles.get(activity.institution_id, []):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"User with id {professor.id} is not a professor"
+                       f" for institution with id {activity.institution_id}."
             )
 
     try:
