@@ -107,7 +107,7 @@ class Activity(BaseModel):
     course_id: str
     duration_slots: int
     group_id: str
-    professor_id: str
+    professor_id: Optional[str] = None
     required_room_features: List[str] = Field(default_factory=list)
     frequency: Frequency = Frequency.WEEKLY
     selected_timeslot: Optional[SelectedTimeslot] = None

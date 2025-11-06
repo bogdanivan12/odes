@@ -51,3 +51,8 @@ def find_activities_by_group_id(db: Database, group_id: str):
 def find_activities_by_professor_id(db: Database, professor_id: str):
     collection = db.get_collection(models.Activity.COLLECTION_NAME)
     return collection.find({"professor_id": professor_id}).to_list()
+
+
+def delete_activities_by_institution_id(db: Database, institution_id: str):
+    collection = db.get_collection(models.Activity.COLLECTION_NAME)
+    return collection.delete_many({"institution_id": institution_id})

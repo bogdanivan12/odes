@@ -88,6 +88,16 @@ def delete_user(db: Database, user_id: str) -> None:
             detail=f"Error deleting user with id {user_id}: {str(e)}"
         )
 
+    prof_activities = activities_repo.find_activities_by_professor_id(db, user_id)
+    try:
+        for activity in prof_activities:
+            activities_repo.update_activity_by_id(db, activity["_id"], {"professor_id": None})
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error deleting related data for user with id {user_id}: {str(e)}"
+        )
+
     if result.deleted_count == 0:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

@@ -121,10 +121,17 @@ def delete_institution(db: Database, institution_id: str) -> None:
             detail=f"Error deleting institution with id {institution_id}: {str(e)}"
         )
 
+    institution_users = users_repo.find_users_by_institution_id(db, institution_id)
     try:
         courses_repo.delete_courses_by_institution_id(db, institution_id)
         rooms_repo.delete_rooms_by_institution_id(db, institution_id)
         groups_repo.delete_groups_by_institution_id(db, institution_id)
+        activities_repo.delete_activities_by_institution_id(db, institution_id)
+
+        for user in institution_users:
+            user["user_roles"].pop("institution_id")
+            update_data = {"user_roles": user["user_roles"]}
+            users_repo.update_user_by_id(db, user["_id"], update_data)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,

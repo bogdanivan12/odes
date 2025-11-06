@@ -13,7 +13,7 @@ class CreateActivity(BaseModel):
     course_id: str
     activity_type: models.ActivityType
     group_id: str
-    professor_id: str
+    professor_id: Optional[str] = None
     duration_slots: int = Field(default=2, gt=0)
     required_room_features: List[str] = Field(default_factory=list)
     frequency: models.Frequency = models.Frequency.WEEKLY
