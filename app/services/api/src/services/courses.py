@@ -125,6 +125,14 @@ def delete_course(db: Database, course_id: str) -> None:
             detail=f"Error deleting course with id {course_id}: {str(e)}"
         )
 
+    try:
+        activities_repo.delete_activities_by_course_id(db, course_id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error deleting activities for course with id {course_id}: {str(e)}"
+        )
+
     if result.deleted_count == 0:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
