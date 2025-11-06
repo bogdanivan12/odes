@@ -129,6 +129,8 @@ def delete_institution(db: Database, institution_id: str) -> None:
         activities_repo.delete_activities_by_institution_id(db, institution_id)
 
         for user in institution_users:
+            if "institution_id" not in user["user_roles"]:
+                continue
             user["user_roles"].pop("institution_id")
             update_data = {"user_roles": user["user_roles"]}
             users_repo.update_user_by_id(db, user["_id"], update_data)

@@ -1,9 +1,10 @@
-import uuid
 from enum import Enum
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, ClassVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
+
+from app.libs.stringproc.stringproc import generate_id
 
 
 class TimeGridConfig(BaseModel):
@@ -14,7 +15,7 @@ class TimeGridConfig(BaseModel):
 
 
 class Institution(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    id: str = Field(default_factory=generate_id, alias="_id")
     name: str
     time_grid_config: TimeGridConfig
 
@@ -31,11 +32,12 @@ class UserRole(str, Enum):
 
 
 class User(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    id: str = Field(default_factory=generate_id, alias="_id")
     name: str
-    email: str
-    hashed_password: str = Field(exclude=True) # make hashed_password invisible in responses
-    # mapping institution_id to list of roles
+    email: EmailStr
+    # make hashed_password invisible in responses
+    hashed_password: Optional[str] = Field(default=None, exclude=True)
+    # mapping institution_ids to lists of roles
     user_roles: Dict[str, List[UserRole]] = Field(default_factory=dict)
     group_ids: List[str] = Field(default_factory=list)
 
@@ -46,7 +48,7 @@ class User(BaseModel):
 
 
 class Group(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    id: str = Field(default_factory=generate_id, alias="_id")
     institution_id: str
     name: str
     parent_group_id: Optional[str] = None
@@ -58,7 +60,7 @@ class Group(BaseModel):
 
 
 class Room(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    id: str = Field(default_factory=generate_id, alias="_id")
     institution_id: str
     name: str
     capacity: int
@@ -78,7 +80,7 @@ class ActivityType(str, Enum):
 
 
 class Course(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    id: str = Field(default_factory=generate_id, alias="_id")
     institution_id: str
     name: str
 
@@ -101,7 +103,7 @@ class Frequency(str, Enum):
 
 
 class Activity(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    id: str = Field(default_factory=generate_id, alias="_id")
     institution_id: str
     activity_type: ActivityType
     course_id: str
@@ -126,7 +128,7 @@ class ScheduleStatus(str, Enum):
 
 
 class Schedule(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    id: str = Field(default_factory=generate_id, alias="_id")
     institution_id: str
     time_grid_config: TimeGridConfig
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -140,7 +142,7 @@ class Schedule(BaseModel):
 
 
 class ScheduledActivity(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    id: str = Field(default_factory=generate_id, alias="_id")
     schedule_id: str
     activity_id: str
     room_id: str
