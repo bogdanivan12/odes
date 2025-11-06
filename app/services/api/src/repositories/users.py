@@ -36,3 +36,8 @@ def find_user_by_email(db: Database, email: str):
 def find_users_by_institution_id(db: Database, institution_id: str):
     collection = db.get_collection(models.User.COLLECTION_NAME)
     return collection.find({f"user_roles.{institution_id}": {"$exists": True}}).to_list()
+
+
+def find_professors_by_institution_id(db: Database, institution_id: str):
+    collection = db.get_collection(models.User.COLLECTION_NAME)
+    return collection.find({f"user_roles.{institution_id}": models.UserRole.PROFESSOR}).to_list()

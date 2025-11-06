@@ -17,3 +17,10 @@ class GetCourse(BaseModel):
     DTO for retrieving a course
     """
     course: models.Course
+
+
+class GetCourseActivities(BaseModel):
+    """
+    DTO for retrieving activities associated with a course
+    """
+    activities: List[models.Activity]

@@ -17,3 +17,10 @@ class GetUser(BaseModel):
     DTO for retrieving an user
     """
     user: models.User
+
+
+class GetProfessorActivities(BaseModel):
+    """
+    DTO for retrieving professor's activities
+    """
+    activities: List[models.Activity]

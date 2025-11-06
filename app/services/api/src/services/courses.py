@@ -8,7 +8,8 @@ from app.libs.db import models
 from app.services.api.src.dtos.input import course as dto_in
 from app.services.api.src.repositories import (
     courses as courses_repo,
-    institutions as institutions_repo
+    institutions as institutions_repo,
+    activities as activities_repo
 )
 
 
@@ -163,3 +164,36 @@ def update_course(db: Database, course_id: str, request: dto_in.UpdateCourse) ->
         )
 
     return get_course_by_id(db, course_id)
+
+
+def get_course_activities(db: Database, course_id: str) -> List[models.Activity]:
+    """
+    Get all activities for a specific course
+
+    Args:
+        db: Database dependency
+        course_id: ID of the course
+
+    Returns:
+        List[Activity]: List of activities for the course
+
+    Raises:
+        HTTPException: If there is an error retrieving activities, or if the course is not found
+    """
+    if not courses_repo.find_course_by_id(db, course_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Course with id {course_id} not found"
+        )
+
+    try:
+        activities_data = activities_repo.find_activities_by_course_id(db, course_id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error retrieving activities for course with id {course_id}: {str(e)}"
+        )
+
+    activities = [models.Activity(**activity) for activity in activities_data]
+
+    return activities

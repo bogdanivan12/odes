@@ -72,3 +72,12 @@ async def remove_role_from_user(db: DB, user_id: str, institution_id: str, role:
 async def remove_user_from_institution(db: DB, user_id: str, institution_id: str):
     """Remove all roles from a user for a specific institution"""
     service.remove_user_from_institution(db, user_id, institution_id)
+
+
+@router.get("/{professor_id}/activities",
+            status_code=status.HTTP_200_OK,
+            response_model=dto_out.GetProfessorActivities)
+async def get_professor_activities(db: DB, professor_id: str):
+    """Get all activities for a professor"""
+    activities = service.get_professor_activities(db, professor_id)
+    return dto_out.GetProfessorActivities(activities=activities)
