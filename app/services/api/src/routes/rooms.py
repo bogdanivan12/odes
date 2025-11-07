@@ -14,18 +14,7 @@ router = APIRouter(prefix="/api/v1/rooms", tags=["rooms"])
             status_code=status.HTTP_200_OK,
             response_model=dto_out.GetAllRooms)
 async def get_rooms(db: DB):
-    """
-    Get all rooms
-
-    Args:
-        db: Database dependency
-
-    Returns:
-        GetAllRooms: List of rooms
-
-    Raises:
-        HTTPException: If there is an error retrieving rooms
-    """
+    """Get all rooms"""
     rooms = service.get_rooms(db)
     return dto_out.GetAllRooms(rooms=rooms)
 
@@ -34,19 +23,7 @@ async def get_rooms(db: DB):
             status_code=status.HTTP_200_OK,
             response_model=dto_out.GetRoom)
 async def get_room_by_id(db: DB, room_id: str):
-    """
-    Get room by ID
-
-    Args:
-        db: Database dependency
-        room_id: ID of the room
-
-    Returns:
-        GetRoomById: Room data
-
-    Raises:
-        HTTPException: If there is an error retrieving the room or if not found
-    """
+    """Get room by ID"""
     room = service.get_room_by_id(db, room_id)
     return dto_out.GetRoom(room=room)
 
@@ -55,19 +32,7 @@ async def get_room_by_id(db: DB, room_id: str):
              status_code=status.HTTP_201_CREATED,
              response_model=dto_out.GetRoom)
 async def create_room(db: DB, request: dto_in.CreateRoom):
-    """
-    Create a new room
-
-    Args:
-        db: Database dependency
-        request: CreateRoom request data
-
-    Returns:
-        GetRoom: Created room data
-
-    Raises:
-        HTTPException: If there is an error creating the room
-    """
+    """Create a new room"""
     room = service.create_room(db, request)
     return dto_out.GetRoom(room=room)
 
@@ -75,16 +40,7 @@ async def create_room(db: DB, request: dto_in.CreateRoom):
 @router.delete("/{room_id}",
                status_code=status.HTTP_204_NO_CONTENT)
 async def delete_room(db: DB, room_id: str):
-    """
-    Delete a room by ID
-
-    Args:
-        db: Database dependency
-        room_id: ID of the room to delete
-
-    Raises:
-        HTTPException: If there is an error deleting the room or if not found
-    """
+    """Delete a room by ID"""
     service.delete_room(db, room_id)
 
 
@@ -92,19 +48,6 @@ async def delete_room(db: DB, room_id: str):
             status_code=status.HTTP_200_OK,
             response_model=dto_out.GetRoom)
 async def update_room(db: DB, room_id: str, request: dto_in.UpdateRoom):
-    """
-    Update a room by ID
-
-    Args:
-        db: Database dependency
-        room_id: ID of the room to update
-        request: UpdateRoom request data
-
-    Returns:
-        GetRoom: Updated room data
-
-    Raises:
-        HTTPException: If there is an error updating the room or if not found
-    """
+    """Update a room by ID"""
     room = service.update_room(db, room_id, request)
     return dto_out.GetRoom(room=room)

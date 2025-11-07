@@ -5,6 +5,7 @@ from fastapi.exceptions import HTTPException
 from pymongo.synchronous.database import Database
 
 from app.libs.db import models
+from app.libs.logging.logger import get_logger
 from app.libs.stringproc import stringproc
 from app.services.api.src.dtos.input import user as dto_in
 from app.services.api.src.repositories import (
@@ -15,8 +16,12 @@ from app.services.api.src.repositories import (
 )
 
 
+logger = get_logger()
+
+
 def get_users(db: Database) -> List[models.User]:
     """Get all users"""
+    logger.info("Fetching all users")
     try:
         users_data = users_repo.find_all_users(db)
     except Exception as e:
@@ -26,27 +31,32 @@ def get_users(db: Database) -> List[models.User]:
         )
 
     users = [models.User(**user) for user in users_data]
+    logger.info(f"Fetched {len(users)} users")
 
     return users
 
 
 def get_user_by_id(db: Database, user_id: str) -> models.User:
     """Get user by ID"""
+    logger.info(f"Fetching user by id: {user_id}")
     try:
         user_data = users_repo.find_user_by_id(db, user_id)
     except Exception as e:
+        logger.error(f"Failed to retrieve user {user_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
             detail=f"Error retrieving user with id {user_id}: {str(e)}"
         )
 
     if not user_data:
+        logger.error(f"User not found: {user_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User with id {user_id} not found"
         )
 
     user = models.User(**user_data)
+    logger.info(f"Fetched user: {user.id}")
 
     return user
 
@@ -54,6 +64,7 @@ def get_user_by_id(db: Database, user_id: str) -> models.User:
 def create_user(db: Database, request: dto_in.CreateUser) -> models.User:
     """Create a new user"""
     user_data = request.model_dump()
+    logger.info(f"Creating user {user_data['email']}")
 
     password = user_data.pop("password")
     hashed_password = stringproc.hash_password(password)
@@ -62,6 +73,7 @@ def create_user(db: Database, request: dto_in.CreateUser) -> models.User:
 
     existing_user = users_repo.find_user_by_email(db, user.email)
     if existing_user:
+        logger.error(f"User with email {user.email} already exists")
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"User with email {user.email} already exists"
@@ -70,35 +82,42 @@ def create_user(db: Database, request: dto_in.CreateUser) -> models.User:
     try:
         users_repo.insert_user(db, user)
     except Exception as e:
+        logger.error(f"Failed to create user: {user.email}")
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
             detail=f"Error creating user: {str(e)}"
         )
 
+    logger.info(f"Created user {user.id}")
     return user
 
 
 def delete_user(db: Database, user_id: str) -> None:
     """Delete an user by ID"""
+    logger.info(f"Deleting user {user_id}")
     try:
         result = users_repo.delete_user_by_id(db, user_id)
     except Exception as e:
+        logger.error(f"Failed to delete user {user_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
             detail=f"Error deleting user with id {user_id}: {str(e)}"
         )
 
     prof_activities = activities_repo.find_activities_by_professor_id(db, user_id)
+    logger.info(f"Deleting {len(prof_activities)} activities for user {user_id}")
     try:
         for activity in prof_activities:
             activities_repo.update_activity_by_id(db, activity["_id"], {"professor_id": None})
     except Exception as e:
+        logger.error(f"Failed to delete activities for user {user_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
             detail=f"Error deleting related data for user with id {user_id}: {str(e)}"
         )
 
     if result.deleted_count == 0:
+        logger.error(f"User not found for deletion: {user_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User with id {user_id} not found"
@@ -108,6 +127,7 @@ def delete_user(db: Database, user_id: str) -> None:
 def update_user(db: Database, user_id: str, request: dto_in.UpdateUser) -> models.User:
     """Update an existing user"""
     update_data = request.model_dump(exclude_unset=True)
+    logger.info(f"Updating user {user_id} with data {update_data}")
 
     if "password" in update_data:
         password = update_data.pop("password")
@@ -116,6 +136,7 @@ def update_user(db: Database, user_id: str, request: dto_in.UpdateUser) -> model
 
     existing_user = users_repo.find_user_by_email(db, update_data.get("email"))
     if existing_user and existing_user["_id"] != user_id:
+        logger.error(f"User with email {request.email} already exists")
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"User with email {request.email} already exists"
@@ -128,6 +149,7 @@ def update_user(db: Database, user_id: str, request: dto_in.UpdateUser) -> model
 
         for institution_id in update_data["user_roles"]:
             if institution_id not in all_institution_ids:
+                logger.error(f"Institution with id {institution_id} does not exist")
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Institution with id {institution_id} does not exist"
@@ -144,12 +166,14 @@ def update_user(db: Database, user_id: str, request: dto_in.UpdateUser) -> model
         for group_id in update_data["group_ids"]:
             group_data = groups_repo.find_group_by_id(db, group_id)
             if not group_data:
+                logger.error(f"Group not found for update: {group_id}")
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"Group with id {group_id} not found"
                 )
 
             if group_id not in user_institution_groups:
+                logger.error(f"Group with id {group_id} does not belong to any institution")
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Group with id {group_id} does not belong to any institution"
@@ -158,12 +182,14 @@ def update_user(db: Database, user_id: str, request: dto_in.UpdateUser) -> model
     try:
         result = users_repo.update_user_by_id(db, user_id, update_data)
     except Exception as e:
+        logger.error(f"Failed to update user {user_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
             detail=f"Error updating user with id {user_id}: {str(e)}"
         )
 
     if result.matched_count == 0:
+        logger.error(f"User not found for update: {user_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User with id {user_id} not found"
@@ -174,8 +200,10 @@ def update_user(db: Database, user_id: str, request: dto_in.UpdateUser) -> model
 
 def assign_role_to_user(db: Database, user_id: str, institution_id: str, role: models.UserRole):
     """Assign a role to a user for a specific institution"""
+    logger.info(f"Assigning role {role} to user {user_id} for institution {institution_id}")
     institution_data = institutions_repo.find_institution_by_id(db, institution_id)
     if not institution_data:
+        logger.error(f"Institution not found: {institution_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Institution with id {institution_id} not found."
@@ -186,6 +214,8 @@ def assign_role_to_user(db: Database, user_id: str, institution_id: str, role: m
     user_institution_roles = user.user_roles.get(institution_id, [])
 
     if role in user_institution_roles:
+        logger.error(f"User with id {user_id} already has role {role}"
+                       f" for institution {institution_id}")
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"User with id {user_id} already has role {role}"
@@ -199,16 +229,21 @@ def assign_role_to_user(db: Database, user_id: str, institution_id: str, role: m
     try:
         users_repo.update_user_by_id(db, user_id, update_data)
     except Exception as e:
+        logger.error(f"Failed to assign role to user {user_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
             detail=f"Error assigning role to user with id {user_id}: {str(e)}"
         )
 
+    logger.info(f"Assigned role {role} to user {user_id} for institution {institution_id}")
+
 
 def remove_role_from_user(db: Database, user_id: str, institution_id: str, role: models.UserRole):
     """Remove a role from a user for a specific institution"""
+    logger.info(f"Removing role {role} from user {user_id} for institution {institution_id}")
     institution_data = institutions_repo.find_institution_by_id(db, institution_id)
     if not institution_data:
+        logger.error(f"Institution not found: {institution_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Institution with id {institution_id} not found."
@@ -219,9 +254,12 @@ def remove_role_from_user(db: Database, user_id: str, institution_id: str, role:
     user_institution_roles = user.user_roles.get(institution_id, [])
 
     if role not in user_institution_roles:
+        logger.error(f"User with id {user_id} does not have role {role}"
+                       f" for institution {institution_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with id {user_id} does not have role {role} for institution {institution_id}"
+            detail=f"User with id {user_id} does not have role {role}"
+                   f" for institution {institution_id}"
         )
 
     user_institution_roles.remove(role)
@@ -234,16 +272,21 @@ def remove_role_from_user(db: Database, user_id: str, institution_id: str, role:
     try:
         users_repo.update_user_by_id(db, user_id, update_data)
     except Exception as e:
+        logger.error(f"Failed to remove role from user {user_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
             detail=f"Error removing role from user with id {user_id}: {str(e)}"
         )
 
+    logger.info(f"Removed role {role} from user {user_id} for institution {institution_id}")
+
 
 def remove_user_from_institution(db: Database, user_id: str, institution_id: str):
     """Remove all roles of a user for a specific institution"""
+    logger.info(f"Removing user {user_id} from institution {institution_id}")
     institution_data = institutions_repo.find_institution_by_id(db, institution_id)
     if not institution_data:
+        logger.error(f"Institution not found: {institution_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Institution with id {institution_id} not found."
@@ -252,6 +295,7 @@ def remove_user_from_institution(db: Database, user_id: str, institution_id: str
     user = get_user_by_id(db, user_id)
 
     if institution_id not in user.user_roles:
+        logger.error(f"User with id {user_id} has no roles for institution {institution_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User with id {user_id} has no roles for institution {institution_id}"
@@ -263,17 +307,22 @@ def remove_user_from_institution(db: Database, user_id: str, institution_id: str
     try:
         users_repo.update_user_by_id(db, user_id, update_data)
     except Exception as e:
+        logger.error(f"Failed to remove user from institution {institution_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
             detail=f"Error removing user from institution with id {institution_id}: {str(e)}"
         )
 
+    logger.info(f"Removed user {user_id} from institution {institution_id}")
+
 
 def get_professor_activities(db: Database, professor_id: str) -> List[models.Activity]:
     """Get all activities for a specific professor"""
+    logger.info(f"Fetching activities for professor {professor_id}")
     user = get_user_by_id(db, professor_id)
 
     if not any(models.UserRole.PROFESSOR in user_roles for user_roles in user.user_roles.values()):
+        logger.error(f"User with id {professor_id} is not a professor")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"User with id {professor_id} is not a professor"
@@ -282,6 +331,7 @@ def get_professor_activities(db: Database, professor_id: str) -> List[models.Act
     try:
         activities_data = activities_repo.find_activities_by_professor_id(db, professor_id)
     except Exception as e:
+        logger.error(f"Failed to retrieve activities for professor {professor_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
             detail=f"Error retrieving activities for professor with id {professor_id}: {str(e)}"
@@ -289,4 +339,5 @@ def get_professor_activities(db: Database, professor_id: str) -> List[models.Act
 
     activities = [models.Activity(**activity) for activity in activities_data]
 
+    logger.info(f"Fetched {len(activities)} activities for professor {professor_id}")
     return activities

@@ -5,6 +5,7 @@ from fastapi.exceptions import HTTPException
 from pymongo.synchronous.database import Database
 
 from app.libs.db import models
+from app.libs.logging.logger import get_logger
 from app.services.api.src.dtos.input import course as dto_in
 from app.services.api.src.repositories import (
     courses as courses_repo,
@@ -12,82 +13,58 @@ from app.services.api.src.repositories import (
     activities as activities_repo
 )
 
+logger = get_logger()
+
 
 def get_courses(db: Database) -> List[models.Course]:
-    """
-    Get all courses
-
-    Args:
-        db: Database dependency
-
-    Returns:
-        GetAllCourses: List of courses
-
-    Raises:
-        HTTPException: If there is an error retrieving courses
-    """
+    """Get all courses"""
+    logger.info("Fetching all courses")
     try:
         courses_data = courses_repo.find_all_courses(db)
     except Exception as e:
+        logger.error(f"Failed to retrieve courses: {e}")
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
             detail=f"Error retrieving courses: {str(e)}"
         )
 
     courses = [models.Course(**course) for course in courses_data]
+    logger.info(f"Fetched {len(courses)} courses")
 
     return courses
 
 
 def get_course_by_id(db: Database, course_id: str) -> models.Course:
-    """
-    Get course by ID
-
-    Args:
-        db: Database dependency
-        course_id: ID of the course
-
-    Returns:
-        GetCourseById: Course data
-
-    Raises:
-        HTTPException: If there is an error retrieving the course or if not found
-    """
+    """Get course by ID"""
+    logger.info(f"Fetching course by id: {course_id}")
     try:
         course_data = courses_repo.find_course_by_id(db, course_id)
     except Exception as e:
+        logger.error(f"Failed to retrieve course {course_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
             detail=f"Error retrieving course with id {course_id}: {str(e)}"
         )
 
     if not course_data:
+        logger.error(f"Course not found: {course_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Course with id {course_id} not found"
         )
 
     course = models.Course(**course_data)
+    logger.info(f"Fetched course: {course.id}")
 
     return course
 
 
 def create_course(db: Database, request: dto_in.CreateCourse) -> models.Course:
-    """
-    Create a new course
-
-    Args:
-        db: Database dependency
-        request: CreateCourse DTO
-
-    Returns:
-        GetCourse: Created course data
-
-    Raises:
-        HTTPException: If there is an error creating the course
-    """
+    """Create a new course"""
+    logger.info(f"Creating course {request.name} for institution {request.institution_id}")
     institution = institutions_repo.find_institution_by_id(db, request.institution_id)
     if not institution:
+        logger.error(f"Institution not found: {request.institution_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Institution with id {request.institution_id} not found"
@@ -98,28 +75,23 @@ def create_course(db: Database, request: dto_in.CreateCourse) -> models.Course:
     try:
         courses_repo.insert_course(db, course)
     except Exception as e:
+        logger.error(f"Failed to create course: {course}")
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
             detail=f"Error creating course: {str(e)}"
         )
 
+    logger.info(f"Created course {course.id} for institution {request.institution_id}")
     return course
 
 
 def delete_course(db: Database, course_id: str) -> None:
-    """
-    Delete a course by ID
-
-    Args:
-        db: Database dependency
-        course_id: ID of the course to delete
-
-    Raises:
-        HTTPException: If there is an error deleting the course or if not found
-    """
+    """Delete a course by ID"""
+    logger.info(f"Deleting course {course_id}")
     try:
         result = courses_repo.delete_course_by_id(db, course_id)
     except Exception as e:
+        logger.error(f"Failed to delete course {course_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
             detail=f"Error deleting course with id {course_id}: {str(e)}"
@@ -128,67 +100,52 @@ def delete_course(db: Database, course_id: str) -> None:
     try:
         activities_repo.delete_activities_by_course_id(db, course_id)
     except Exception as e:
+        logger.error(f"Failed to delete activities for course {course_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
             detail=f"Error deleting activities for course with id {course_id}: {str(e)}"
         )
 
     if result.deleted_count == 0:
+        logger.error(f"Course not found for deletion: {course_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Course with id {course_id} not found"
         )
+    logger.info(f"Deleted course {course_id}")
 
 
 def update_course(db: Database, course_id: str, request: dto_in.UpdateCourse) -> models.Course:
-    """
-    Update an existing course
-
-    Args:
-        db: Database dependency
-        course_id: ID of the course to update
-        request: UpdateCourse DTO
-
-    Returns:
-        GetCourse: Updated course data
-
-    Raises:
-        HTTPException: If there is an error updating the course or if not found
-    """
+    """Update an existing course"""
     update_data = request.model_dump(exclude_unset=True)
+    logger.info(f"Updating course {course_id} with data {update_data}")
 
     try:
         result = courses_repo.update_course_by_id(db, course_id, update_data)
     except Exception as e:
+        logger.error(f"Failed to update course {course_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
             detail=f"Error updating course with id {course_id}: {str(e)}"
         )
 
     if result.matched_count == 0:
+        logger.error(f"Course not found for update: {course_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Course with id {course_id} not found"
         )
 
-    return get_course_by_id(db, course_id)
+    updated = get_course_by_id(db, course_id)
+    logger.info(f"Updated course {updated.id}")
+    return updated
 
 
 def get_course_activities(db: Database, course_id: str) -> List[models.Activity]:
-    """
-    Get all activities for a specific course
-
-    Args:
-        db: Database dependency
-        course_id: ID of the course
-
-    Returns:
-        List[Activity]: List of activities for the course
-
-    Raises:
-        HTTPException: If there is an error retrieving activities, or if the course is not found
-    """
+    """Get all activities for a specific course"""
+    logger.info(f"Fetching activities for course {course_id}")
     if not courses_repo.find_course_by_id(db, course_id):
+        logger.error(f"Course not found when fetching activities: {course_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Course with id {course_id} not found"
@@ -197,11 +154,13 @@ def get_course_activities(db: Database, course_id: str) -> List[models.Activity]
     try:
         activities_data = activities_repo.find_activities_by_course_id(db, course_id)
     except Exception as e:
+        logger.error(f"Failed to retrieve activities for course {course_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_424_FAILED_DEPENDENCY,
             detail=f"Error retrieving activities for course with id {course_id}: {str(e)}"
         )
 
     activities = [models.Activity(**activity) for activity in activities_data]
+    logger.info(f"Fetched {len(activities)} activities for course {course_id}")
 
     return activities
