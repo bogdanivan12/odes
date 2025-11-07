@@ -23,7 +23,7 @@ def get_db():
         server_api=ServerApi("1"),
         tlsCAFile=certifi.where()
     )
-    db = client.get_database("odes")
+    db = client.get_database(DB_NAME)
     try:
         yield db
     finally:

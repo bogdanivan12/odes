@@ -14,18 +14,7 @@ router = APIRouter(prefix="/api/v1/institutions", tags=["institutions"])
             status_code=status.HTTP_200_OK,
             response_model=dto_out.GetAllInstitutions)
 async def get_institutions(db: DB):
-    """
-    Get all institutions
-
-    Args:
-        db: Database dependency
-
-    Returns:
-        GetAllInstitutions: List of institutions
-
-    Raises:
-        HTTPException: If there is an error retrieving institutions
-    """
+    """Get all institutions"""
     institutions = service.get_institutions(db)
     return dto_out.GetAllInstitutions(institutions=institutions)
 
@@ -34,19 +23,7 @@ async def get_institutions(db: DB):
             status_code=status.HTTP_200_OK,
             response_model=dto_out.GetInstitution)
 async def get_institution_by_id(db: DB, institution_id: str):
-    """
-    Get institution by ID
-
-    Args:
-        db: Database dependency
-        institution_id: ID of the institution
-
-    Returns:
-        GetInstitutionById: Institution data
-
-    Raises:
-        HTTPException: If there is an error retrieving the institution or if not found
-    """
+    """Get institution by ID"""
     institution = service.get_institution_by_id(db, institution_id)
     return dto_out.GetInstitution(institution=institution)
 
@@ -55,19 +32,7 @@ async def get_institution_by_id(db: DB, institution_id: str):
              status_code=status.HTTP_201_CREATED,
              response_model=dto_out.GetInstitution)
 async def create_institution(db: DB, request: dto_in.CreateInstitution):
-    """
-    Create a new institution
-
-    Args:
-        db: Database dependency
-        request: CreateInstitution DTO
-
-    Returns:
-        GetInstitutionById: Created institution data
-
-    Raises:
-        HTTPException: If there is an error creating the institution
-    """
+    """Create a new institution"""
     institution = service.create_institution(db, request)
     return dto_out.GetInstitution(institution=institution)
 
@@ -75,16 +40,7 @@ async def create_institution(db: DB, request: dto_in.CreateInstitution):
 @router.delete("/{institution_id}",
                status_code=status.HTTP_204_NO_CONTENT)
 async def delete_institution(db: DB, institution_id: str):
-    """
-    Delete an institution by ID
-
-    Args:
-        db: Database dependency
-        institution_id: ID of the institution to delete
-
-    Raises:
-        HTTPException: If there is an error deleting the institution or if not found
-    """
+    """Delete an institution by ID"""
     service.delete_institution(db, institution_id)
 
 
@@ -92,20 +48,7 @@ async def delete_institution(db: DB, institution_id: str):
             status_code=status.HTTP_200_OK,
             response_model=dto_out.GetInstitution)
 async def update_institution(db: DB, institution_id: str, request: dto_in.UpdateInstitution):
-    """
-    Update an institution by ID
-
-    Args:
-        db: Database dependency
-        institution_id: ID of the institution to update
-        request: UpdateInstitution DTO
-
-    Returns:
-        GetInstitutionById: Updated institution data
-
-    Raises:
-        HTTPException: If there is an error updating the institution or if not found
-    """
+    """Update an institution by ID"""
     institution = service.update_institution(db, institution_id, request)
     return dto_out.GetInstitution(institution=institution)
 
@@ -114,20 +57,7 @@ async def update_institution(db: DB, institution_id: str, request: dto_in.Update
             status_code=status.HTTP_200_OK,
             response_model=dto_out.GetInstitutionCourses)
 async def get_institution_courses(db: DB, institution_id: str):
-    """
-    Get all courses for a specific institution
-
-    Args:
-        db: Database dependency
-        institution_id: ID of the institution
-
-    Returns:
-        GetInstitutionCourses: List of courses for the institution
-
-    Raises:
-        HTTPException: If there is an error retrieving the courses
-            or if the institution is not found
-    """
+    """Get all courses for a specific institution"""
     courses = service.get_institution_courses(db, institution_id)
     return dto_out.GetInstitutionCourses(courses=courses)
 
@@ -136,16 +66,7 @@ async def get_institution_courses(db: DB, institution_id: str):
             status_code=status.HTTP_200_OK,
             response_model=dto_out.GetInstitutionRooms)
 async def get_institution_rooms(db: DB, institution_id: str):
-    """
-    Get all rooms for a specific institution
-
-    Args:
-        db: Database dependency
-        institution_id: ID of the institution
-
-    Returns:
-        GetInstitutionRooms: List of rooms for the institution
-    """
+    """Get all rooms for a specific institution"""
     rooms = service.get_institution_rooms(db, institution_id)
     return dto_out.GetInstitutionRooms(rooms=rooms)
 
@@ -154,16 +75,7 @@ async def get_institution_rooms(db: DB, institution_id: str):
             status_code=status.HTTP_200_OK,
             response_model=dto_out.GetInstitutionGroups)
 async def get_institution_groups(db: DB, institution_id: str):
-    """
-    Get all groups for a specific institution
-
-    Args:
-        db: Database dependency
-        institution_id: ID of the institution
-
-    Returns:
-        GetInstitutionGroups: List of groups for the institution
-    """
+    """Get all groups for a specific institution"""
     groups = service.get_institution_groups(db, institution_id)
     return dto_out.GetInstitutionGroups(groups=groups)
 
