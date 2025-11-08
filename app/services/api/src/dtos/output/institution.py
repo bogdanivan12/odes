@@ -52,3 +52,10 @@ class GetInstitutionActivities(BaseModel):
     DTO for retrieving activities of an institution
     """
     activities: List[models.Activity]
+
+
+class GetInstitutionSchedules(BaseModel):
+    """
+    DTO for retrieving schedules of an institution
+    """
+    schedules: List[models.Schedule]

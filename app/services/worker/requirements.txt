@@ -1,1 +1,8 @@
+pydantic==2.12.3
+fastapi==0.120.1
+uvicorn==0.38.0
+certifi==2025.10.5
+bcrypt==5.0.0
+email-validator==2.3.0
+pymongo==4.15.3
 celery==5.5.3

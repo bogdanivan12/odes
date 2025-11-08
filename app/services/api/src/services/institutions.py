@@ -12,6 +12,7 @@ from app.services.api.src.repositories import (
     users as users_repo,
     groups as groups_repo,
     courses as courses_repo,
+    schedules as schedules_repo,
     activities as activities_repo,
     institutions as institutions_repo
 )
@@ -98,6 +99,7 @@ def delete_institution(db: Database, institution_id: str) -> None:
         rooms_repo.delete_rooms_by_institution_id(db, institution_id)
         groups_repo.delete_groups_by_institution_id(db, institution_id)
         activities_repo.delete_activities_by_institution_id(db, institution_id)
+        schedules_repo.delete_schedules_by_institution_id(db, institution_id)
 
         for user in institution_users:
             if "institution_id" not in user["user_roles"]:
@@ -251,3 +253,23 @@ def get_institution_activities(db: Database, institution_id: str) -> List[models
 
     logger.info(f"Fetched {len(activities)} activities for institution {institution_id}")
     return activities
+
+
+def get_institution_schedules(db: Database, institution_id: str) -> List[models.Schedule]:
+    """Get schedules of an institution"""
+    logger.info(f"Fetching schedules for institution {institution_id}")
+    get_institution_by_id(db, institution_id)
+
+    try:
+        schedules_data = schedules_repo.find_schedules_by_institution_id(db, institution_id)
+    except Exception as e:
+        logger.error(f"Failed to retrieve schedules for institution {institution_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error retrieving schedules for institution with id {institution_id}: {str(e)}"
+        )
+
+    schedules = [models.Schedule(**schedule) for schedule in schedules_data]
+
+    logger.info(f"Fetched {len(schedules)} schedules for institution {institution_id}")
+    return schedules

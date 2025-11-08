@@ -1,17 +1,145 @@
 import os
+from typing import List
 
 from celery import Celery
+from starlette import status
+from fastapi import HTTPException
+from pymongo.synchronous.database import Database
+
+from app.libs.db import models
+from app.libs.logging.logger import get_logger
+from app.services.api.src.repositories import (
+    activities as activities_repo,
+    institutions as institutions_repo,
+    schedules as schedules_repo
+)
+from app.services.api.src.dtos.input import schedule as dto_in
 
 
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
 celery_client = Celery("api", broker=CELERY_BROKER_URL)
 
+logger = get_logger()
 
-def trigger_schedule_generation():
+
+def trigger_schedule_generation(db: Database, request: dto_in.CreateSchedule) -> models.Schedule:
     """Trigger schedule generation process"""
-    result = celery_client.send_task(
+    institution_id = request.institution_id
+    institution_data = institutions_repo.find_institution_by_id(db, institution_id)
+
+    if not institution_data:
+        logger.error(f"Institution not found: {institution_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Institution with id {institution_id} not found."
+        )
+
+    institution = models.Institution(**institution_data)
+
+    logger.info(f"Fetching activities for institution {institution_id}")
+    activities = activities_repo.find_activities_by_institution_id(db, institution_id)
+
+    if not activities:
+        logger.error(f"No activities found for institution {institution_id}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"No activities found for institution with id {institution_id}."
+        )
+
+    logger.info(f"Found {len(activities)} activities for institution {institution_id}")
+
+    schedule = models.Schedule(
+        institution_id=institution.id,
+        time_grid_config=institution.time_grid_config,
+    )
+
+    try:
+        schedules_repo.insert_schedule(db, schedule)
+    except Exception as e:
+        logger.error(f"Failed to insert schedule: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error inserting schedule: {str(e)}"
+        )
+
+    logger.info(f"Triggering schedule generation process for institution {institution_id}")
+
+    celery_client.send_task(
+        task_id=schedule.id,
         name="generate_schedule",
-        args=[],
+        kwargs={
+            "schedule_data": schedule.model_dump(),
+            "institution_data": institution_data,
+            "activities_data": activities
+        },
         queue="schedule_generator_queue"
     )
-    return {"result": result.id}
+
+    logger.info(f"Schedule generation process triggered for institution {institution_id}:"
+                f" id = {schedule.id}")
+
+    return schedule
+
+
+def get_schedules(db: Database) -> List[models.Schedule]:
+    """Get all schedules"""
+    logger.info("Fetching all schedules")
+    try:
+        schedules_data = schedules_repo.find_all_schedules(db)
+    except Exception as e:
+        logger.error(f"Failed to retrieve schedules: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error retrieving schedules: {str(e)}"
+        )
+
+    schedules = [models.Schedule(**schedule) for schedule in schedules_data]
+    logger.info(f"Fetched {len(schedules)} schedules")
+
+    return schedules
+
+
+def get_schedule_by_id(db: Database, schedule_id: str) -> models.Schedule:
+    """Get schedule by ID"""
+    logger.info(f"Fetching schedule by id: {schedule_id}")
+    try:
+        schedule_data = schedules_repo.find_schedule_by_id(db, schedule_id)
+    except Exception as e:
+        logger.error(f"Failed to retrieve schedule {schedule_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error retrieving schedule with id {schedule_id}: {str(e)}"
+        )
+
+    if not schedule_data:
+        logger.error(f"Schedule not found: {schedule_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Schedule with id {schedule_id} not found."
+        )
+
+    schedule = models.Schedule(**schedule_data)
+    logger.info(f"Fetched schedule: {schedule.id}")
+
+    return schedule
+
+
+def delete_schedule(db: Database, schedule_id: str) -> None:
+    """Delete a schedule by ID"""
+    logger.info(f"Deleting schedule id={schedule_id}")
+    try:
+        result = schedules_repo.delete_schedule_by_id(db, schedule_id)
+    except Exception as e:
+        logger.error(f"Failed to delete schedule {schedule_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error deleting schedule with id {schedule_id}: {str(e)}"
+        )
+
+    if result.deleted_count == 0:
+        logger.error(f"Schedule not found for deletion: {schedule_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Schedule with id {schedule_id} not found."
+        )
+    logger.info(f"Deleted schedule {schedule_id}")
