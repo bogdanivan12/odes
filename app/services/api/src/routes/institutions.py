@@ -96,3 +96,12 @@ async def get_institution_activities(db: DB, institution_id: str):
     """Get all activities for a specific institution"""
     activities = service.get_institution_activities(db, institution_id)
     return dto_out.GetInstitutionActivities(activities=activities)
+
+
+@router.get("/{institution_id}/schedules",
+            status_code=status.HTTP_200_OK,
+            response_model=dto_out.GetInstitutionSchedules)
+async def get_institution_schedules(db: DB, institution_id: str):
+    """Get all schedules for a specific institution"""
+    schedules = service.get_institution_schedules(db, institution_id)
+    return dto_out.GetInstitutionSchedules(schedules=schedules)
