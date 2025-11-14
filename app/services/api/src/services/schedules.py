@@ -68,9 +68,8 @@ def trigger_schedule_generation(db: Database, request: dto_in.CreateSchedule) ->
         task_id=schedule.id,
         name="generate_schedule",
         kwargs={
-            "schedule_data": schedule.model_dump(),
-            "institution_data": institution_data,
-            "activities_data": activities
+            "institution_id": institution_id,
+            "schedule_id": schedule.id
         },
         queue="schedule_generator_queue"
     )
