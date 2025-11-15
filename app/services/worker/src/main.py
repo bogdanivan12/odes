@@ -16,4 +16,4 @@ def generate_schedule(institution_id: str, schedule_id: str):
         return schedule_gen.generate_schedule(institution_id, schedule_id)
     except Exception as e:
         schedule_gen.db_update_failed_schedule(schedule_id, str(e))
-        raise e
+        raise

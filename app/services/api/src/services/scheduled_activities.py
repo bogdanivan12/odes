@@ -73,7 +73,7 @@ def create_scheduled_activity(
         request: dto_in.CreateScheduledActivity
 ) -> models.ScheduledActivity:
     """Create a new scheduled_activity"""
-    logger.info(f"Creating scheduled_activity for institution={request.institution_id}")
+    logger.info(f"Creating scheduled_activity for activity={request.activity_id}")
 
     schedule = schedules_repo.find_schedule_by_id(db, request.schedule_id)
     if not schedule:
@@ -167,7 +167,7 @@ def update_scheduled_activity(
             detail=f"Error updating scheduled_activity with id {scheduled_activity_id}: {str(e)}"
         )
 
-    if result.modified_count == 0:
+    if result.matched_count == 0:
         logger.error(f"ScheduledActivity not found for update: {scheduled_activity_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
