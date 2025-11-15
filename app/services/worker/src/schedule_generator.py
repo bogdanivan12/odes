@@ -128,12 +128,12 @@ def get_schedule_input_data(institution_id: str):
     return institution, rooms, groups, professors, activities
 
 
-def filter_rooms_by_tags(rooms: List[models.Room], required_tags: List[str]) -> List[models.Room]:
-    if not required_tags:
+def filter_rooms_by_features(rooms: List[models.Room], required_features: List[str]) -> List[models.Room]:
+    if not required_features:
         return rooms
     return [
         room for room in rooms
-        if all(tag in room.tags for tag in required_tags)
+        if all(feature in room.features for feature in required_features)
     ]
 
 
@@ -153,7 +153,6 @@ def db_update_failed_schedule(schedule_id: str, reason: str):
     """Update schedule status to failed in the database"""
     db_gen = db_help.get_db()
     db = next(db_gen)
-    from app.services.worker.src.repositories import schedules as schedules_repo
     schedules_repo.update_schedule_by_id(
         db,
         schedule_id,
@@ -166,7 +165,7 @@ def db_update_failed_schedule(schedule_id: str, reason: str):
 
 
 def db_update_schedule_status(schedule_id: str, status: models.ScheduleStatus):
-    """Update schedule status to completed in the database"""
+    """Update schedule status in the database"""
     db_gen = db_help.get_db()
     db = next(db_gen)
     schedules_repo.update_schedule_by_id(
@@ -197,9 +196,9 @@ def generate_schedule(institution_id: str, schedule_id: str):
     }
 
     for activity in activities:
-        activity.possible_rooms = filter_rooms_by_tags(
+        activity.possible_rooms = filter_rooms_by_features(
             rooms=rooms,
-            required_tags=activity.required_room_features
+            required_features=activity.required_room_features
         )
 
     allocation_map = {}
@@ -219,6 +218,13 @@ def generate_schedule(institution_id: str, schedule_id: str):
             for room in activity.possible_rooms
             for start in allowed_starts_map[activity.id]
         ]
+
+        if not all_possible_choices:
+            error_message = f"No possible room/start time for activity {activity.id}"
+            logger.error(error_message)
+            db_update_failed_schedule(schedule_id, error_message)
+            raise Exception(error_message)
+
         model.AddExactlyOne(all_possible_choices)
 
     activity_weeks_map = {}

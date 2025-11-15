@@ -22,4 +22,4 @@ class Group(GroupModel):
     Group class extending the base Group model.
     Additional methods and properties specific to the worker service can be added here.
     """
-    ancestor_ids: List[int] = Field(default_factory=list)
+    ancestor_ids: List[str] = Field(default_factory=list)
