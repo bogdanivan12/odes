@@ -13,5 +13,8 @@ class CreateSchedule(BaseModel):
 
 
 class UpdateSchedule(BaseModel):
+    """
+    DTO for updating a schedule
+    """
     status: Optional[models.ScheduleStatus] = None
     error_message: Optional[str] = None

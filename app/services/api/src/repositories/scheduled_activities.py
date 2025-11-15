@@ -30,14 +30,14 @@ def delete_scheduled_activity_by_id(db: Database, scheduled_activity_id: str):
     return collection.delete_one({"_id": scheduled_activity_id})
 
 
-def find_scheduled_activities_by_institution_id(db: Database, institution_id: str):
+def delete_scheduled_activities_by_schedule_id(db: Database, schedule_id: str):
     collection = db.get_collection(models.ScheduledActivity.COLLECTION_NAME)
-    return collection.find({"institution_id": institution_id}).to_list()
+    return collection.delete_many({"schedule_id": schedule_id})
 
 
-def delete_scheduled_activities_by_institution_id(db: Database, institution_id: str):
+def find_scheduled_activities_by_schedule_id(db: Database, schedule_id: str):
     collection = db.get_collection(models.ScheduledActivity.COLLECTION_NAME)
-    return collection.delete_many({"institution_id": institution_id})
+    return collection.find({"schedule_id": schedule_id}).to_list()
 
 
 def insert_many_scheduled_activities(
@@ -47,8 +47,3 @@ def insert_many_scheduled_activities(
     collection = db.get_collection(models.ScheduledActivity.COLLECTION_NAME)
     documents = [activity.model_dump(by_alias=True) for activity in scheduled_activities]
     return collection.insert_many(documents)
-
-
-def find_scheduled_activities_by_schedule_id(db: Database, schedule_id: str):
-    collection = db.get_collection(models.ScheduledActivity.COLLECTION_NAME)
-    return collection.find({"schedule_id": schedule_id}).to_list()

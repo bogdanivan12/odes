@@ -9,7 +9,9 @@ from app.libs.logging.logger import get_logger
 from app.services.api.src.dtos.input import scheduled_activity as dto_in
 from app.services.api.src.repositories import (
     scheduled_activities as scheduled_activities_repo,
-    institutions as institutions_repo
+    schedules as schedules_repo,
+    activities as activities_repo,
+    rooms as rooms_repo,
 )
 
 
@@ -72,12 +74,29 @@ def create_scheduled_activity(
 ) -> models.ScheduledActivity:
     """Create a new scheduled_activity"""
     logger.info(f"Creating scheduled_activity for institution={request.institution_id}")
-    institution = institutions_repo.find_institution_by_id(db, request.institution_id)
-    if not institution:
-        logger.error(f"Institution not found: {request.institution_id}")
+
+    schedule = schedules_repo.find_schedule_by_id(db, request.schedule_id)
+    if not schedule:
+        logger.error(f"Schedule not found: {request.schedule_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Institution with id {request.institution_id} not found."
+            detail=f"Schedule with id {request.schedule_id} not found"
+        )
+
+    activity = activities_repo.find_activity_by_id(db, request.activity_id)
+    if not activity:
+        logger.error(f"Activity not found: {request.activity_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Activity with id {request.activity_id} not found"
+        )
+
+    room = rooms_repo.find_room_by_id(db, request.room_id)
+    if not room:
+        logger.error(f"Room not found: {request.room_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Room with id {request.room_id} not found"
         )
 
     scheduled_activity = models.ScheduledActivity(**request.model_dump())
@@ -127,6 +146,15 @@ def update_scheduled_activity(
     scheduled_activity_dict = scheduled_activity_request.model_dump(exclude_unset=True)
     logger.info(f"Updating scheduled_activity id={scheduled_activity_id}"
                 f" with data={scheduled_activity_dict}")
+
+    if "room_id" in scheduled_activity_dict:
+        room = rooms_repo.find_room_by_id(db, scheduled_activity_dict.get("room_id"))
+        if not room:
+            logger.error(f"Room not found: {scheduled_activity_dict.get('room_id')}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Room with id {scheduled_activity_dict.get('room_id')} not found"
+            )
 
     try:
         result = scheduled_activities_repo.update_scheduled_activity_by_id(

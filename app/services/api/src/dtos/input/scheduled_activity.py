@@ -20,8 +20,6 @@ class UpdateScheduledActivity(BaseModel):
     """
     DTO for updating a scheduled_activity
     """
-    schedule_id: Optional[str] = None
-    activity_id: Optional[str] = None
     room_id: Optional[str] = None
     start_timeslot: Optional[int] = None
     active_weeks: Optional[List[int]] = None

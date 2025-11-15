@@ -149,10 +149,9 @@ def db_update_failed_schedule(schedule_id: str, reason: str):
                 "error_message": reason
             }
         )
+        response.raise_for_status()
     except Exception as err:
         raise Exception(f"Failed to update schedule status: {err}")
-
-    response.raise_for_status()
 
 
 def db_update_schedule_status(schedule_id: str, status: models.ScheduleStatus):
@@ -165,10 +164,9 @@ def db_update_schedule_status(schedule_id: str, status: models.ScheduleStatus):
                 "status": status
             }
         )
+        response.raise_for_status()
     except Exception as err:
         raise Exception(f"Failed to update schedule status: {err}")
-
-    response.raise_for_status()
 
 
 def insert_scheduled_activities(scheduled_activities: List[models.ScheduledActivity]):
@@ -182,10 +180,9 @@ def insert_scheduled_activities(scheduled_activities: List[models.ScheduledActiv
                 ]
             }
         )
+        result.raise_for_status()
     except Exception as err:
         raise Exception(f"Failed to insert scheduled activities: {err}")
-    
-    result.raise_for_status()
 
 
 def generate_schedule(institution_id: str, schedule_id: str):
