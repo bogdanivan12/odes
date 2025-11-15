@@ -31,7 +31,8 @@ def get_login_token(db: Database, email: str, password: str):
     if not verify_password(password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials."
+            detail="Invalid credentials.",
+            headers={"WWW-Authenticate": "Bearer"}
         )
 
     token = create_jwt_token({"sub": str(user.id), "email": user.email})

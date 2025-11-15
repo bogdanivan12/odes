@@ -46,12 +46,14 @@ def decode_jwt_token(
     except jwt.ExpiredSignatureError:
         raise HTTPException(
             detail="Token has expired",
-            status_code=status.HTTP_401_UNAUTHORIZED
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            headers={"WWW-Authenticate": "Bearer"}
         )
     except jwt.InvalidTokenError:
         raise HTTPException(
             detail="Invalid token",
-            status_code=status.HTTP_401_UNAUTHORIZED
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            headers={"WWW-Authenticate": "Bearer"}
         )
 
     return decoded_jwt
@@ -68,6 +70,7 @@ def get_user_id_from_token(
     if user_id is None:
         raise HTTPException(
             detail="Token does not contain user ID",
-            status_code=status.HTTP_401_UNAUTHORIZED
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            headers={"WWW-Authenticate": "Bearer"}
         )
     return user_id
