@@ -15,7 +15,11 @@ def find_user_by_id(db: Database, user_id: str):
 
 def insert_user(db: Database, user: models.User):
     collection = db.get_collection(models.User.COLLECTION_NAME)
-    return collection.insert_one(user.model_dump(by_alias=True))
+    # ensure hashed_password is included
+    data = user.model_dump(by_alias=True)
+    if user.hashed_password is not None:
+        data["hashed_password"] = user.hashed_password
+    return collection.insert_one(data)
 
 
 def update_user_by_id(db: Database, user_id: str, update_data: dict):

@@ -3,6 +3,8 @@ from fastapi import APIRouter
 
 from app.libs.db.db import DB
 from app.libs.db import models
+from app.libs.auth import token_utils
+from app.libs.auth.token_utils import AUTH
 from app.services.api.src.services import users as service
 from app.services.api.src.dtos.input import user as dto_in
 from app.services.api.src.dtos.output import user as dto_out
@@ -17,6 +19,14 @@ async def get_users(db: DB):
     """Get all users"""
     users = service.get_users(db)
     return dto_out.GetAllUsers(users=users)
+
+
+@router.get("/me", status_code=status.HTTP_200_OK, response_model=dto_out.GetUser)
+async def get_current_user(db: DB, token: AUTH):
+    """Get the currently authenticated user"""
+    user_id = token_utils.get_user_id_from_token(token)
+    user = service.get_user_by_id(db, user_id)
+    return dto_out.GetUser(user=user)
 
 
 @router.get("/{user_id}",

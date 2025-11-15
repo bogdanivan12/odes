@@ -63,15 +63,16 @@ def get_user_by_id(db: Database, user_id: str) -> models.User:
 
 def create_user(db: Database, request: dto_in.CreateUser) -> models.User:
     """Create a new user"""
-    user_data = request.model_dump()
-    logger.info(f"Creating user {user_data['email']}")
+    logger.info(f"Creating user {request.email}")
 
+    user_data = request.model_dump()
     password = user_data.pop("password")
     hashed_password = stringproc.hash_password(password)
 
-    user = models.User(**request.model_dump(), hashed_password=hashed_password)
+    user = models.User(**user_data)
+    user.hashed_password = hashed_password
 
-    existing_user = users_repo.find_user_by_email(db, user.email)
+    existing_user = users_repo.find_user_by_email(db, str(user.email))
     if existing_user:
         logger.error(f"User with email {user.email} already exists")
         raise HTTPException(
