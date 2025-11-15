@@ -15,7 +15,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 # fastapi dependency to extract and verify JWT tokens from requests
-AUTH: TypeAlias = Annotated[oauth2_scheme, Depends()]
+AUTH: TypeAlias = Annotated[str, Depends(oauth2_scheme)]
 
 
 def create_jwt_token(

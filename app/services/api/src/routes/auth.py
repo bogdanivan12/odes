@@ -1,6 +1,4 @@
-from typing import Dict
-
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordRequestForm
 from starlette import status
 from fastapi import APIRouter, Depends
 
@@ -10,8 +8,6 @@ from app.services.api.src.dtos.output import auth as dto_out
 
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 
 
 @router.post("/token", status_code=status.HTTP_200_OK, response_model=dto_out.Token)

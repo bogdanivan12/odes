@@ -10,7 +10,7 @@ from app.services.api.src.repositories import (
 )
 
 
-def get_login_token(db: Database, email: str, password: str):
+def get_login_token(db: Database, email: str, password: str) -> str:
     """Authenticate user and return access token"""
     try:
         user_data = users_repo.find_user_by_email(db, str(email))
@@ -22,8 +22,8 @@ def get_login_token(db: Database, email: str, password: str):
 
     if not user_data:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with email {email} not found."
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials."
         )
 
     user = models.User(**user_data)
