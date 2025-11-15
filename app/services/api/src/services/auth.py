@@ -10,7 +10,7 @@ from app.services.api.src.repositories import (
 )
 
 
-def get_login_token(db: Database, email: str, password: str):
+def get_login_token(db: Database, email: str, password: str) -> str:
     """Authenticate user and return access token"""
     try:
         user_data = users_repo.find_user_by_email(db, str(email))
