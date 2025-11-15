@@ -22,8 +22,8 @@ def get_login_token(db: Database, email: str, password: str):
 
     if not user_data:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with email {email} not found."
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials."
         )
 
     user = models.User(**user_data)
