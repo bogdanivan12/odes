@@ -7,14 +7,8 @@ import os
 from typing import List
 
 from app.libs.db import models
-from app.libs.db import db as db_help
 from app.libs.logging.logger import get_logger
 from app.services.worker.src import enhanced_models, time_helpers
-from app.services.worker.src.repositories import (
-    schedules as schedules_repo,
-    scheduled_activities as scheduled_activities_repo
-)
-
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 logger = get_logger()
@@ -26,8 +20,7 @@ def get_institution_activities(institution_id: str) -> List[enhanced_models.Acti
     logger.info(f"Fetching activities from {url}")
     response = requests.get(url)
 
-    if response.status_code != 200:
-        raise Exception(f"Failed to fetch activities: {response.status_code} - {response.text}")
+    response.raise_for_status()
 
     activities_data = response.json().get("activities", [])
     activities = [enhanced_models.Activity(**activity) for activity in activities_data]
@@ -43,8 +36,7 @@ def get_professors_by_ids(professor_ids: List[str]) -> List[models.User]:
     logger.info(f"Fetching all users from {url}")
     response = requests.get(url)
 
-    if response.status_code != 200:
-        raise Exception(f"Failed to fetch users: {response.status_code} - {response.text}")
+    response.raise_for_status()
 
     users_data = response.json().get("users", [])
     professors = [models.User(**user) for user in users_data if user["_id"] in professor_ids]
@@ -60,8 +52,7 @@ def get_institution_groups(institution_id: str) -> List[enhanced_models.Group]:
     logger.info(f"Fetching groups from {url}")
     response = requests.get(url)
 
-    if response.status_code != 200:
-        raise Exception(f"Failed to fetch groups: {response.status_code} - {response.text}")
+    response.raise_for_status()
 
     groups_data = response.json().get("groups", [])
     groups = [enhanced_models.Group(**group) for group in groups_data]
@@ -86,8 +77,7 @@ def get_institution_by_id(institution_id: str) -> models.Institution:
     logger.info(f"Fetching institution from {url}")
     response = requests.get(url)
 
-    if response.status_code != 200:
-        raise Exception(f"Failed to fetch institution: {response.status_code} - {response.text}")
+    response.raise_for_status()
 
     institution_data = response.json().get("institution")
     institution = models.Institution(**institution_data)
@@ -103,8 +93,7 @@ def get_institution_rooms(institution_id: str) -> List[models.Room]:
     logger.info(f"Fetching rooms from {url}")
     response = requests.get(url)
 
-    if response.status_code != 200:
-        raise Exception(f"Failed to fetch rooms: {response.status_code} - {response.text}")
+    response.raise_for_status()
 
     rooms_data = response.json().get("rooms", [])
     rooms = [models.Room(**room) for room in rooms_data]
@@ -151,31 +140,49 @@ def build_selected(solver, institution, activities, week_allocation_map):
 
 def db_update_failed_schedule(schedule_id: str, reason: str):
     """Update schedule status to failed in the database"""
-    db_gen = db_help.get_db()
-    db = next(db_gen)
-    schedules_repo.update_schedule_by_id(
-        db,
-        schedule_id,
-        {
-            "status": models.ScheduleStatus.FAILED,
-            "error_message": reason
-        }
-    )
-    db_gen.close()
+    url = f"{API_URL}/api/v1/schedules/{schedule_id}"
+    try:
+        response = requests.put(
+            url,
+            json={
+                "status": models.ScheduleStatus.FAILED,
+                "error_message": reason
+            }
+        )
+        response.raise_for_status()
+    except Exception as err:
+        raise Exception(f"Failed to update schedule status: {err}")
 
 
 def db_update_schedule_status(schedule_id: str, status: models.ScheduleStatus):
     """Update schedule status in the database"""
-    db_gen = db_help.get_db()
-    db = next(db_gen)
-    schedules_repo.update_schedule_by_id(
-        db,
-        schedule_id,
-        {
-            "status": status
-        }
-    )
-    db_gen.close()
+    url = f"{API_URL}/api/v1/schedules/{schedule_id}"
+    try:
+        response = requests.put(
+            url,
+            json={
+                "status": status
+            }
+        )
+        response.raise_for_status()
+    except Exception as err:
+        raise Exception(f"Failed to update schedule status: {err}")
+
+
+def insert_scheduled_activities(scheduled_activities: List[models.ScheduledActivity]):
+    """Insert scheduled activities into the database"""
+    try:
+        result = requests.post(
+            f"{API_URL}/api/v1/scheduled_activities/bulk",
+            json={
+                "scheduled_activities": [
+                    activity.model_dump(by_alias=True) for activity in scheduled_activities
+                ]
+            }
+        )
+        result.raise_for_status()
+    except Exception as err:
+        raise Exception(f"Failed to insert scheduled activities: {err}")
 
 
 def generate_schedule(institution_id: str, schedule_id: str):
@@ -383,11 +390,8 @@ def generate_schedule(institution_id: str, schedule_id: str):
         else:
             scheduled_activities[(activity_id, room_id, start)].active_weeks.append(week)
 
-    # add scheduled activities in database using db library
-    db_gen = db_help.get_db()
-    db = next(db_gen)
-    scheduled_activities_repo.insert_scheduled_activities(db, list(scheduled_activities.values()))
-    db_gen.close()
+    # add scheduled activities in database
+    insert_scheduled_activities(list(scheduled_activities.values()))
 
     db_update_schedule_status(schedule_id, models.ScheduleStatus.COMPLETED)
 

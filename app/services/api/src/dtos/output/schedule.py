@@ -17,3 +17,10 @@ class GetSchedule(BaseModel):
     DTO for retrieving a schedule
     """
     schedule: models.Schedule
+
+
+class GetScheduledActivitiesBySchedule(BaseModel):
+    """
+    DTO for retrieving scheduled_activities by schedule
+    """
+    scheduled_activities: List[models.ScheduledActivity]

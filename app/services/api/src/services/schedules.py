@@ -11,7 +11,8 @@ from app.libs.logging.logger import get_logger
 from app.services.api.src.repositories import (
     activities as activities_repo,
     institutions as institutions_repo,
-    schedules as schedules_repo
+    schedules as schedules_repo,
+    scheduled_activities as scheduled_activities_repo,
 )
 from app.services.api.src.dtos.input import schedule as dto_in
 
@@ -142,3 +143,61 @@ def delete_schedule(db: Database, schedule_id: str) -> None:
             detail=f"Schedule with id {schedule_id} not found."
         )
     logger.info(f"Deleted schedule {schedule_id}")
+
+
+def get_scheduled_activities_by_schedule_id(
+        db: Database,
+        schedule_id: str
+) -> List[models.ScheduledActivity]:
+    """Get scheduled activities by schedule ID"""
+    logger.info(f"Fetching scheduled activities for schedule id: {schedule_id}")
+    try:
+        scheduled_activities_data = (
+            scheduled_activities_repo.find_scheduled_activities_by_schedule_id(db, schedule_id)
+        )
+    except Exception as e:
+        logger.error(f"Failed to retrieve scheduled activities for schedule {schedule_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error retrieving scheduled activities for schedule id {schedule_id}: {str(e)}"
+        )
+
+    scheduled_activities = [
+        models.ScheduledActivity(**scheduled_activity)
+        for scheduled_activity in scheduled_activities_data
+    ]
+    logger.info(f"Fetched {len(scheduled_activities)} scheduled activities for schedule id: "
+                f"{schedule_id}")
+
+    return scheduled_activities
+
+
+def update_schedule(
+        db: Database,
+        schedule_id: str,
+        request: dto_in.UpdateSchedule
+) -> models.Schedule:
+    """Update a schedule by ID"""
+    logger.info(f"Updating schedule id={schedule_id}")
+    update_data = request.model_dump(exclude_unset=True)
+
+    try:
+        result = schedules_repo.update_schedule_by_id(db, schedule_id, update_data)
+    except Exception as e:
+        logger.error(f"Failed to update schedule {schedule_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error updating schedule with id {schedule_id}: {str(e)}"
+        )
+
+    if result.matched_count == 0:
+        logger.error(f"Schedule not found for update: {schedule_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Schedule with id {schedule_id} not found."
+        )
+
+    updated_schedule = get_schedule_by_id(db, schedule_id)
+    logger.info(f"Updated schedule id={schedule_id}")
+
+    return updated_schedule

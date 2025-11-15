@@ -32,8 +32,25 @@ async def get_schedule_by_id(db: DB, schedule_id: str):
     return dto_out.GetSchedule(schedule=schedule)
 
 
+@router.put("/{schedule_id}",
+            status_code=status.HTTP_200_OK,
+            response_model=dto_out.GetSchedule)
+async def update_schedule(db: DB, schedule_id: str, request: dto_in.UpdateSchedule):
+    """Update a schedule by ID"""
+    schedule = service.update_schedule(db, schedule_id, request)
+    return dto_out.GetSchedule(schedule=schedule)
+
+
 @router.delete("/{schedule_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_schedule(db: DB, schedule_id: str):
     """Delete a schedule by ID"""
     service.delete_schedule(db, schedule_id)
 
+
+@router.get("/{schedule_id}/scheduled-activities",
+            status_code=status.HTTP_200_OK,
+            response_model=dto_out.GetScheduledActivitiesBySchedule)
+async def get_scheduled_activities_by_schedule_id(db: DB, schedule_id: str):
+    """Get scheduled activities by schedule ID"""
+    scheduled_activities = service.get_scheduled_activities_by_schedule_id(db, schedule_id)
+    return dto_out.GetScheduledActivitiesBySchedule(scheduled_activities=scheduled_activities)

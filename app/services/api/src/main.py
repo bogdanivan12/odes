@@ -9,6 +9,7 @@ from app.services.api.src.routes.groups import router as groups_router
 from app.services.api.src.routes.users import router as users_router
 from app.services.api.src.routes.activities import router as activities_router
 from app.services.api.src.routes.schedules import router as schedules_router
+from app.services.api.src.routes.scheduled_activities import router as scheduled_activities_router
 
 app = FastAPI(
     title="ODES API",
@@ -22,6 +23,7 @@ app.include_router(groups_router)
 app.include_router(users_router)
 app.include_router(activities_router)
 app.include_router(schedules_router)
+app.include_router(scheduled_activities_router)
 
 
 @app.get("/", include_in_schema=False)
