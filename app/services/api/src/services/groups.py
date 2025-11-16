@@ -39,12 +39,11 @@ def get_groups(db: Database, current_user_id: str) -> List[models.Group]:
 def raise_group_forbidden(
         db: Database,
         current_user_id: str,
-        group_id: str,
+        group: models.Group,
         admin_only: bool = False
 ) -> None:
     """Raise HTTP 403 if the user does not have access to the group"""
     user = models.User(**users_repo.find_user_by_id(db, current_user_id))
-    group = get_group_by_id(db, group_id, current_user_id)
 
     if group.institution_id not in user.user_roles:
         logger.error(f"User {current_user_id} forbidden from accessing group {group.id}")
@@ -82,7 +81,7 @@ def get_group_by_id(db: Database, group_id: str, current_user_id: str) -> models
         )
 
     group = models.Group(**group_data)
-    raise_group_forbidden(db, current_user_id, group.id)
+    raise_group_forbidden(db, current_user_id, group)
 
     logger.info(f"Fetched group: {group.id}")
 
@@ -93,7 +92,7 @@ def create_group(db: Database, request: dto_in.CreateGroup, current_user_id: str
     """Create a new group"""
     logger.info(f"Creating group {request.name}")
     group = models.Group(**request.model_dump())
-    raise_group_forbidden(db, current_user_id, group.id, admin_only=True)
+    raise_group_forbidden(db, current_user_id, group, admin_only=True)
 
     if group.parent_group_id:
         parent_group = get_group_by_id(db, group.parent_group_id, current_user_id)
@@ -125,7 +124,7 @@ def delete_group(db: Database, group_id: str, current_user_id: str) -> None:
     logger.info(f"Deleting group {group_id}")
 
     group = get_group_by_id(db, group_id, current_user_id)
-    raise_group_forbidden(db, current_user_id, group.id, admin_only=True)
+    raise_group_forbidden(db, current_user_id, group, admin_only=True)
 
     try:
         result = groups_repo.delete_group_by_id(db, group_id)
@@ -172,7 +171,7 @@ def update_group(
     """Update a group by ID"""
     logger.info(f"Updating group {group_id} with data {request.model_dump(exclude_unset=True)}")
     group = get_group_by_id(db, group_id, current_user_id)
-    raise_group_forbidden(db, current_user_id, group.id, admin_only=True)
+    raise_group_forbidden(db, current_user_id, group, admin_only=True)
 
     if request.parent_group_id == group_id:
         logger.error(f"Group {group_id} attempted to set itself as parent")
@@ -218,8 +217,7 @@ def get_group_activities(db: Database, group_id: str, current_user_id: str) -> L
     """Get activities for a specific group"""
     logger.info(f"Fetching activities for group {group_id}")
     # Verify group exists
-    group = get_group_by_id(db, group_id, current_user_id)
-    raise_group_forbidden(db, current_user_id, group.id)
+    get_group_by_id(db, group_id, current_user_id)
 
     try:
         activities_data = activities_repo.find_activities_by_group_id(db, group_id)

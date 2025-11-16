@@ -8,6 +8,7 @@ from app.libs.db import models
 from app.libs.logging.logger import get_logger
 from app.services.api.src.dtos.input import course as dto_in
 from app.services.api.src.repositories import (
+    users as users_repo,
     courses as courses_repo,
     institutions as institutions_repo,
     activities as activities_repo
@@ -28,7 +29,7 @@ def get_courses(db: Database, current_user_id: str) -> List[models.Course]:
             detail=f"Error retrieving courses: {str(e)}"
         )
 
-    user = models.User(**institutions_repo.find_institution_by_id(db, current_user_id))
+    user = models.User(**users_repo.find_user_by_id(db, current_user_id))
     courses = [models.Course(**course) for course in courses_data
                if course['institution_id'] in user.user_roles]
     logger.info(f"Fetched {len(courses)} courses")
@@ -43,7 +44,7 @@ def raise_course_forbidden(
         admin_only: bool = False
 ) -> None:
     """Raise HTTP 403 if the user does not have access to the course"""
-    user = models.User(**institutions_repo.find_institution_by_id(db, current_user_id))
+    user = models.User(**users_repo.find_user_by_id(db, current_user_id))
 
     if course.institution_id not in user.user_roles:
         logger.error(f"User {current_user_id} forbidden from accessing course {course.id}")
@@ -190,8 +191,7 @@ def get_course_activities(db: Database, course_id: str, current_user_id: str) ->
     """Get all activities for a specific course"""
     logger.info(f"Fetching activities for course {course_id}")
 
-    course = get_course_by_id(db, course_id, current_user_id)
-    raise_course_forbidden(db, current_user_id, course)
+    get_course_by_id(db, course_id, current_user_id)
 
     try:
         activities_data = activities_repo.find_activities_by_course_id(db, course_id)
