@@ -154,7 +154,7 @@ async def remove_role_from_user(
     service.remove_role_from_user(db, user_id, institution_id, role, current_user)
 
 
-@router.delete("/{user_id}/institutions/{institution_id}/",
+@router.delete("/{institution_id}/users/{user_id}",
                status_code=status.HTTP_204_NO_CONTENT)
 async def remove_user_from_institution(
         db: DB,

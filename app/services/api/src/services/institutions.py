@@ -38,7 +38,7 @@ def get_institutions(db: Database, current_user_id: str) -> List[models.Institut
     institutions = [
         models.Institution(**institution)
         for institution in institutions_data
-        if institution.id in current_user.user_roles
+        if institution["_id"] in current_user.user_roles
     ]
     logger.info(f"Fetched {len(institutions)} institutions")
 
@@ -144,7 +144,7 @@ def create_institution(
     return institution
 
 
-def delete_institution(db: Database, institution_id: str, current_user_id) -> None:
+def delete_institution(db: Database, institution_id: str, current_user_id: str) -> None:
     """Delete an institution by ID"""
     logger.info(f"Deleting institution id={institution_id}")
     raise_institution_forbidden(db, current_user_id, institution_id, admin_only=True)
@@ -226,7 +226,7 @@ def update_institution(
 
     logger.info(f"Updated institution {institution_id}")
 
-    return get_institution_by_id(db, institution_id)
+    return get_institution_by_id(db, institution_id, current_user_id)
 
 
 def get_institution_courses(
@@ -392,7 +392,7 @@ def assign_role_to_user(
     """Assign a role to a user for a specific institution"""
     logger.info(f"Assigning role {role} to user {user_id} for institution {institution_id}")
     raise_institution_forbidden(db, current_user_id, institution_id, admin_only=True)
-    institution = get_institution_by_id(db, institution_id, current_user_id)
+    get_institution_by_id(db, institution_id, current_user_id)
 
     user = users_repo.find_user_by_id(db, user_id)
     if not user:
@@ -430,6 +430,25 @@ def assign_role_to_user(
     logger.info(f"Assigned role {role} to user {user_id} for institution {institution_id}")
 
 
+def get_institution_admins(
+        db: Database,
+        institution_id: str,
+        current_user_id: str
+) -> List[models.User]:
+    """Get all admins of an institution"""
+    logger.info(f"Fetching admins for institution {institution_id}")
+
+    institution_users = get_institution_users(db, institution_id, current_user_id)
+
+    admins = [
+        user for user in institution_users
+        if models.UserRole.ADMIN in user.user_roles.get(institution_id, [])
+    ]
+
+    logger.info(f"Fetched {len(admins)} admins for institution {institution_id}")
+    return admins
+
+
 def remove_role_from_user(
         db: Database,
         user_id: str,
@@ -440,7 +459,7 @@ def remove_role_from_user(
     """Remove a role from a user for a specific institution"""
     logger.info(f"Removing role {role} from user {user_id} for institution {institution_id}")
     raise_institution_forbidden(db, current_user_id, institution_id, admin_only=True)
-    institution = get_institution_by_id(db, institution_id, current_user_id)
+    get_institution_by_id(db, institution_id, current_user_id)
 
     user = users_repo.find_user_by_id(db, user_id)
     if not user:
@@ -461,6 +480,15 @@ def remove_role_from_user(
             detail=f"User with id {user_id} does not have role {role}"
                    f" for institution {institution_id}"
         )
+
+    if role == models.UserRole.ADMIN:
+        admins = get_institution_admins(db, institution_id, current_user_id)
+        if len(admins) <= 1:
+            logger.error(f"Cannot remove the last admin from institution {institution_id}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot remove the last admin from institution {institution_id}"
+            )
 
     user_institution_roles.remove(role)
     if user_institution_roles:
@@ -490,7 +518,7 @@ def remove_user_from_institution(
     """Remove all roles of a user for a specific institution"""
     logger.info(f"Removing user {user_id} from institution {institution_id}")
     raise_institution_forbidden(db, current_user_id, institution_id, admin_only=True)
-    institution = get_institution_by_id(db, institution_id, current_user_id)
+    get_institution_by_id(db, institution_id, current_user_id)
 
     user = users_repo.find_user_by_id(db, user_id)
     if not user:
@@ -507,6 +535,15 @@ def remove_user_from_institution(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User with id {user_id} has no roles for institution {institution_id}"
         )
+
+    if models.UserRole.ADMIN in user.user_roles[institution_id]:
+        admins = get_institution_admins(db, institution_id, current_user_id)
+        if len(admins) <= 1:
+            logger.error(f"Cannot remove the last admin from institution {institution_id}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot remove the last admin from institution {institution_id}"
+            )
 
     user.user_roles.pop(institution_id)
 
