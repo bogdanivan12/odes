@@ -2,6 +2,8 @@ from starlette import status
 from fastapi import APIRouter
 
 from app.libs.db.db import DB
+from app.libs.auth import token_utils
+from app.libs.auth.token_utils import AUTH
 from app.services.api.src.services import courses as service
 from app.services.api.src.dtos.input import course as dto_in
 from app.services.api.src.dtos.output import course as dto_out
@@ -12,44 +14,49 @@ router = APIRouter(prefix="/api/v1/courses", tags=["courses"])
 @router.get("/",
             status_code=status.HTTP_200_OK,
             response_model=dto_out.GetAllCourses)
-async def get_courses(db: DB):
+async def get_courses(db: DB, token: AUTH):
     """Get all courses"""
-    courses = service.get_courses(db)
+    current_user_id = token_utils.get_user_id_from_token(token)
+    courses = service.get_courses(db, current_user_id)
     return dto_out.GetAllCourses(courses=courses)
 
 
 @router.get("/{course_id}",
             status_code=status.HTTP_200_OK,
             response_model=dto_out.GetCourse)
-async def get_course_by_id(db: DB, course_id: str):
+async def get_course_by_id(db: DB, course_id: str, token: AUTH):
     """Get course by ID"""
-    course = service.get_course_by_id(db, course_id)
+    current_user_id = token_utils.get_user_id_from_token(token)
+    course = service.get_course_by_id(db, course_id, current_user_id)
     return dto_out.GetCourse(course=course)
 
 
 @router.post("/",
              status_code=status.HTTP_201_CREATED,
              response_model=dto_out.GetCourse)
-async def create_course(db: DB, request: dto_in.CreateCourse):
+async def create_course(db: DB, request: dto_in.CreateCourse, token: AUTH):
     """Create a new course"""
-    course = service.create_course(db, request)
+    current_user_id = token_utils.get_user_id_from_token(token)
+    course = service.create_course(db, request, current_user_id)
     return dto_out.GetCourse(course=course)
 
 
 @router.put("/{course_id}",
             status_code=status.HTTP_200_OK,
             response_model=dto_out.GetCourse)
-async def update_course(db: DB, course_id: str, request: dto_in.UpdateCourse):
+async def update_course(db: DB, course_id: str, request: dto_in.UpdateCourse, token: AUTH):
     """Update an existing course"""
-    course = service.update_course(db, course_id, request)
+    current_user_id = token_utils.get_user_id_from_token(token)
+    course = service.update_course(db, course_id, request, current_user_id)
     return dto_out.GetCourse(course=course)
 
 
 @router.delete("/{course_id}",
                status_code=status.HTTP_204_NO_CONTENT)
-async def delete_course(db: DB, course_id: str):
+async def delete_course(db: DB, course_id: str, token: AUTH):
     """Delete a course by ID"""
-    service.delete_course(db, course_id)
+    current_user_id = token_utils.get_user_id_from_token(token)
+    service.delete_course(db, course_id, current_user_id)
 
 
 @router.get("/{course_id}/activities",

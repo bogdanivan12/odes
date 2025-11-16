@@ -16,7 +16,7 @@ from app.services.api.src.repositories import (
 logger = get_logger()
 
 
-def get_courses(db: Database) -> List[models.Course]:
+def get_courses(db: Database, current_user_id: str) -> List[models.Course]:
     """Get all courses"""
     logger.info("Fetching all courses")
     try:
@@ -28,13 +28,40 @@ def get_courses(db: Database) -> List[models.Course]:
             detail=f"Error retrieving courses: {str(e)}"
         )
 
-    courses = [models.Course(**course) for course in courses_data]
+    user = models.User(**institutions_repo.find_institution_by_id(db, current_user_id))
+    courses = [models.Course(**course) for course in courses_data
+               if course['institution_id'] in user.user_roles]
     logger.info(f"Fetched {len(courses)} courses")
 
     return courses
 
 
-def get_course_by_id(db: Database, course_id: str) -> models.Course:
+def raise_course_forbidden(
+        db: Database,
+        current_user_id: str,
+        course: models.Course,
+        admin_only: bool = False
+) -> None:
+    """Raise HTTP 403 if the user does not have access to the course"""
+    user = models.User(**institutions_repo.find_institution_by_id(db, current_user_id))
+
+    if course.institution_id not in user.user_roles:
+        logger.error(f"User {current_user_id} forbidden from accessing course {course.id}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"User with id {current_user_id} does not have access to course {course.id}"
+        )
+
+    if admin_only and models.UserRole.ADMIN not in user.user_roles[course.institution_id]:
+        logger.error(f"User {current_user_id} forbidden from admin access to course {course.id}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"User with id {current_user_id} does not have admin access"
+                   f" to course {course.id}"
+        )
+
+
+def get_course_by_id(db: Database, course_id: str, current_user_id: str) -> models.Course:
     """Get course by ID"""
     logger.info(f"Fetching course by id: {course_id}")
     try:
@@ -54,12 +81,17 @@ def get_course_by_id(db: Database, course_id: str) -> models.Course:
         )
 
     course = models.Course(**course_data)
+    raise_course_forbidden(db, current_user_id, course)
     logger.info(f"Fetched course: {course.id}")
 
     return course
 
 
-def create_course(db: Database, request: dto_in.CreateCourse) -> models.Course:
+def create_course(
+        db: Database,
+        request: dto_in.CreateCourse,
+        current_user_id: str
+) -> models.Course:
     """Create a new course"""
     logger.info(f"Creating course {request.name} for institution {request.institution_id}")
     institution = institutions_repo.find_institution_by_id(db, request.institution_id)
@@ -71,6 +103,7 @@ def create_course(db: Database, request: dto_in.CreateCourse) -> models.Course:
         )
 
     course = models.Course(**request.model_dump())
+    raise_course_forbidden(db, current_user_id, course, admin_only=True)
 
     try:
         courses_repo.insert_course(db, course)
@@ -85,9 +118,13 @@ def create_course(db: Database, request: dto_in.CreateCourse) -> models.Course:
     return course
 
 
-def delete_course(db: Database, course_id: str) -> None:
+def delete_course(db: Database, course_id: str, current_user_id: str) -> None:
     """Delete a course by ID"""
     logger.info(f"Deleting course {course_id}")
+
+    course = get_course_by_id(db, course_id, current_user_id)
+    raise_course_forbidden(db, current_user_id, course, admin_only=True)
+
     try:
         result = courses_repo.delete_course_by_id(db, course_id)
     except Exception as e:
@@ -115,10 +152,18 @@ def delete_course(db: Database, course_id: str) -> None:
     logger.info(f"Deleted course {course_id}")
 
 
-def update_course(db: Database, course_id: str, request: dto_in.UpdateCourse) -> models.Course:
+def update_course(
+        db: Database,
+        course_id: str,
+        request: dto_in.UpdateCourse,
+        current_user_id: str
+) -> models.Course:
     """Update an existing course"""
     update_data = request.model_dump(exclude_unset=True)
     logger.info(f"Updating course {course_id} with data {update_data}")
+
+    course = get_course_by_id(db, course_id, current_user_id)
+    raise_course_forbidden(db, current_user_id, course, admin_only=True)
 
     try:
         result = courses_repo.update_course_by_id(db, course_id, update_data)
@@ -136,20 +181,17 @@ def update_course(db: Database, course_id: str, request: dto_in.UpdateCourse) ->
             detail=f"Course with id {course_id} not found"
         )
 
-    updated = get_course_by_id(db, course_id)
+    updated = get_course_by_id(db, course_id, current_user_id)
     logger.info(f"Updated course {updated.id}")
     return updated
 
 
-def get_course_activities(db: Database, course_id: str) -> List[models.Activity]:
+def get_course_activities(db: Database, course_id: str, current_user_id: str) -> List[models.Activity]:
     """Get all activities for a specific course"""
     logger.info(f"Fetching activities for course {course_id}")
-    if not courses_repo.find_course_by_id(db, course_id):
-        logger.error(f"Course not found when fetching activities: {course_id}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Course with id {course_id} not found"
-        )
+
+    course = get_course_by_id(db, course_id, current_user_id)
+    raise_course_forbidden(db, current_user_id, course)
 
     try:
         activities_data = activities_repo.find_activities_by_course_id(db, course_id)
