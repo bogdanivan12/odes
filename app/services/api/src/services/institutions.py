@@ -21,7 +21,7 @@ from app.services.api.src.repositories import (
 logger = get_logger()
 
 
-def get_institutions(db: Database) -> List[models.Institution]:
+def get_institutions(db: Database, current_user_id: str) -> List[models.Institution]:
     """Get all institutions"""
     logger.info("Fetching all institutions")
     try:
@@ -33,15 +33,58 @@ def get_institutions(db: Database) -> List[models.Institution]:
             detail=f"Error retrieving institutions: {str(e)}"
         )
 
-    institutions = [models.Institution(**institution) for institution in institutions_data]
+    current_user = models.User(**users_repo.find_user_by_id(db, current_user_id))
+
+    institutions = [
+        models.Institution(**institution)
+        for institution in institutions_data
+        if institution["_id"] in current_user.user_roles
+    ]
     logger.info(f"Fetched {len(institutions)} institutions")
 
     return institutions
 
 
-def get_institution_by_id(db: Database, institution_id: str) -> models.Institution:
+def raise_institution_forbidden(
+        db: Database,
+        current_user_id: str,
+        institution_id: str,
+        admin_only: bool = False
+) -> None:
+    """Raise HTTP 403 Forbidden for institution access"""
+    current_user = models.User(**users_repo.find_user_by_id(db, current_user_id))
+    if admin_only:
+        if models.UserRole.ADMIN not in current_user.user_roles.get(institution_id, []):
+            error_message = (
+                f"User with id {current_user_id} does not have admin rights"
+                f" for institution {institution_id}"
+            )
+            logger.error(error_message)
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=error_message
+            )
+    else:
+        if institution_id not in current_user.user_roles:
+            error_message = (
+                f"User with id {current_user_id} has no access to institution {institution_id}"
+            )
+            logger.error(error_message)
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=error_message
+            )
+
+
+def get_institution_by_id(
+        db: Database,
+        institution_id: str,
+        current_user_id: str
+) -> models.Institution:
     """Get institution by ID"""
     logger.info(f"Fetching institution by id: {institution_id}")
+    raise_institution_forbidden(db, current_user_id, institution_id)
+
     try:
         institution_data = institutions_repo.find_institution_by_id(db, institution_id)
     except Exception as e:
@@ -64,7 +107,11 @@ def get_institution_by_id(db: Database, institution_id: str) -> models.Instituti
     return institution
 
 
-def create_institution(db: Database, request: dto_in.CreateInstitution) -> models.Institution:
+def create_institution(
+        db: Database,
+        request: dto_in.CreateInstitution,
+        current_user_id: str
+) -> models.Institution:
     """Create a new institution"""
     logger.info(f"Creating institution {request.name}")
     institution = models.Institution(**request.model_dump())
@@ -78,13 +125,30 @@ def create_institution(db: Database, request: dto_in.CreateInstitution) -> model
             detail=f"Error creating institution: {str(e)}"
         )
 
+    current_user = models.User(**users_repo.find_user_by_id(db, current_user_id))
+    current_user.user_roles[institution.id] = [models.UserRole.ADMIN]
+    try:
+        users_repo.update_user_by_id(
+            db,
+            current_user_id,
+            {"user_roles": current_user.user_roles}
+        )
+    except Exception as e:
+        logger.error(f"Failed to assign admin role to user {current_user_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error assigning admin role to user with id {current_user_id}: {str(e)}"
+        )
+
     logger.info(f"Created institution {institution.id}")
     return institution
 
 
-def delete_institution(db: Database, institution_id: str) -> None:
+def delete_institution(db: Database, institution_id: str, current_user_id: str) -> None:
     """Delete an institution by ID"""
     logger.info(f"Deleting institution id={institution_id}")
+    raise_institution_forbidden(db, current_user_id, institution_id, admin_only=True)
+
     try:
         result = institutions_repo.delete_institution_by_id(db, institution_id)
     except Exception as e:
@@ -135,9 +199,12 @@ def delete_institution(db: Database, institution_id: str) -> None:
 def update_institution(
         db: Database,
         institution_id: str,
-        request: dto_in.UpdateInstitution
+        request: dto_in.UpdateInstitution,
+        current_user_id: str
 ) -> models.Institution:
     """Update an institution by ID"""
+    raise_institution_forbidden(db, current_user_id, institution_id, admin_only=True)
+
     updated_data = request.model_dump(exclude_unset=True)
     logger.info(f"Updating institution {institution_id} with data {updated_data}")
 
@@ -159,13 +226,19 @@ def update_institution(
 
     logger.info(f"Updated institution {institution_id}")
 
-    return get_institution_by_id(db, institution_id)
+    return get_institution_by_id(db, institution_id, current_user_id)
 
 
-def get_institution_courses(db: Database, institution_id: str) -> List[models.Course]:
+def get_institution_courses(
+        db: Database,
+        institution_id: str,
+        current_user_id: str
+) -> List[models.Course]:
     """Get courses of an institution"""
+    raise_institution_forbidden(db, current_user_id, institution_id)
+
     logger.info(f"Fetching courses for institution {institution_id}")
-    get_institution_by_id(db, institution_id)
+    get_institution_by_id(db, institution_id, current_user_id)
 
     try:
         courses_data = courses_repo.find_courses_by_institution_id(db, institution_id)
@@ -182,10 +255,16 @@ def get_institution_courses(db: Database, institution_id: str) -> List[models.Co
     return courses
 
 
-def get_institution_rooms(db: Database, institution_id: str) -> List[models.Room]:
+def get_institution_rooms(
+        db: Database,
+        institution_id: str,
+        current_user_id: str
+) -> List[models.Room]:
     """Get rooms of an institution"""
+    raise_institution_forbidden(db, current_user_id, institution_id)
+
     logger.info(f"Fetching rooms for institution {institution_id}")
-    get_institution_by_id(db, institution_id)
+    get_institution_by_id(db, institution_id, current_user_id)
 
     try:
         rooms_data = rooms_repo.find_rooms_by_institution_id(db, institution_id)
@@ -202,10 +281,15 @@ def get_institution_rooms(db: Database, institution_id: str) -> List[models.Room
     return rooms
 
 
-def get_institution_groups(db: Database, institution_id: str) -> List[models.Group]:
+def get_institution_groups(
+        db: Database,
+        institution_id: str,
+        current_user_id: str
+) -> List[models.Group]:
     """Get groups of an institution"""
     logger.info(f"Fetching groups for institution {institution_id}")
-    get_institution_by_id(db, institution_id)
+    raise_institution_forbidden(db, current_user_id, institution_id)
+    get_institution_by_id(db, institution_id, current_user_id)
 
     try:
         groups_data = groups_repo.find_groups_by_institution_id(db, institution_id)
@@ -222,10 +306,15 @@ def get_institution_groups(db: Database, institution_id: str) -> List[models.Gro
     return groups
 
 
-def get_institution_users(db: Database, institution_id: str) -> List[models.User]:
+def get_institution_users(
+        db: Database,
+        institution_id: str,
+        current_user_id: str
+) -> List[models.User]:
     """Get users of an institution"""
     logger.info(f"Fetching users for institution {institution_id}")
-    get_institution_by_id(db, institution_id)
+    raise_institution_forbidden(db, current_user_id, institution_id)
+    get_institution_by_id(db, institution_id, current_user_id)
 
     try:
         users_data = users_repo.find_users_by_institution_id(db, institution_id)
@@ -242,10 +331,15 @@ def get_institution_users(db: Database, institution_id: str) -> List[models.User
     return users
 
 
-def get_institution_activities(db: Database, institution_id: str) -> List[models.Activity]:
+def get_institution_activities(
+        db: Database,
+        institution_id: str,
+        current_user_id: str
+) -> List[models.Activity]:
     """Get activities of an institution"""
     logger.info(f"Fetching activities for institution {institution_id}")
-    get_institution_by_id(db, institution_id)
+    raise_institution_forbidden(db, current_user_id, institution_id)
+    get_institution_by_id(db, institution_id, current_user_id)
 
     try:
         activities_data = activities_repo.find_activities_by_institution_id(db, institution_id)
@@ -263,10 +357,15 @@ def get_institution_activities(db: Database, institution_id: str) -> List[models
     return activities
 
 
-def get_institution_schedules(db: Database, institution_id: str) -> List[models.Schedule]:
+def get_institution_schedules(
+        db: Database,
+        institution_id: str,
+        current_user_id: str
+) -> List[models.Schedule]:
     """Get schedules of an institution"""
     logger.info(f"Fetching schedules for institution {institution_id}")
-    get_institution_by_id(db, institution_id)
+    raise_institution_forbidden(db, current_user_id, institution_id)
+    get_institution_by_id(db, institution_id, current_user_id)
 
     try:
         schedules_data = schedules_repo.find_schedules_by_institution_id(db, institution_id)
@@ -281,3 +380,181 @@ def get_institution_schedules(db: Database, institution_id: str) -> List[models.
 
     logger.info(f"Fetched {len(schedules)} schedules for institution {institution_id}")
     return schedules
+
+
+def assign_role_to_user(
+        db: Database,
+        user_id: str,
+        institution_id: str,
+        role: models.UserRole,
+        current_user_id: str
+):
+    """Assign a role to a user for a specific institution"""
+    logger.info(f"Assigning role {role} to user {user_id} for institution {institution_id}")
+    raise_institution_forbidden(db, current_user_id, institution_id, admin_only=True)
+    get_institution_by_id(db, institution_id, current_user_id)
+
+    user = users_repo.find_user_by_id(db, user_id)
+    if not user:
+        logger.error(f"User not found: {user_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with id {user_id} not found."
+        )
+    user = models.User(**user)
+
+    user_institution_roles = user.user_roles.get(institution_id, [])
+
+    if role in user_institution_roles:
+        logger.error(f"User with id {user_id} already has role {role}"
+                       f" for institution {institution_id}")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"User with id {user_id} already has role {role}"
+                   f" for institution {institution_id}"
+        )
+
+    user_institution_roles.append(role)
+    user.user_roles[institution_id] = user_institution_roles
+
+    update_data = {"user_roles": user.user_roles}
+    try:
+        users_repo.update_user_by_id(db, user_id, update_data)
+    except Exception as e:
+        logger.error(f"Failed to assign role to user {user_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error assigning role to user with id {user_id}: {str(e)}"
+        )
+
+    logger.info(f"Assigned role {role} to user {user_id} for institution {institution_id}")
+
+
+def get_institution_admins(
+        db: Database,
+        institution_id: str,
+        current_user_id: str
+) -> List[models.User]:
+    """Get all admins of an institution"""
+    logger.info(f"Fetching admins for institution {institution_id}")
+
+    institution_users = get_institution_users(db, institution_id, current_user_id)
+
+    admins = [
+        user for user in institution_users
+        if models.UserRole.ADMIN in user.user_roles.get(institution_id, [])
+    ]
+
+    logger.info(f"Fetched {len(admins)} admins for institution {institution_id}")
+    return admins
+
+
+def remove_role_from_user(
+        db: Database,
+        user_id: str,
+        institution_id: str,
+        role: models.UserRole,
+        current_user_id: str
+):
+    """Remove a role from a user for a specific institution"""
+    logger.info(f"Removing role {role} from user {user_id} for institution {institution_id}")
+    raise_institution_forbidden(db, current_user_id, institution_id, admin_only=True)
+    get_institution_by_id(db, institution_id, current_user_id)
+
+    user = users_repo.find_user_by_id(db, user_id)
+    if not user:
+        logger.error(f"User not found: {user_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with id {user_id} not found."
+        )
+    user = models.User(**user)
+
+    user_institution_roles = user.user_roles.get(institution_id, [])
+
+    if role not in user_institution_roles:
+        logger.error(f"User with id {user_id} does not have role {role}"
+                       f" for institution {institution_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with id {user_id} does not have role {role}"
+                   f" for institution {institution_id}"
+        )
+
+    if role == models.UserRole.ADMIN:
+        admins = get_institution_admins(db, institution_id, current_user_id)
+        if len(admins) <= 1:
+            logger.error(f"Cannot remove the last admin from institution {institution_id}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot remove the last admin from institution {institution_id}"
+            )
+
+    user_institution_roles.remove(role)
+    if user_institution_roles:
+        user.user_roles[institution_id] = user_institution_roles
+    else:
+        user.user_roles.pop(institution_id)
+
+    update_data = {"user_roles": user.user_roles}
+    try:
+        users_repo.update_user_by_id(db, user_id, update_data)
+    except Exception as e:
+        logger.error(f"Failed to remove role from user {user_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error removing role from user with id {user_id}: {str(e)}"
+        )
+
+    logger.info(f"Removed role {role} from user {user_id} for institution {institution_id}")
+
+
+def remove_user_from_institution(
+        db: Database,
+        user_id: str,
+        institution_id: str,
+        current_user_id: str
+):
+    """Remove all roles of a user for a specific institution"""
+    logger.info(f"Removing user {user_id} from institution {institution_id}")
+    raise_institution_forbidden(db, current_user_id, institution_id, admin_only=True)
+    get_institution_by_id(db, institution_id, current_user_id)
+
+    user = users_repo.find_user_by_id(db, user_id)
+    if not user:
+        logger.error(f"User not found: {user_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with id {user_id} not found."
+        )
+    user = models.User(**user)
+
+    if institution_id not in user.user_roles:
+        logger.error(f"User with id {user_id} has no roles for institution {institution_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with id {user_id} has no roles for institution {institution_id}"
+        )
+
+    if models.UserRole.ADMIN in user.user_roles[institution_id]:
+        admins = get_institution_admins(db, institution_id, current_user_id)
+        if len(admins) <= 1:
+            logger.error(f"Cannot remove the last admin from institution {institution_id}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot remove the last admin from institution {institution_id}"
+            )
+
+    user.user_roles.pop(institution_id)
+
+    update_data = {"user_roles": user.user_roles}
+    try:
+        users_repo.update_user_by_id(db, user_id, update_data)
+    except Exception as e:
+        logger.error(f"Failed to remove user from institution {institution_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error removing user from institution with id {institution_id}: {str(e)}"
+        )
+
+    logger.info(f"Removed user {user_id} from institution {institution_id}")

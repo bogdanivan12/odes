@@ -2,7 +2,6 @@ from starlette import status
 from fastapi import APIRouter
 
 from app.libs.db.db import DB
-from app.libs.db import models
 from app.libs.auth import token_utils
 from app.libs.auth.token_utils import AUTH
 from app.services.api.src.services import users as service
@@ -24,8 +23,8 @@ async def get_users(db: DB):
 @router.get("/me", status_code=status.HTTP_200_OK, response_model=dto_out.GetUser)
 async def get_current_user(db: DB, token: AUTH):
     """Get the currently authenticated user"""
-    user_id = token_utils.get_user_id_from_token(token)
-    user = service.get_user_by_id(db, user_id)
+    current_user_id = token_utils.get_user_id_from_token(token)
+    user = service.get_user_by_id(db, current_user_id)
     return dto_out.GetUser(user=user)
 
 
@@ -47,41 +46,22 @@ async def create_user(db: DB, request: dto_in.CreateUser):
     return dto_out.GetUser(user=user)
 
 
-@router.put("/{user_id}",
+@router.put("/me",
             status_code=status.HTTP_200_OK,
             response_model=dto_out.GetUser)
-async def update_user(db: DB, user_id: str, request: dto_in.UpdateUser):
-    """Update an existing user"""
-    user = service.update_user(db, user_id, request)
+async def update_user(db: DB, token: AUTH, request: dto_in.UpdateUser):
+    """Update current user"""
+    current_user_id = token_utils.get_user_id_from_token(token)
+    user = service.update_user(db, current_user_id, request)
     return dto_out.GetUser(user=user)
 
 
-@router.delete("/{user_id}",
+@router.delete("/me",
                status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(db: DB, user_id: str):
-    """Delete an user by ID"""
-    service.delete_user(db, user_id)
-
-
-@router.post("/{user_id}/institutions/{institution_id}/roles/{role}",
-             status_code=status.HTTP_204_NO_CONTENT)
-async def assign_role_to_user(db: DB, user_id: str, institution_id: str, role: models.UserRole):
-    """Assign a role to a user for a specific institution"""
-    service.assign_role_to_user(db, user_id, institution_id, role)
-
-
-@router.delete("/{user_id}/institutions/{institution_id}/roles/{role}",
-               status_code=status.HTTP_204_NO_CONTENT)
-async def remove_role_from_user(db: DB, user_id: str, institution_id: str, role: models.UserRole):
-    """Remove a role from a user for a specific institution"""
-    service.remove_role_from_user(db, user_id, institution_id, role)
-
-
-@router.delete("/{user_id}/institutions/{institution_id}/",
-               status_code=status.HTTP_204_NO_CONTENT)
-async def remove_user_from_institution(db: DB, user_id: str, institution_id: str):
-    """Remove all roles from a user for a specific institution"""
-    service.remove_user_from_institution(db, user_id, institution_id)
+async def delete_user(db: DB, token: AUTH):
+    """Delete current user"""
+    current_user_id = token_utils.get_user_id_from_token(token)
+    service.delete_user(db, current_user_id)
 
 
 @router.get("/{professor_id}/activities",
