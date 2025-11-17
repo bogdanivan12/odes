@@ -62,7 +62,8 @@ async def delete_course(db: DB, course_id: str, token: AUTH):
 @router.get("/{course_id}/activities",
             status_code=status.HTTP_200_OK,
             response_model=dto_out.GetCourseActivities)
-async def get_course_activities(db: DB, course_id: str):
+async def get_course_activities(db: DB, course_id: str, token: AUTH):
     """Get all activities for a specific course"""
-    activities = service.get_course_activities(db, course_id)
+    current_user_id = token_utils.get_user_id_from_token(token)
+    activities = service.get_course_activities(db, course_id, current_user_id)
     return dto_out.GetCourseActivities(activities=activities)

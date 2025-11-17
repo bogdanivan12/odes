@@ -59,7 +59,7 @@ def get_activity_by_id(db: Database, activity_id: str, current_user_id: str) -> 
         )
 
     activity = models.Activity(**activity_data)
-    acces_verifiers.raise_activity_forbidden(db, current_user_id, activity)
+    access_verifiers.raise_activity_forbidden(db, current_user_id, activity)
 
     logger.info(f"Fetched activity: {activity.id}")
 
@@ -74,7 +74,7 @@ def create_activity(db: Database, request: dto_in.CreateActivity, current_user_i
     )
 
     activity = models.Activity(**request.model_dump())
-    acces_verifiers.raise_activity_forbidden(db, current_user_id, activity, admin_only=True)
+    access_verifiers.raise_activity_forbidden(db, current_user_id, activity, admin_only=True)
 
     institution = institutions_repo.find_institution_by_id(db, request.institution_id)
     if not institution:
@@ -160,7 +160,7 @@ def delete_activity(db: Database, activity_id: str, current_user_id: str) -> Non
     logger.info(f"Deleting activity {activity_id}")
 
     activity = get_activity_by_id(db, activity_id, current_user_id)
-    acces_verifiers.raise_activity_forbidden(db, current_user_id, activity, admin_only=True)
+    access_verifiers.raise_activity_forbidden(db, current_user_id, activity, admin_only=True)
 
     try:
         result = activities_repo.delete_activity_by_id(db, activity_id)
@@ -191,7 +191,7 @@ def update_activity(
         f"Updating activity {activity_id} with data {request.model_dump(exclude_unset=True)}"
     )
     activity = get_activity_by_id(db, activity_id, current_user_id)
-    acces_verifiers.raise_activity_forbidden(db, current_user_id, activity, admin_only=True)
+    access_verifiers.raise_activity_forbidden(db, current_user_id, activity, admin_only=True)
 
     updated_data = request.model_dump(exclude_unset=True)
 
