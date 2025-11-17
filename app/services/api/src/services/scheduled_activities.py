@@ -6,6 +6,7 @@ from pymongo.synchronous.database import Database
 
 from app.libs.db import models
 from app.libs.logging.logger import get_logger
+from app.services.api.src.auth import acces_verifiers
 from app.services.api.src.dtos.input import scheduled_activity as dto_in
 from app.services.api.src.repositories import (
     scheduled_activities as scheduled_activities_repo,
@@ -17,41 +18,6 @@ from app.services.api.src.repositories import (
 
 
 logger = get_logger()
-
-
-def raise_scheduled_activity_forbidden(
-        db: Database,
-        current_user_id: str,
-        scheduled_activity: models.ScheduledActivity,
-        admin_only: bool = False
-) -> None:
-    """Raise HTTP 403 if the user does not have access to the scheduled activity"""
-    # Get the schedule to find the institution
-    schedule_data = schedules_repo.find_schedule_by_id(db, scheduled_activity.schedule_id)
-    if not schedule_data:
-        logger.error(f"Schedule not found: {scheduled_activity.schedule_id}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Schedule with id {scheduled_activity.schedule_id} not found"
-        )
-
-    schedule = models.Schedule(**schedule_data)
-    user = models.User(**users_repo.find_user_by_id(db, current_user_id))
-
-    if schedule.institution_id not in user.user_roles:
-        logger.error(f"User {current_user_id} forbidden from accessing scheduled activity {scheduled_activity.id}")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"User with id {current_user_id} does not have access to scheduled activity {scheduled_activity.id}"
-        )
-
-    if admin_only and models.UserRole.ADMIN not in user.user_roles[schedule.institution_id]:
-        logger.error(f"User {current_user_id} forbidden from admin access to scheduled activity {scheduled_activity.id}")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"User with id {current_user_id} does not have admin access"
-                   f" to scheduled activity {scheduled_activity.id}"
-        )
 
 
 def get_scheduled_activities(db: Database, current_user_id: str) -> List[models.ScheduledActivity]:
@@ -107,7 +73,7 @@ def get_scheduled_activity_by_id(
         )
 
     scheduled_activity = models.ScheduledActivity(**scheduled_activity_data)
-    raise_scheduled_activity_forbidden(db, current_user_id, scheduled_activity)
+    acces_verifiers.raise_scheduled_activity_forbidden(db, current_user_id, scheduled_activity)
 
     logger.info(f"Fetched scheduled_activity: {scheduled_activity.id}")
     return scheduled_activity
@@ -146,7 +112,9 @@ def create_scheduled_activity(
         )
 
     scheduled_activity = models.ScheduledActivity(**request.model_dump())
-    raise_scheduled_activity_forbidden(db, current_user_id, scheduled_activity, admin_only=True)
+    acces_verifiers.raise_scheduled_activity_forbidden(
+        db, current_user_id, scheduled_activity, admin_only=True
+    )
 
     try:
         scheduled_activities_repo.insert_scheduled_activity(db, scheduled_activity)
@@ -166,7 +134,9 @@ def delete_scheduled_activity(db: Database, scheduled_activity_id: str, current_
     logger.info(f"Deleting scheduled_activity id={scheduled_activity_id}")
 
     scheduled_activity = get_scheduled_activity_by_id(db, scheduled_activity_id, current_user_id)
-    raise_scheduled_activity_forbidden(db, current_user_id, scheduled_activity, admin_only=True)
+    acces_verifiers.raise_scheduled_activity_forbidden(
+        db, current_user_id, scheduled_activity, admin_only=True
+    )
 
     try:
         result = scheduled_activities_repo.delete_scheduled_activity_by_id(
@@ -200,7 +170,9 @@ def update_scheduled_activity(
                 f" with data={scheduled_activity_dict}")
 
     scheduled_activity = get_scheduled_activity_by_id(db, scheduled_activity_id, current_user_id)
-    raise_scheduled_activity_forbidden(db, current_user_id, scheduled_activity, admin_only=True)
+    acces_verifiers.raise_scheduled_activity_forbidden(
+        db, current_user_id, scheduled_activity, admin_only=True
+    )
 
     if "room_id" in scheduled_activity_dict:
         room = rooms_repo.find_room_by_id(db, scheduled_activity_dict.get("room_id"))
@@ -229,7 +201,9 @@ def update_scheduled_activity(
             detail=f"ScheduledActivity with id {scheduled_activity_id} not found"
         )
 
-    updated_scheduled_activity = get_scheduled_activity_by_id(db, scheduled_activity_id, current_user_id)
+    updated_scheduled_activity = get_scheduled_activity_by_id(
+        db, scheduled_activity_id, current_user_id
+    )
     logger.info(f"Updated scheduled_activity {updated_scheduled_activity.id}")
     return updated_scheduled_activity
 
@@ -246,21 +220,23 @@ def insert_scheduled_activities_bulk(
         for sa in request.scheduled_activities
     ]
 
-    # Verify permissions for each scheduled activity institution
-    scheduled_activities_by_institution = {}
-    for scheduled_activity in scheduled_activities:
-        scheduled_activities_by_institution[scheduled_activity.institution_id] = scheduled_activity
-
-    user = models.User(**users_repo.find_user_by_id(db, current_user_id))
-    for institution_id in scheduled_activities_by_institution:
-        if models.UserRole.ADMIN not in user.user_roles.get(institution_id, []):
-            logger.error(f"User {current_user_id} forbidden from admin access"
-                         f" to institution {institution_id}")
+    # Verify permissions for each scheduled activity schedule
+    scheduled_activities_by_schedule = {}
+    for sa in scheduled_activities:
+        acces_verifiers.raise_scheduled_activity_forbidden(db, current_user_id, sa, admin_only=True)
+        scheduled_activities_by_schedule[sa.schedule_id] = sa
+    
+    for schedule_id in scheduled_activities_by_schedule:
+        schedule = schedules_repo.find_schedule_by_id(db, schedule_id)
+        if not schedule:
+            logger.error(f"Schedule not found: {schedule_id}")
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"User with id {current_user_id} does not have admin access"
-                       f" to institution {institution_id}"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Schedule with id {schedule_id} not found"
             )
+        acces_verifiers.raise_schedule_forbidden(
+            db, current_user_id, models.Schedule(**schedule), admin_only=True
+        )
 
     try:
         scheduled_activities_repo.insert_many_scheduled_activities(db, scheduled_activities)

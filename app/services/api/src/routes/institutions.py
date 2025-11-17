@@ -3,8 +3,8 @@ from fastapi import APIRouter
 
 from app.libs.db.db import DB
 from app.libs.db import models
-from app.libs.auth import token_utils
-from app.libs.auth.token_utils import AUTH
+from app.services.api.src.auth import token_utils
+from app.services.api.src.auth.token_utils import AUTH
 from app.services.api.src.services import institutions as service
 from app.services.api.src.dtos.input import institution as dto_in
 from app.services.api.src.dtos.output import institution as dto_out

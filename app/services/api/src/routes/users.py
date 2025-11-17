@@ -2,8 +2,8 @@ from starlette import status
 from fastapi import APIRouter
 
 from app.libs.db.db import DB
-from app.libs.auth import token_utils
-from app.libs.auth.token_utils import AUTH
+from app.services.api.src.auth import token_utils
+from app.services.api.src.auth.token_utils import AUTH
 from app.services.api.src.services import users as service
 from app.services.api.src.dtos.input import user as dto_in
 from app.services.api.src.dtos.output import user as dto_out
