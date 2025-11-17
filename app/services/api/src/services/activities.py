@@ -6,6 +6,7 @@ from pymongo.synchronous.database import Database
 
 from app.libs.db import models
 from app.libs.logging.logger import get_logger
+from app.services.api.src.auth import access_verifiers
 from app.services.api.src.dtos.input import activity as dto_in
 from app.services.api.src.repositories import (
     activities as activities_repo,
@@ -38,31 +39,6 @@ def get_activities(db: Database, current_user_id: str) -> List[models.Activity]:
     return activities
 
 
-def raise_activity_forbidden(
-        db: Database,
-        current_user_id: str,
-        activity: models.Activity,
-        admin_only: bool = False
-) -> None:
-    """Raise HTTP 403 if the user does not have access to the activity"""
-    user = models.User(**users_repo.find_user_by_id(db, current_user_id))
-
-    if activity.institution_id not in user.user_roles:
-        logger.error(f"User {current_user_id} forbidden from accessing activity {activity.id}")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"User with id {current_user_id} does not have access to activity {activity.id}"
-        )
-
-    if admin_only and models.UserRole.ADMIN not in user.user_roles[activity.institution_id]:
-        logger.error(f"User {current_user_id} forbidden from admin access to activity {activity.id}")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"User with id {current_user_id} does not have admin access"
-                   f" to activity {activity.id}"
-        )
-
-
 def get_activity_by_id(db: Database, activity_id: str, current_user_id: str) -> models.Activity:
     """Get activity by ID"""
     logger.info(f"Fetching activity by id: {activity_id}")
@@ -83,7 +59,7 @@ def get_activity_by_id(db: Database, activity_id: str, current_user_id: str) -> 
         )
 
     activity = models.Activity(**activity_data)
-    raise_activity_forbidden(db, current_user_id, activity)
+    acces_verifiers.raise_activity_forbidden(db, current_user_id, activity)
 
     logger.info(f"Fetched activity: {activity.id}")
 
@@ -98,7 +74,7 @@ def create_activity(db: Database, request: dto_in.CreateActivity, current_user_i
     )
 
     activity = models.Activity(**request.model_dump())
-    raise_activity_forbidden(db, current_user_id, activity, admin_only=True)
+    acces_verifiers.raise_activity_forbidden(db, current_user_id, activity, admin_only=True)
 
     institution = institutions_repo.find_institution_by_id(db, request.institution_id)
     if not institution:
@@ -184,7 +160,7 @@ def delete_activity(db: Database, activity_id: str, current_user_id: str) -> Non
     logger.info(f"Deleting activity {activity_id}")
 
     activity = get_activity_by_id(db, activity_id, current_user_id)
-    raise_activity_forbidden(db, current_user_id, activity, admin_only=True)
+    acces_verifiers.raise_activity_forbidden(db, current_user_id, activity, admin_only=True)
 
     try:
         result = activities_repo.delete_activity_by_id(db, activity_id)
@@ -215,7 +191,7 @@ def update_activity(
         f"Updating activity {activity_id} with data {request.model_dump(exclude_unset=True)}"
     )
     activity = get_activity_by_id(db, activity_id, current_user_id)
-    raise_activity_forbidden(db, current_user_id, activity, admin_only=True)
+    acces_verifiers.raise_activity_forbidden(db, current_user_id, activity, admin_only=True)
 
     updated_data = request.model_dump(exclude_unset=True)
 

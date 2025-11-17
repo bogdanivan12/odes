@@ -6,6 +6,7 @@ from pymongo.synchronous.database import Database
 
 from app.libs.db import models
 from app.libs.logging.logger import get_logger
+from app.services.api.src.auth import access_verifiers
 from app.services.api.src.dtos.input import course as dto_in
 from app.services.api.src.repositories import (
     users as users_repo,
@@ -37,31 +38,6 @@ def get_courses(db: Database, current_user_id: str) -> List[models.Course]:
     return courses
 
 
-def raise_course_forbidden(
-        db: Database,
-        current_user_id: str,
-        course: models.Course,
-        admin_only: bool = False
-) -> None:
-    """Raise HTTP 403 if the user does not have access to the course"""
-    user = models.User(**users_repo.find_user_by_id(db, current_user_id))
-
-    if course.institution_id not in user.user_roles:
-        logger.error(f"User {current_user_id} forbidden from accessing course {course.id}")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"User with id {current_user_id} does not have access to course {course.id}"
-        )
-
-    if admin_only and models.UserRole.ADMIN not in user.user_roles[course.institution_id]:
-        logger.error(f"User {current_user_id} forbidden from admin access to course {course.id}")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"User with id {current_user_id} does not have admin access"
-                   f" to course {course.id}"
-        )
-
-
 def get_course_by_id(db: Database, course_id: str, current_user_id: str) -> models.Course:
     """Get course by ID"""
     logger.info(f"Fetching course by id: {course_id}")
@@ -82,7 +58,7 @@ def get_course_by_id(db: Database, course_id: str, current_user_id: str) -> mode
         )
 
     course = models.Course(**course_data)
-    raise_course_forbidden(db, current_user_id, course)
+    acces_verifiers.raise_course_forbidden(db, current_user_id, course)
     logger.info(f"Fetched course: {course.id}")
 
     return course
@@ -104,7 +80,7 @@ def create_course(
         )
 
     course = models.Course(**request.model_dump())
-    raise_course_forbidden(db, current_user_id, course, admin_only=True)
+    acces_verifiers.raise_course_forbidden(db, current_user_id, course, admin_only=True)
 
     try:
         courses_repo.insert_course(db, course)
@@ -124,7 +100,7 @@ def delete_course(db: Database, course_id: str, current_user_id: str) -> None:
     logger.info(f"Deleting course {course_id}")
 
     course = get_course_by_id(db, course_id, current_user_id)
-    raise_course_forbidden(db, current_user_id, course, admin_only=True)
+    acces_verifiers.raise_course_forbidden(db, current_user_id, course, admin_only=True)
 
     try:
         result = courses_repo.delete_course_by_id(db, course_id)
@@ -164,7 +140,7 @@ def update_course(
     logger.info(f"Updating course {course_id} with data {update_data}")
 
     course = get_course_by_id(db, course_id, current_user_id)
-    raise_course_forbidden(db, current_user_id, course, admin_only=True)
+    acces_verifiers.raise_course_forbidden(db, current_user_id, course, admin_only=True)
 
     try:
         result = courses_repo.update_course_by_id(db, course_id, update_data)

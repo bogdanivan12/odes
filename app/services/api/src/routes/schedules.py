@@ -2,8 +2,8 @@ from starlette import status
 from fastapi import APIRouter
 
 from app.libs.db.db import DB
-from app.libs.auth import token_utils
-from app.libs.auth.token_utils import AUTH
+from app.services.api.src.auth import token_utils
+from app.services.api.src.auth.token_utils import AUTH
 from app.services.api.src.services import schedules as service
 from app.services.api.src.dtos.input import schedule as dto_in
 from app.services.api.src.dtos.output import schedule as dto_out
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/api/v1/schedules", tags=["schedules"])
 async def trigger_schedule_generation(db: DB, request: dto_in.CreateSchedule, token: AUTH):
     """Trigger the schedule generation process for a specific institution"""
     current_user_id = token_utils.get_user_id_from_token(token)
-    schedule = service.trigger_schedule_generation(db, request, current_user_id)
+    schedule = service.trigger_schedule_generation(db, request, current_user_id, token)
     return dto_out.GetSchedule(schedule=schedule)
 
 

@@ -6,6 +6,7 @@ from pymongo.synchronous.database import Database
 
 from app.libs.db import models
 from app.libs.logging.logger import get_logger
+from app.services.api.src.auth import access_verifiers
 from app.services.api.src.dtos.input import room as dto_in
 from app.services.api.src.repositories import (
     rooms as rooms_repo,
@@ -37,30 +38,6 @@ def get_rooms(db: Database, current_user_id: str) -> List[models.Room]:
     return rooms
 
 
-def raise_room_forbidden(
-        db: Database,
-        current_user_id: str,
-        room: models.Room,
-        admin_only: bool = False
-) -> None:
-    """Raise HTTP 403 if the user does not have access to the room"""
-    user = models.User(**users_repo.find_user_by_id(db, current_user_id))
-
-    if room.institution_id not in user.user_roles:
-        logger.error(f"User {current_user_id} forbidden from accessing room {room.id}")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"User with id {current_user_id} does not have access to room {room.id}"
-        )
-
-    if admin_only and models.UserRole.ADMIN not in user.user_roles[room.institution_id]:
-        logger.error(f"User {current_user_id} forbidden from admin access to room {room.id}")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"User with id {current_user_id} does not have admin access to room {room.id}"
-        )
-
-
 def get_room_by_id(db: Database, room_id: str, current_user_id: str) -> models.Room:
     """Get room by ID"""
     logger.info(f"Fetching room by id: {room_id}")
@@ -81,7 +58,7 @@ def get_room_by_id(db: Database, room_id: str, current_user_id: str) -> models.R
         )
 
     room = models.Room(**room_data)
-    raise_room_forbidden(db, current_user_id, room)
+    acces_verifiers.raise_room_forbidden(db, current_user_id, room)
 
     logger.info(f"Fetched room: {room.id}")
     return room
@@ -99,7 +76,7 @@ def create_room(db: Database, request: dto_in.CreateRoom, current_user_id: str) 
         )
 
     room = models.Room(**request.model_dump())
-    raise_room_forbidden(db, current_user_id, room, admin_only=True)
+    acces_verifiers.raise_room_forbidden(db, current_user_id, room, admin_only=True)
 
     try:
         rooms_repo.insert_room(db, room)
@@ -119,7 +96,7 @@ def delete_room(db: Database, room_id: str, current_user_id: str) -> None:
     logger.info(f"Deleting room id={room_id}")
 
     room = get_room_by_id(db, room_id, current_user_id)
-    raise_room_forbidden(db, current_user_id, room, admin_only=True)
+    acces_verifiers.raise_room_forbidden(db, current_user_id, room, admin_only=True)
 
     try:
         result = rooms_repo.delete_room_by_id(db, room_id)
@@ -147,7 +124,7 @@ def update_room(
 ) -> models.Room:
     """Update an existing room"""
     room = get_room_by_id(db, room_id, current_user_id)
-    raise_room_forbidden(db, current_user_id, room, admin_only=True)
+    acces_verifiers.raise_room_forbidden(db, current_user_id, room, admin_only=True)
 
     room_dict = room_request.model_dump(exclude_unset=True)
     logger.info(f"Updating room id={room_id} with data={room_dict}")

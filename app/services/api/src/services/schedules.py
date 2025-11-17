@@ -8,6 +8,7 @@ from pymongo.synchronous.database import Database
 
 from app.libs.db import models
 from app.libs.logging.logger import get_logger
+from app.services.api.src.auth import access_verifiers
 from app.services.api.src.repositories import (
     activities as activities_repo,
     institutions as institutions_repo,
@@ -24,32 +25,12 @@ celery_client = Celery("api", broker=CELERY_BROKER_URL)
 logger = get_logger()
 
 
-def raise_schedule_forbidden(
+def trigger_schedule_generation(
         db: Database,
+        request: dto_in.CreateSchedule,
         current_user_id: str,
-        schedule: models.Schedule,
-        admin_only: bool = False
-) -> None:
-    """Raise HTTP 403 if the user does not have access to the schedule"""
-    user = models.User(**users_repo.find_user_by_id(db, current_user_id))
-
-    if schedule.institution_id not in user.user_roles:
-        logger.error(f"User {current_user_id} forbidden from accessing schedule {schedule.id}")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"User with id {current_user_id} does not have access to schedule {schedule.id}"
-        )
-
-    if admin_only and models.UserRole.ADMIN not in user.user_roles[schedule.institution_id]:
-        logger.error(f"User {current_user_id} forbidden from admin access to schedule {schedule.id}")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"User with id {current_user_id} does not have admin access"
-                   f" to schedule {schedule.id}"
-        )
-
-
-def trigger_schedule_generation(db: Database, request: dto_in.CreateSchedule, current_user_id: str) -> models.Schedule:
+        token: str
+) -> models.Schedule:
     """Trigger schedule generation process"""
     institution_id = request.institution_id
     institution_data = institutions_repo.find_institution_by_id(db, institution_id)
@@ -81,7 +62,7 @@ def trigger_schedule_generation(db: Database, request: dto_in.CreateSchedule, cu
     )
 
     # Check authorization - user must be admin of the institution
-    raise_schedule_forbidden(db, current_user_id, schedule, admin_only=True)
+    acces_verifiers.raise_schedule_forbidden(db, current_user_id, schedule, admin_only=True)
 
     try:
         schedules_repo.insert_schedule(db, schedule)
@@ -99,7 +80,8 @@ def trigger_schedule_generation(db: Database, request: dto_in.CreateSchedule, cu
         name="generate_schedule",
         kwargs={
             "institution_id": institution_id,
-            "schedule_id": schedule.id
+            "schedule_id": schedule.id,
+            "token": token
         },
         queue="schedule_generator_queue"
     )
@@ -150,7 +132,7 @@ def get_schedule_by_id(db: Database, schedule_id: str, current_user_id: str) -> 
         )
 
     schedule = models.Schedule(**schedule_data)
-    raise_schedule_forbidden(db, current_user_id, schedule)
+    acces_verifiers.raise_schedule_forbidden(db, current_user_id, schedule)
 
     logger.info(f"Fetched schedule: {schedule.id}")
 
@@ -162,7 +144,7 @@ def delete_schedule(db: Database, schedule_id: str, current_user_id: str) -> Non
     logger.info(f"Deleting schedule id={schedule_id}")
 
     schedule = get_schedule_by_id(db, schedule_id, current_user_id)
-    raise_schedule_forbidden(db, current_user_id, schedule, admin_only=True)
+    acces_verifiers.raise_schedule_forbidden(db, current_user_id, schedule, admin_only=True)
 
     try:
         result = schedules_repo.delete_schedule_by_id(db, schedule_id)
@@ -224,7 +206,7 @@ def update_schedule(
     logger.info(f"Updating schedule id={schedule_id}")
 
     schedule = get_schedule_by_id(db, schedule_id, current_user_id)
-    raise_schedule_forbidden(db, current_user_id, schedule, admin_only=True)
+    acces_verifiers.raise_schedule_forbidden(db, current_user_id, schedule, admin_only=True)
 
     update_data = request.model_dump(exclude_unset=True)
 
