@@ -13,6 +13,7 @@ from app.services.api.src.repositories import (
     institutions as institutions_repo,
     schedules as schedules_repo,
     scheduled_activities as scheduled_activities_repo,
+    users as users_repo,
 )
 from app.services.api.src.dtos.input import schedule as dto_in
 
@@ -23,7 +24,32 @@ celery_client = Celery("api", broker=CELERY_BROKER_URL)
 logger = get_logger()
 
 
-def trigger_schedule_generation(db: Database, request: dto_in.CreateSchedule) -> models.Schedule:
+def raise_schedule_forbidden(
+        db: Database,
+        current_user_id: str,
+        schedule: models.Schedule,
+        admin_only: bool = False
+) -> None:
+    """Raise HTTP 403 if the user does not have access to the schedule"""
+    user = models.User(**users_repo.find_user_by_id(db, current_user_id))
+
+    if schedule.institution_id not in user.user_roles:
+        logger.error(f"User {current_user_id} forbidden from accessing schedule {schedule.id}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"User with id {current_user_id} does not have access to schedule {schedule.id}"
+        )
+
+    if admin_only and models.UserRole.ADMIN not in user.user_roles[schedule.institution_id]:
+        logger.error(f"User {current_user_id} forbidden from admin access to schedule {schedule.id}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"User with id {current_user_id} does not have admin access"
+                   f" to schedule {schedule.id}"
+        )
+
+
+def trigger_schedule_generation(db: Database, request: dto_in.CreateSchedule, current_user_id: str) -> models.Schedule:
     """Trigger schedule generation process"""
     institution_id = request.institution_id
     institution_data = institutions_repo.find_institution_by_id(db, institution_id)
@@ -54,6 +80,9 @@ def trigger_schedule_generation(db: Database, request: dto_in.CreateSchedule) ->
         time_grid_config=institution.time_grid_config,
     )
 
+    # Check authorization - user must be admin of the institution
+    raise_schedule_forbidden(db, current_user_id, schedule, admin_only=True)
+
     try:
         schedules_repo.insert_schedule(db, schedule)
     except Exception as e:
@@ -81,7 +110,7 @@ def trigger_schedule_generation(db: Database, request: dto_in.CreateSchedule) ->
     return schedule
 
 
-def get_schedules(db: Database) -> List[models.Schedule]:
+def get_schedules(db: Database, current_user_id: str) -> List[models.Schedule]:
     """Get all schedules"""
     logger.info("Fetching all schedules")
     try:
@@ -93,13 +122,15 @@ def get_schedules(db: Database) -> List[models.Schedule]:
             detail=f"Error retrieving schedules: {str(e)}"
         )
 
-    schedules = [models.Schedule(**schedule) for schedule in schedules_data]
+    user = models.User(**users_repo.find_user_by_id(db, current_user_id))
+    schedules = [models.Schedule(**schedule) for schedule in schedules_data
+                 if schedule['institution_id'] in user.user_roles]
     logger.info(f"Fetched {len(schedules)} schedules")
 
     return schedules
 
 
-def get_schedule_by_id(db: Database, schedule_id: str) -> models.Schedule:
+def get_schedule_by_id(db: Database, schedule_id: str, current_user_id: str) -> models.Schedule:
     """Get schedule by ID"""
     logger.info(f"Fetching schedule by id: {schedule_id}")
     try:
@@ -119,14 +150,20 @@ def get_schedule_by_id(db: Database, schedule_id: str) -> models.Schedule:
         )
 
     schedule = models.Schedule(**schedule_data)
+    raise_schedule_forbidden(db, current_user_id, schedule)
+
     logger.info(f"Fetched schedule: {schedule.id}")
 
     return schedule
 
 
-def delete_schedule(db: Database, schedule_id: str) -> None:
+def delete_schedule(db: Database, schedule_id: str, current_user_id: str) -> None:
     """Delete a schedule by ID"""
     logger.info(f"Deleting schedule id={schedule_id}")
+
+    schedule = get_schedule_by_id(db, schedule_id, current_user_id)
+    raise_schedule_forbidden(db, current_user_id, schedule, admin_only=True)
+
     try:
         result = schedules_repo.delete_schedule_by_id(db, schedule_id)
     except Exception as e:
@@ -147,10 +184,15 @@ def delete_schedule(db: Database, schedule_id: str) -> None:
 
 def get_scheduled_activities_by_schedule_id(
         db: Database,
-        schedule_id: str
+        schedule_id: str,
+        current_user_id: str
 ) -> List[models.ScheduledActivity]:
     """Get scheduled activities by schedule ID"""
     logger.info(f"Fetching scheduled activities for schedule id: {schedule_id}")
+
+    # Verify schedule exists and user has access
+    get_schedule_by_id(db, schedule_id, current_user_id)
+
     try:
         scheduled_activities_data = (
             scheduled_activities_repo.find_scheduled_activities_by_schedule_id(db, schedule_id)
@@ -175,10 +217,15 @@ def get_scheduled_activities_by_schedule_id(
 def update_schedule(
         db: Database,
         schedule_id: str,
-        request: dto_in.UpdateSchedule
+        request: dto_in.UpdateSchedule,
+        current_user_id: str
 ) -> models.Schedule:
     """Update a schedule by ID"""
     logger.info(f"Updating schedule id={schedule_id}")
+
+    schedule = get_schedule_by_id(db, schedule_id, current_user_id)
+    raise_schedule_forbidden(db, current_user_id, schedule, admin_only=True)
+
     update_data = request.model_dump(exclude_unset=True)
 
     try:
@@ -197,7 +244,7 @@ def update_schedule(
             detail=f"Schedule with id {schedule_id} not found."
         )
 
-    updated_schedule = get_schedule_by_id(db, schedule_id)
+    updated_schedule = get_schedule_by_id(db, schedule_id, current_user_id)
     logger.info(f"Updated schedule id={schedule_id}")
 
     return updated_schedule
