@@ -63,27 +63,6 @@ def trigger_schedule_generation(db: Database, request: dto_in.CreateSchedule, cu
 
     institution = models.Institution(**institution_data)
 
-    # Check authorization - user must be admin of the institution
-    user = models.User(**users_repo.find_user_by_id(db, current_user_id))
-
-    if institution.id not in user.user_roles:
-        logger.error(f"User {current_user_id} forbidden from accessing"
-                     f" institution {institution.id}")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"User with id {current_user_id} does not have access"
-                   f" to institution {institution.id}"
-        )
-
-    if models.UserRole.ADMIN not in user.user_roles[institution.id]:
-        logger.error(f"User {current_user_id} forbidden from admin access"
-                     f" to institution {institution.id}")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"User with id {current_user_id} does not have admin access"
-                   f" to institution {institution.id}"
-        )
-
     logger.info(f"Fetching activities for institution {institution_id}")
     activities = activities_repo.find_activities_by_institution_id(db, institution_id)
 
@@ -100,6 +79,9 @@ def trigger_schedule_generation(db: Database, request: dto_in.CreateSchedule, cu
         institution_id=institution.id,
         time_grid_config=institution.time_grid_config,
     )
+
+    # Check authorization - user must be admin of the institution
+    raise_schedule_forbidden(db, current_user_id, schedule, admin_only=True)
 
     try:
         schedules_repo.insert_schedule(db, schedule)
