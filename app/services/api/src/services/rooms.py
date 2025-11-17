@@ -6,7 +6,7 @@ from pymongo.synchronous.database import Database
 
 from app.libs.db import models
 from app.libs.logging.logger import get_logger
-from app.services.api.src.auth import acces_verifiers
+from app.services.api.src.auth import access_verifiers
 from app.services.api.src.dtos.input import room as dto_in
 from app.services.api.src.repositories import (
     rooms as rooms_repo,

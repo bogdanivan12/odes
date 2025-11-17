@@ -8,7 +8,7 @@ from pymongo.synchronous.database import Database
 
 from app.libs.db import models
 from app.libs.logging.logger import get_logger
-from app.services.api.src.auth import acces_verifiers
+from app.services.api.src.auth import access_verifiers
 from app.services.api.src.repositories import (
     activities as activities_repo,
     institutions as institutions_repo,
