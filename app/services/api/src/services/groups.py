@@ -57,7 +57,7 @@ def get_group_by_id(db: Database, group_id: str, current_user_id: str) -> models
         )
 
     group = models.Group(**group_data)
-    acces_verifiers.raise_group_forbidden(db, current_user_id, group)
+    access_verifiers.raise_group_forbidden(db, current_user_id, group)
 
     logger.info(f"Fetched group: {group.id}")
 
@@ -68,7 +68,7 @@ def create_group(db: Database, request: dto_in.CreateGroup, current_user_id: str
     """Create a new group"""
     logger.info(f"Creating group {request.name}")
     group = models.Group(**request.model_dump())
-    acces_verifiers.raise_group_forbidden(db, current_user_id, group, admin_only=True)
+    access_verifiers.raise_group_forbidden(db, current_user_id, group, admin_only=True)
 
     if group.parent_group_id:
         parent_group = get_group_by_id(db, group.parent_group_id, current_user_id)
@@ -100,7 +100,7 @@ def delete_group(db: Database, group_id: str, current_user_id: str) -> None:
     logger.info(f"Deleting group {group_id}")
 
     group = get_group_by_id(db, group_id, current_user_id)
-    acces_verifiers.raise_group_forbidden(db, current_user_id, group, admin_only=True)
+    access_verifiers.raise_group_forbidden(db, current_user_id, group, admin_only=True)
 
     try:
         result = groups_repo.delete_group_by_id(db, group_id)
@@ -147,7 +147,7 @@ def update_group(
     """Update a group by ID"""
     logger.info(f"Updating group {group_id} with data {request.model_dump(exclude_unset=True)}")
     group = get_group_by_id(db, group_id, current_user_id)
-    acces_verifiers.raise_group_forbidden(db, current_user_id, group, admin_only=True)
+    access_verifiers.raise_group_forbidden(db, current_user_id, group, admin_only=True)
 
     if request.parent_group_id == group_id:
         logger.error(f"Group {group_id} attempted to set itself as parent")

@@ -62,7 +62,7 @@ def trigger_schedule_generation(
     )
 
     # Check authorization - user must be admin of the institution
-    acces_verifiers.raise_schedule_forbidden(db, current_user_id, schedule, admin_only=True)
+    access_verifiers.raise_schedule_forbidden(db, current_user_id, schedule, admin_only=True)
 
     try:
         schedules_repo.insert_schedule(db, schedule)
@@ -132,7 +132,7 @@ def get_schedule_by_id(db: Database, schedule_id: str, current_user_id: str) -> 
         )
 
     schedule = models.Schedule(**schedule_data)
-    acces_verifiers.raise_schedule_forbidden(db, current_user_id, schedule)
+    access_verifiers.raise_schedule_forbidden(db, current_user_id, schedule)
 
     logger.info(f"Fetched schedule: {schedule.id}")
 
@@ -144,7 +144,7 @@ def delete_schedule(db: Database, schedule_id: str, current_user_id: str) -> Non
     logger.info(f"Deleting schedule id={schedule_id}")
 
     schedule = get_schedule_by_id(db, schedule_id, current_user_id)
-    acces_verifiers.raise_schedule_forbidden(db, current_user_id, schedule, admin_only=True)
+    access_verifiers.raise_schedule_forbidden(db, current_user_id, schedule, admin_only=True)
 
     try:
         result = schedules_repo.delete_schedule_by_id(db, schedule_id)
@@ -206,7 +206,7 @@ def update_schedule(
     logger.info(f"Updating schedule id={schedule_id}")
 
     schedule = get_schedule_by_id(db, schedule_id, current_user_id)
-    acces_verifiers.raise_schedule_forbidden(db, current_user_id, schedule, admin_only=True)
+    access_verifiers.raise_schedule_forbidden(db, current_user_id, schedule, admin_only=True)
 
     update_data = request.model_dump(exclude_unset=True)
 

@@ -73,7 +73,7 @@ def get_scheduled_activity_by_id(
         )
 
     scheduled_activity = models.ScheduledActivity(**scheduled_activity_data)
-    acces_verifiers.raise_scheduled_activity_forbidden(db, current_user_id, scheduled_activity)
+    access_verifiers.raise_scheduled_activity_forbidden(db, current_user_id, scheduled_activity)
 
     logger.info(f"Fetched scheduled_activity: {scheduled_activity.id}")
     return scheduled_activity
@@ -112,7 +112,7 @@ def create_scheduled_activity(
         )
 
     scheduled_activity = models.ScheduledActivity(**request.model_dump())
-    acces_verifiers.raise_scheduled_activity_forbidden(
+    access_verifiers.raise_scheduled_activity_forbidden(
         db, current_user_id, scheduled_activity, admin_only=True
     )
 
@@ -134,7 +134,7 @@ def delete_scheduled_activity(db: Database, scheduled_activity_id: str, current_
     logger.info(f"Deleting scheduled_activity id={scheduled_activity_id}")
 
     scheduled_activity = get_scheduled_activity_by_id(db, scheduled_activity_id, current_user_id)
-    acces_verifiers.raise_scheduled_activity_forbidden(
+    access_verifiers.raise_scheduled_activity_forbidden(
         db, current_user_id, scheduled_activity, admin_only=True
     )
 
@@ -170,7 +170,7 @@ def update_scheduled_activity(
                 f" with data={scheduled_activity_dict}")
 
     scheduled_activity = get_scheduled_activity_by_id(db, scheduled_activity_id, current_user_id)
-    acces_verifiers.raise_scheduled_activity_forbidden(
+    access_verifiers.raise_scheduled_activity_forbidden(
         db, current_user_id, scheduled_activity, admin_only=True
     )
 
@@ -223,7 +223,7 @@ def insert_scheduled_activities_bulk(
     # Verify permissions for each scheduled activity schedule
     scheduled_activities_by_schedule = {}
     for sa in scheduled_activities:
-        acces_verifiers.raise_scheduled_activity_forbidden(db, current_user_id, sa, admin_only=True)
+        access_verifiers.raise_scheduled_activity_forbidden(db, current_user_id, sa, admin_only=True)
         scheduled_activities_by_schedule[sa.schedule_id] = sa
     
     for schedule_id in scheduled_activities_by_schedule:
@@ -234,7 +234,7 @@ def insert_scheduled_activities_bulk(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Schedule with id {schedule_id} not found"
             )
-        acces_verifiers.raise_schedule_forbidden(
+        access_verifiers.raise_schedule_forbidden(
             db, current_user_id, models.Schedule(**schedule), admin_only=True
         )
 

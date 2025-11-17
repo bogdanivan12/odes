@@ -58,7 +58,7 @@ def get_course_by_id(db: Database, course_id: str, current_user_id: str) -> mode
         )
 
     course = models.Course(**course_data)
-    acces_verifiers.raise_course_forbidden(db, current_user_id, course)
+    access_verifiers.raise_course_forbidden(db, current_user_id, course)
     logger.info(f"Fetched course: {course.id}")
 
     return course
@@ -80,7 +80,7 @@ def create_course(
         )
 
     course = models.Course(**request.model_dump())
-    acces_verifiers.raise_course_forbidden(db, current_user_id, course, admin_only=True)
+    access_verifiers.raise_course_forbidden(db, current_user_id, course, admin_only=True)
 
     try:
         courses_repo.insert_course(db, course)
@@ -100,7 +100,7 @@ def delete_course(db: Database, course_id: str, current_user_id: str) -> None:
     logger.info(f"Deleting course {course_id}")
 
     course = get_course_by_id(db, course_id, current_user_id)
-    acces_verifiers.raise_course_forbidden(db, current_user_id, course, admin_only=True)
+    access_verifiers.raise_course_forbidden(db, current_user_id, course, admin_only=True)
 
     try:
         result = courses_repo.delete_course_by_id(db, course_id)
@@ -140,7 +140,7 @@ def update_course(
     logger.info(f"Updating course {course_id} with data {update_data}")
 
     course = get_course_by_id(db, course_id, current_user_id)
-    acces_verifiers.raise_course_forbidden(db, current_user_id, course, admin_only=True)
+    access_verifiers.raise_course_forbidden(db, current_user_id, course, admin_only=True)
 
     try:
         result = courses_repo.update_course_by_id(db, course_id, update_data)
@@ -167,7 +167,8 @@ def get_course_activities(db: Database, course_id: str, current_user_id: str) ->
     """Get all activities for a specific course"""
     logger.info(f"Fetching activities for course {course_id}")
 
-    get_course_by_id(db, course_id, current_user_id)
+    course = get_course_by_id(db, course_id, current_user_id)
+    access_verifiers.raise_course_forbidden(db, current_user_id, course)
 
     try:
         activities_data = activities_repo.find_activities_by_course_id(db, course_id)

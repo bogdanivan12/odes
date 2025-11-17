@@ -53,7 +53,7 @@ def get_institution_by_id(
 ) -> models.Institution:
     """Get institution by ID"""
     logger.info(f"Fetching institution by id: {institution_id}")
-    acces_verifiers.raise_institution_forbidden(db, current_user_id, institution_id)
+    access_verifiers.raise_institution_forbidden(db, current_user_id, institution_id)
 
     try:
         institution_data = institutions_repo.find_institution_by_id(db, institution_id)
@@ -117,7 +117,7 @@ def create_institution(
 def delete_institution(db: Database, institution_id: str, current_user_id: str) -> None:
     """Delete an institution by ID"""
     logger.info(f"Deleting institution id={institution_id}")
-    acces_verifiers.raise_institution_forbidden(db, current_user_id, institution_id, admin_only=True)
+    access_verifiers.raise_institution_forbidden(db, current_user_id, institution_id, admin_only=True)
 
     try:
         result = institutions_repo.delete_institution_by_id(db, institution_id)
@@ -173,7 +173,7 @@ def update_institution(
         current_user_id: str
 ) -> models.Institution:
     """Update an institution by ID"""
-    acces_verifiers.raise_institution_forbidden(db, current_user_id, institution_id, admin_only=True)
+    access_verifiers.raise_institution_forbidden(db, current_user_id, institution_id, admin_only=True)
 
     updated_data = request.model_dump(exclude_unset=True)
     logger.info(f"Updating institution {institution_id} with data {updated_data}")
@@ -205,7 +205,7 @@ def get_institution_courses(
         current_user_id: str
 ) -> List[models.Course]:
     """Get courses of an institution"""
-    acces_verifiers.raise_institution_forbidden(db, current_user_id, institution_id)
+    access_verifiers.raise_institution_forbidden(db, current_user_id, institution_id)
 
     logger.info(f"Fetching courses for institution {institution_id}")
     get_institution_by_id(db, institution_id, current_user_id)
@@ -231,7 +231,7 @@ def get_institution_rooms(
         current_user_id: str
 ) -> List[models.Room]:
     """Get rooms of an institution"""
-    acces_verifiers.raise_institution_forbidden(db, current_user_id, institution_id)
+    access_verifiers.raise_institution_forbidden(db, current_user_id, institution_id)
 
     logger.info(f"Fetching rooms for institution {institution_id}")
     get_institution_by_id(db, institution_id, current_user_id)
@@ -258,7 +258,7 @@ def get_institution_groups(
 ) -> List[models.Group]:
     """Get groups of an institution"""
     logger.info(f"Fetching groups for institution {institution_id}")
-    acces_verifiers.raise_institution_forbidden(db, current_user_id, institution_id)
+    access_verifiers.raise_institution_forbidden(db, current_user_id, institution_id)
     get_institution_by_id(db, institution_id, current_user_id)
 
     try:
@@ -283,7 +283,7 @@ def get_institution_users(
 ) -> List[models.User]:
     """Get users of an institution"""
     logger.info(f"Fetching users for institution {institution_id}")
-    acces_verifiers.raise_institution_forbidden(db, current_user_id, institution_id)
+    access_verifiers.raise_institution_forbidden(db, current_user_id, institution_id)
     get_institution_by_id(db, institution_id, current_user_id)
 
     try:
@@ -308,7 +308,7 @@ def get_institution_activities(
 ) -> List[models.Activity]:
     """Get activities of an institution"""
     logger.info(f"Fetching activities for institution {institution_id}")
-    acces_verifiers.raise_institution_forbidden(db, current_user_id, institution_id)
+    access_verifiers.raise_institution_forbidden(db, current_user_id, institution_id)
     get_institution_by_id(db, institution_id, current_user_id)
 
     try:
@@ -334,7 +334,7 @@ def get_institution_schedules(
 ) -> List[models.Schedule]:
     """Get schedules of an institution"""
     logger.info(f"Fetching schedules for institution {institution_id}")
-    acces_verifiers.raise_institution_forbidden(db, current_user_id, institution_id)
+    access_verifiers.raise_institution_forbidden(db, current_user_id, institution_id)
     get_institution_by_id(db, institution_id, current_user_id)
 
     try:
@@ -361,7 +361,7 @@ def assign_role_to_user(
 ):
     """Assign a role to a user for a specific institution"""
     logger.info(f"Assigning role {role} to user {user_id} for institution {institution_id}")
-    acces_verifiers.raise_institution_forbidden(db, current_user_id, institution_id, admin_only=True)
+    access_verifiers.raise_institution_forbidden(db, current_user_id, institution_id, admin_only=True)
     get_institution_by_id(db, institution_id, current_user_id)
 
     user = users_repo.find_user_by_id(db, user_id)
@@ -428,7 +428,7 @@ def remove_role_from_user(
 ):
     """Remove a role from a user for a specific institution"""
     logger.info(f"Removing role {role} from user {user_id} for institution {institution_id}")
-    acces_verifiers.raise_institution_forbidden(db, current_user_id, institution_id, admin_only=True)
+    access_verifiers.raise_institution_forbidden(db, current_user_id, institution_id, admin_only=True)
     get_institution_by_id(db, institution_id, current_user_id)
 
     user = users_repo.find_user_by_id(db, user_id)
@@ -487,7 +487,7 @@ def remove_user_from_institution(
 ):
     """Remove all roles of a user for a specific institution"""
     logger.info(f"Removing user {user_id} from institution {institution_id}")
-    acces_verifiers.raise_institution_forbidden(db, current_user_id, institution_id, admin_only=True)
+    access_verifiers.raise_institution_forbidden(db, current_user_id, institution_id, admin_only=True)
     get_institution_by_id(db, institution_id, current_user_id)
 
     user = users_repo.find_user_by_id(db, user_id)
