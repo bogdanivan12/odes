@@ -14,11 +14,11 @@ API_URL = os.getenv("API_URL", "http://localhost:8000")
 logger = get_logger()
 
 
-def get_institution_activities(institution_id: str) -> List[enhanced_models.Activity]:
+def get_institution_activities(institution_id: str, token: str) -> List[enhanced_models.Activity]:
     """Fetch activities for a given institution from the API service"""
     url = f"{API_URL}/api/v1/institutions/{institution_id}/activities"
     logger.info(f"Fetching activities from {url}")
-    response = requests.get(url)
+    response = requests.get(url, headers={"Authorization": f"Bearer {token}"})
 
     response.raise_for_status()
 
@@ -30,11 +30,11 @@ def get_institution_activities(institution_id: str) -> List[enhanced_models.Acti
     return activities
 
 
-def get_professors_by_ids(professor_ids: List[str]) -> List[models.User]:
+def get_professors_by_ids(professor_ids: List[str], token: str) -> List[models.User]:
     """Fetch professors by their IDs from the API service"""
     url = f"{API_URL}/api/v1/users"
     logger.info(f"Fetching all users from {url}")
-    response = requests.get(url)
+    response = requests.get(url, headers={"Authorization": f"Bearer {token}"})
 
     response.raise_for_status()
 
@@ -46,11 +46,11 @@ def get_professors_by_ids(professor_ids: List[str]) -> List[models.User]:
     return professors
 
 
-def get_institution_groups(institution_id: str) -> List[enhanced_models.Group]:
+def get_institution_groups(institution_id: str, token: str) -> List[enhanced_models.Group]:
     """Fetch groups for a given institution from the API service"""
     url = f"{API_URL}/api/v1/institutions/{institution_id}/groups"
     logger.info(f"Fetching groups from {url}")
-    response = requests.get(url)
+    response = requests.get(url, headers={"Authorization": f"Bearer {token}"})
 
     response.raise_for_status()
 
@@ -71,11 +71,11 @@ def get_institution_groups(institution_id: str) -> List[enhanced_models.Group]:
     return groups
 
 
-def get_institution_by_id(institution_id: str) -> models.Institution:
+def get_institution_by_id(institution_id: str, token: str) -> models.Institution:
     """Fetch institution by ID from the API service"""
     url = f"{API_URL}/api/v1/institutions/{institution_id}"
     logger.info(f"Fetching institution from {url}")
-    response = requests.get(url)
+    response = requests.get(url, headers={"Authorization": f"Bearer {token}"})
 
     response.raise_for_status()
 
@@ -87,11 +87,11 @@ def get_institution_by_id(institution_id: str) -> models.Institution:
     return institution
 
 
-def get_institution_rooms(institution_id: str) -> List[models.Room]:
+def get_institution_rooms(institution_id: str, token: str) -> List[models.Room]:
     """Fetch rooms for a given institution from the API service"""
     url = f"{API_URL}/api/v1/institutions/{institution_id}/rooms"
     logger.info(f"Fetching rooms from {url}")
-    response = requests.get(url)
+    response = requests.get(url, headers={"Authorization": f"Bearer {token}"})
 
     response.raise_for_status()
 
@@ -103,16 +103,16 @@ def get_institution_rooms(institution_id: str) -> List[models.Room]:
     return rooms
 
 
-def get_schedule_input_data(institution_id: str):
+def get_schedule_input_data(institution_id: str, token: str):
     """Fetch all necessary data for schedule generation"""
-    activities = get_institution_activities(institution_id)
-    rooms = get_institution_rooms(institution_id)
-    groups = get_institution_groups(institution_id)
+    activities = get_institution_activities(institution_id, token)
+    rooms = get_institution_rooms(institution_id, token)
+    groups = get_institution_groups(institution_id, token)
 
     professor_ids = list(set([activity.professor_id for activity in activities]))
-    professors = get_professors_by_ids(professor_ids)
+    professors = get_professors_by_ids(professor_ids, token)
 
-    institution = get_institution_by_id(institution_id)
+    institution = get_institution_by_id(institution_id, token)
 
     return institution, rooms, groups, professors, activities
 
@@ -138,7 +138,7 @@ def build_selected(solver, institution, activities, week_allocation_map):
     return selected
 
 
-def db_update_failed_schedule(schedule_id: str, reason: str):
+def db_update_failed_schedule(schedule_id: str, reason: str, token: str):
     """Update schedule status to failed in the database"""
     url = f"{API_URL}/api/v1/schedules/{schedule_id}"
     try:
@@ -147,14 +147,15 @@ def db_update_failed_schedule(schedule_id: str, reason: str):
             json={
                 "status": models.ScheduleStatus.FAILED,
                 "error_message": reason
-            }
+            },
+            headers={"Authorization": f"Bearer {token}"}
         )
         response.raise_for_status()
     except Exception as err:
         raise Exception(f"Failed to update schedule status: {err}")
 
 
-def db_update_schedule_status(schedule_id: str, status: models.ScheduleStatus):
+def db_update_schedule_status(schedule_id: str, status: models.ScheduleStatus, token: str):
     """Update schedule status in the database"""
     url = f"{API_URL}/api/v1/schedules/{schedule_id}"
     try:
@@ -162,14 +163,15 @@ def db_update_schedule_status(schedule_id: str, status: models.ScheduleStatus):
             url,
             json={
                 "status": status
-            }
+            },
+            headers={"Authorization": f"Bearer {token}"}
         )
         response.raise_for_status()
     except Exception as err:
         raise Exception(f"Failed to update schedule status: {err}")
 
 
-def insert_scheduled_activities(scheduled_activities: List[models.ScheduledActivity]):
+def insert_scheduled_activities(scheduled_activities: List[models.ScheduledActivity], token: str):
     """Insert scheduled activities into the database"""
     try:
         result = requests.post(
@@ -178,17 +180,20 @@ def insert_scheduled_activities(scheduled_activities: List[models.ScheduledActiv
                 "scheduled_activities": [
                     activity.model_dump(by_alias=True) for activity in scheduled_activities
                 ]
-            }
+            },
+            headers={"Authorization": f"Bearer {token}"}
         )
         result.raise_for_status()
     except Exception as err:
         raise Exception(f"Failed to insert scheduled activities: {err}")
 
 
-def generate_schedule(institution_id: str, schedule_id: str):
+def generate_schedule(institution_id: str, schedule_id: str, token: str):
     """Generate schedule"""
-    db_update_schedule_status(schedule_id, models.ScheduleStatus.RUNNING)
-    institution, rooms, groups, professors, activities = get_schedule_input_data(institution_id)
+    db_update_schedule_status(schedule_id, models.ScheduleStatus.RUNNING, token)
+    institution, rooms, groups, professors, activities = get_schedule_input_data(
+        institution_id, token
+    )
 
     logger.info(f"Generating schedule for institution {institution_id}")
     model = cp_model.CpModel()
@@ -229,7 +234,7 @@ def generate_schedule(institution_id: str, schedule_id: str):
         if not all_possible_choices:
             error_message = f"No possible room/start time for activity {activity.id}"
             logger.error(error_message)
-            db_update_failed_schedule(schedule_id, error_message)
+            db_update_failed_schedule(schedule_id, error_message, token)
             raise Exception(error_message)
 
         model.AddExactlyOne(all_possible_choices)
@@ -371,7 +376,7 @@ def generate_schedule(institution_id: str, schedule_id: str):
     if result not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         error_message = "Unable to find a feasible schedule."
         logger.error(error_message)
-        db_update_failed_schedule(schedule_id, error_message)
+        db_update_failed_schedule(schedule_id, error_message, token)
         raise Exception(error_message)
 
     selected_schedule = build_selected(solver, institution, activities, week_allocation_map)
@@ -391,8 +396,8 @@ def generate_schedule(institution_id: str, schedule_id: str):
             scheduled_activities[(activity_id, room_id, start)].active_weeks.append(week)
 
     # add scheduled activities in database
-    insert_scheduled_activities(list(scheduled_activities.values()))
+    insert_scheduled_activities(list(scheduled_activities.values()), token)
 
-    db_update_schedule_status(schedule_id, models.ScheduleStatus.COMPLETED)
+    db_update_schedule_status(schedule_id, models.ScheduleStatus.COMPLETED, token)
 
     logger.info(f"Generated {len(scheduled_activities)} scheduled activities.")

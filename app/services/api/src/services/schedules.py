@@ -49,7 +49,12 @@ def raise_schedule_forbidden(
         )
 
 
-def trigger_schedule_generation(db: Database, request: dto_in.CreateSchedule, current_user_id: str) -> models.Schedule:
+def trigger_schedule_generation(
+        db: Database,
+        request: dto_in.CreateSchedule,
+        current_user_id: str,
+        token: str
+) -> models.Schedule:
     """Trigger schedule generation process"""
     institution_id = request.institution_id
     institution_data = institutions_repo.find_institution_by_id(db, institution_id)
@@ -99,7 +104,8 @@ def trigger_schedule_generation(db: Database, request: dto_in.CreateSchedule, cu
         name="generate_schedule",
         kwargs={
             "institution_id": institution_id,
-            "schedule_id": schedule.id
+            "schedule_id": schedule.id,
+            "token": token
         },
         queue="schedule_generator_queue"
     )

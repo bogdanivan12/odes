@@ -15,7 +15,7 @@ router = APIRouter(prefix="/api/v1/schedules", tags=["schedules"])
 async def trigger_schedule_generation(db: DB, request: dto_in.CreateSchedule, token: AUTH):
     """Trigger the schedule generation process for a specific institution"""
     current_user_id = token_utils.get_user_id_from_token(token)
-    schedule = service.trigger_schedule_generation(db, request, current_user_id)
+    schedule = service.trigger_schedule_generation(db, request, current_user_id, token)
     return dto_out.GetSchedule(schedule=schedule)
 
 
