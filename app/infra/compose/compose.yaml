@@ -34,3 +34,14 @@ services:
       - ../../.env
     depends_on:
       - rabbitmq
+
+  ui:
+    build:
+      context: ../../..
+      dockerfile: app/services/ui/Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    env_file:
+      - ../../.env
