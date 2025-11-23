@@ -17,7 +17,12 @@ export class SignUpRequest {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(this.email)) throw new Error("Invalid email format");
     if (!this.password) throw new Error("Password is required");
-    if (this.password.length < 6) throw new Error("Password must be at least 6 characters");
+    if (this.password.length < 8) throw new Error("Password must be at least 8 characters");
+    // Password complexity: at least one uppercase, one lowercase, one digit, one special character
+    const complexityRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/;
+    if (!complexityRegex.test(this.password)) {
+      throw new Error("Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character");
+    }
     return true;
   }
 }
