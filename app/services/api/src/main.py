@@ -1,6 +1,7 @@
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.services.api.src.routes.auth import router as auth_router
 from app.services.api.src.routes.rooms import router as rooms_router
@@ -15,6 +16,13 @@ from app.services.api.src.routes.scheduled_activities import router as scheduled
 app = FastAPI(
     title="ODES API",
     version="1.0.0"
+)
+app.add_middleware(
+  CORSMiddleware,
+  allow_origins=["*"],
+  allow_credentials=True,
+  allow_methods=["*"],
+  allow_headers=["*"],
 )
 
 app.include_router(auth_router)
