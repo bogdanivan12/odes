@@ -1,31 +1,23 @@
 # Build stage
 FROM node:24-alpine AS builder
-
 WORKDIR /app
 
-# Copy package files
+# Copy package files and install
 COPY app/services/ui/package.json app/services/ui/package-lock.json* ./
+RUN npm ci --silent
 
-# Install dependencies
-RUN npm install
-
-# Copy source code
+# Copy source and build
 COPY app/services/ui/ .
-
-# Build the application
 RUN npm run build
 
-# Production stage
-FROM nginx:alpine
+# Runtime stage using nginx
+FROM nginx:alpine AS runner
 
-# Copy built assets from builder stage
+# Copy built app (Vite output is `dist`) to nginx html root
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy nginx configuration (optional, if you need custom config)
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy custom nginx config to enable SPA fallback
+COPY app/services/ui/nginx/default.conf /etc/nginx/conf.d/default.conf
 
-# Expose port 80
 EXPOSE 80
-
-# Start nginx
 CMD ["nginx", "-g", "daemon off;"]
