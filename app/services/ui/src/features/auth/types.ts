@@ -26,3 +26,21 @@ export class SignUpRequest {
     return true;
   }
 }
+
+
+export class SignInRequest {
+  email: string;
+  password: string;
+
+  constructor({ email, password }: { email: string; password: string }) {
+    this.email = email;
+    this.password = password;
+  }
+
+  // basic client-side validation
+  validate() {
+    if (!this.email || !this.email.trim()) throw new Error("Email is required");
+    if (!this.password) throw new Error("Password is required");
+    return true;
+  }
+}
