@@ -282,19 +282,19 @@ export default function ResponsiveAppBar() {
                     <MenuItem onClick={() => handlePageClick('')}>
                       <Typography>Institution</Typography>
                     </MenuItem>
-                    <MenuItem onClick={() => handlePageClick('/members')}>
+                    <MenuItem onClick={() => handlePageClick('members')}>
                       <Typography>Members</Typography>
                     </MenuItem>
-                    <MenuItem onClick={() => handlePageClick('/courses')}>
+                    <MenuItem onClick={() => handlePageClick('courses')}>
                       <Typography>Courses</Typography>
                     </MenuItem>
-                    <MenuItem onClick={() => handlePageClick('/rooms')}>
+                    <MenuItem onClick={() => handlePageClick('rooms')}>
                       <Typography>Rooms</Typography>
                     </MenuItem>
-                    <MenuItem onClick={() => handlePageClick('/activities')}>
+                    <MenuItem onClick={() => handlePageClick('activities')}>
                       <Typography>Activities</Typography>
                     </MenuItem>
-                    <MenuItem onClick={() => handlePageClick('/schedules')}>
+                    <MenuItem onClick={() => handlePageClick('schedules')}>
                       <Typography>Schedules</Typography>
                     </MenuItem>
                     <Divider sx={{ my: 1 }} />
