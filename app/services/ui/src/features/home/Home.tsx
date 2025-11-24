@@ -28,15 +28,18 @@ export function Home() {
     })}>
       <Box sx={{ width: '100%', maxWidth: 1100, textAlign: 'center', p: { xs: 4, md: 8 } }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 3, lineHeight: 1 }}>
-          <CalendarMonthIcon sx={{
-            width: 64,
-            height: 64,
-            mr: 1,
-            mt: -1,
-            color: '#2196F3',
-            filter: 'drop-shadow(0 0 20px rgba(33, 150, 243, 0.6)) drop-shadow(0 0 10px rgba(33, 203, 243, 0.4))',
-            display: 'block',
-          }} />
+          <CalendarMonthIcon
+            aria-label="ODES Calendar Logo"
+            sx={{
+              width: 64,
+              height: 64,
+              mr: 1,
+              mt: -1,
+              color: '#2196F3',
+              filter: 'drop-shadow(0 0 20px rgba(33, 150, 243, 0.6)) drop-shadow(0 0 10px rgba(33, 203, 243, 0.4))',
+              display: 'block',
+            }}
+          />
           <Typography
             variant="h2"
             component="h1"
