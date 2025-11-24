@@ -468,11 +468,11 @@ export default function ResponsiveAppBar() {
             {selectedInstitution && (
               <>
                 <Button onClick={() => handlePageClick('')} sx={{ my: 2, color: 'white', display: 'block' }}>Institution</Button>
-                <Button onClick={() => handlePageClick('/members')} sx={{ my: 2, color: 'white', display: 'block' }}>Members</Button>
-                <Button onClick={() => handlePageClick('/courses')} sx={{ my: 2, color: 'white', display: 'block' }}>Courses</Button>
-                <Button onClick={() => handlePageClick('/rooms')} sx={{ my: 2, color: 'white', display: 'block' }}>Rooms</Button>
-                <Button onClick={() => handlePageClick('/activities')} sx={{ my: 2, color: 'white', display: 'block' }}>Activities</Button>
-                <Button onClick={() => handlePageClick('/schedules')} sx={{ my: 2, color: 'white', display: 'block' }}>Schedules</Button>
+                <Button onClick={() => handlePageClick('members')} sx={{ my: 2, color: 'white', display: 'block' }}>Members</Button>
+                <Button onClick={() => handlePageClick('courses')} sx={{ my: 2, color: 'white', display: 'block' }}>Courses</Button>
+                <Button onClick={() => handlePageClick('rooms')} sx={{ my: 2, color: 'white', display: 'block' }}>Rooms</Button>
+                <Button onClick={() => handlePageClick('activities')} sx={{ my: 2, color: 'white', display: 'block' }}>Activities</Button>
+                <Button onClick={() => handlePageClick('schedules')} sx={{ my: 2, color: 'white', display: 'block' }}>Schedules</Button>
               </>
             )}
           </Box>
