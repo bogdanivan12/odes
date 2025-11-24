@@ -20,7 +20,7 @@ export function SignIn() {
   useEffect(() => {
     try {
       localStorage.removeItem('authToken');
-      localStorage.removeItem('selectedInstitutionId')
+      localStorage.removeItem('selectedInstitutionId');
     } catch (e) { /* ignore */ }
   }, []);
   const [loading, setLoading] = useState(false);
