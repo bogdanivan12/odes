@@ -1,6 +1,6 @@
-import {SignInRequest, SignUpRequest} from "./types";
-import {SIGNIN_URL, SIGNUP_URL} from "./constants";
-import { apiPost } from "../../utils/apiClient.ts";
+import {SignInRequest, SignUpRequest} from "../features/auth/types.ts";
+import { apiPost } from "../utils/apiClient.ts";
+import {SIGNIN_URL, SIGNUP_URL} from "../config/constants.ts";
 
 export async function signUp(request: SignUpRequest) {
   return apiPost(SIGNUP_URL, {

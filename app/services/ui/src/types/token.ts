@@ -18,6 +18,7 @@ export class AuthToken {
 
   // method to get the full token string
   getTokenString(): string {
-    return `${this.tokenType}: ${this.accessToken}`;
+    // Use standard 'Type value' format (e.g. 'Bearer abc...') — no colon
+    return `${this.tokenType} ${this.accessToken}`;
   }
 }

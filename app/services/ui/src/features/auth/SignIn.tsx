@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -9,15 +9,23 @@ import {
   Typography,
   CircularProgress,
 } from "@mui/material";
-import {Link as RouterLink} from "react-router-dom";
+import {Link as RouterLink, useNavigate} from "react-router-dom";
 import {SignInRequest} from "./types";
-import { signIn } from "./api";
-import {AuthToken} from "../../types/token.tsx";
+import { signIn } from "../../api/auth.ts";
+import {AuthToken} from "../../types/token.ts";
 import {USER_REGISTER_ROUTE} from "../../config/routes.ts";
 
 export function SignIn() {
+  // clear any stale auth token when arriving on the sign-in page
+  useEffect(() => {
+    try {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('selectedInstitutionId');
+    } catch (e) { /* ignore */ }
+  }, []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -40,12 +48,11 @@ export function SignIn() {
     try {
       const data = await signIn(request);
       console.log("login success:", data);
-      // TODO: navigate or show success UI
       // add auth token in local storage
       const token = AuthToken.fromApi(data);
       localStorage.setItem("authToken", token.getTokenString());
-      // reload the page to reflect authenticated state
-      window.location.reload();
+      // navigate to home after successful sign in
+      navigate('/', { replace: true });
     } catch (err) {
       console.error(err);
       setError((err as Error).message || "Sign in failed");
