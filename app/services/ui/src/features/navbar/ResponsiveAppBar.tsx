@@ -286,6 +286,9 @@ export default function ResponsiveAppBar() {
                     <MenuItem onClick={() => handlePageClick('members')}>
                       <Typography>Members</Typography>
                     </MenuItem>
+                    <MenuItem onClick={() => handlePageClick('groups')}>
+                      <Typography>Groups</Typography>
+                    </MenuItem>
                     <MenuItem onClick={() => handlePageClick('courses')}>
                       <Typography>Courses</Typography>
                     </MenuItem>
@@ -470,6 +473,7 @@ export default function ResponsiveAppBar() {
               <>
                 <Button onClick={() => handlePageClick('')} sx={{ my: 2, color: 'white', display: 'block' }}>Institution</Button>
                 <Button onClick={() => handlePageClick('members')} sx={{ my: 2, color: 'white', display: 'block' }}>Members</Button>
+                <Button onClick={() => handlePageClick('groups')} sx={{ my: 2, color: 'white', display: 'block' }}>Groups</Button>
                 <Button onClick={() => handlePageClick('courses')} sx={{ my: 2, color: 'white', display: 'block' }}>Courses</Button>
                 <Button onClick={() => handlePageClick('rooms')} sx={{ my: 2, color: 'white', display: 'block' }}>Rooms</Button>
                 <Button onClick={() => handlePageClick('activities')} sx={{ my: 2, color: 'white', display: 'block' }}>Activities</Button>
