@@ -260,8 +260,9 @@ export default function ResponsiveAppBar() {
                 vertical: 'top',
                 horizontal: 'left',
               }}
-             // prevent the Menu from auto-focusing the first MenuItem which steals focus
-             // from the search input when typing
+             // Disable all focus-related props to prevent the Menu from stealing focus from the search input when typing.
+             // This ensures that opening the menu does not auto-focus the first MenuItem, enforce focus within the menu,
+             // or restore focus to the menu, allowing uninterrupted typing in the search input.
              disableAutoFocusItem
              disableEnforceFocus
              disableRestoreFocus
