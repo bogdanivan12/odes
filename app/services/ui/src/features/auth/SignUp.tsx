@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -11,10 +11,17 @@ import {
 } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import { SignUpRequest } from "./types";
-import { signUp } from "./api";
+import { signUp } from "../../api/auth.ts";
 import {USER_LOGIN_ROUTE} from "../../config/routes.ts";
 
 export function SignUp() {
+  // clear any stale auth token when arriving on the sign-up page
+  useEffect(() => {
+    try {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('selectedInstitutionId')
+    } catch (e) { /* ignore */ }
+  }, []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
