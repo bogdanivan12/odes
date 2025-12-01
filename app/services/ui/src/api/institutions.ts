@@ -22,3 +22,11 @@ export async function getInstitutions(): Promise<InstitutionClass[]> {
 
   return items.map(i => InstitutionClass.from(i));
 }
+
+export async function getInstitutionUsers(institutionId: string) {
+  const url = `${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/users`;
+  const authToken = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+  const headers: Record<string, string> = {};
+  if (authToken) headers['Authorization'] = authToken;
+  return apiGet<any>(url, headers);
+}

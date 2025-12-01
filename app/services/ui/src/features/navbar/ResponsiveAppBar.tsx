@@ -154,6 +154,18 @@ export default function ResponsiveAppBar() {
         }
       } catch (err: any) {
         if (!mounted) return;
+        // If authentication failed, clear session and redirect to login
+        const status = err?.status ?? err?.response?.status;
+        if (status === 401 || status === 403) {
+          try {
+            // handleLogout clears token and navigates to login
+            handleLogout();
+          } catch (e) {
+            try { navigate(USER_LOGIN_ROUTE, { replace: true }); } catch (e) { /* ignore */ }
+          }
+          return;
+        }
+
         setInstitutionsError(err?.message || 'Failed to load institutions');
       } finally {
         if (mounted) setInstitutionsLoading(false);
