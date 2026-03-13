@@ -7,11 +7,13 @@ import {
   USER_LOGIN_ROUTE,
   USER_REGISTER_ROUTE,
   INSTITUTIONS_ROUTE,
+  INSTITUTIONS_CREATE_ROUTE,
 } from "./config/routes.ts";
 import { Home } from "./features/home/Home.tsx";
 import RequireAuth from './features/auth/RequireAuth';
 import MainLayout from './features/layout/MainLayout';
 import Institutions from './features/institutions/Institutions';
+import CreateInstitution from './features/institutions/CreateInstitution';
 
 function App() {
   return (
@@ -25,6 +27,7 @@ function App() {
         <Route element={<RequireAuth><MainLayout /></RequireAuth>}>
           <Route path={HOME_ROUTE} element={<Home />} />
           <Route path={INSTITUTIONS_ROUTE} element={<Institutions />} />
+          <Route path={INSTITUTIONS_CREATE_ROUTE} element={<CreateInstitution />} />
           {/* Other protected routes can be nested here and will inherit the layout */}
         </Route>
       </Routes>

@@ -11,6 +11,7 @@ import { getInstitutions, getInstitutionUsers } from '../../api/institutions';
 import { Institution } from '../../types/institution';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '../layout/PageContainer';
+import { INSTITUTIONS_CREATE_ROUTE } from '../../config/routes';
 
 export default function Institutions() {
   const [items, setItems] = useState<Institution[]>([]);
@@ -85,7 +86,12 @@ export default function Institutions() {
 
   return (
     <PageContainer alignItems="flex-start">
-      <Typography variant="h4" sx={{ mb: 3, fontWeight: 700 }}>Institutions</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, gap: 2, flexWrap: 'wrap' }}>
+        <Typography variant="h4" sx={{ fontWeight: 700 }}>Institutions</Typography>
+        <Button variant="contained" onClick={() => navigate(INSTITUTIONS_CREATE_ROUTE)}>
+          Create institution
+        </Button>
+      </Box>
 
       {loading && <Typography>Loading institutions...</Typography>}
 
