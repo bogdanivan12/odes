@@ -11,7 +11,7 @@ import { getInstitutions, getInstitutionUsers } from '../../api/institutions';
 import { Institution } from '../../types/institution';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '../layout/PageContainer';
-import { INSTITUTIONS_CREATE_ROUTE } from '../../config/routes';
+import { institutionRoute, INSTITUTIONS_CREATE_ROUTE } from '../../config/routes';
 
 export default function Institutions() {
   const [items, setItems] = useState<Institution[]>([]);
@@ -40,9 +40,7 @@ export default function Institutions() {
             if ('err' in r) {
               nextMap[r.id] = { loading: false, membersCount: 0, admins: [] };
             } else {
-              const data = r.res;
-              // normalize: data may be array of users or { users: [...] }
-              const users = Array.isArray(data) ? data : (Array.isArray(data?.users) ? data.users : []);
+              const users = r.res;
               const membersCount = users.length;
               const admins = users.filter((u: any) => {
                 let isAdmin = false;
@@ -140,7 +138,7 @@ export default function Institutions() {
 
                 </CardContent>
                 <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
-                  <Button size="small" onClick={() => navigate(`/institutions/${inst.id}`)}>View</Button>
+                  <Button size="small" onClick={() => navigate(institutionRoute(inst.id))}>View</Button>
                   <Typography variant="caption" color="text.secondary">ID: {inst.id}</Typography>
                 </CardActions>
               </Card>
