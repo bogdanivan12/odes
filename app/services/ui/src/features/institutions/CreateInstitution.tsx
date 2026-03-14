@@ -91,6 +91,14 @@ export default function CreateInstitution() {
         // Ignore localStorage restrictions in private browsers.
       }
 
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('institutionsChanged', {
+            detail: { type: 'created', institutionId: created.id },
+          }),
+        );
+      }
+
       setSuccess(`Institution "${created.name}" created successfully.`);
       setValues(initialValues);
 
