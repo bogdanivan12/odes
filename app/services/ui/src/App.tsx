@@ -11,6 +11,7 @@ import {
   INSTITUTION_ROOMS_ROUTE,
   INSTITUTION_SCHEDULES_ROUTE,
   INSTITUTION_ROUTE,
+  INSTITUTION_UPDATE_ROUTE,
   INSTITUTIONS_ROUTE,
   INSTITUTIONS_CREATE_ROUTE,
   USER_LOGIN_ROUTE,
@@ -22,6 +23,7 @@ import MainLayout from './features/layout/MainLayout';
 import Institutions from './features/institutions/Institutions';
 import CreateInstitution from './features/institutions/CreateInstitution';
 import InstitutionMainPage from './features/institutions/InstitutionMainPage';
+import UpdateInstitution from './features/institutions/UpdateInstitution';
 
 function App() {
   return (
@@ -36,6 +38,7 @@ function App() {
           <Route path={HOME_ROUTE} element={<Home />} />
           <Route path={INSTITUTIONS_ROUTE} element={<Institutions />} />
           <Route path={INSTITUTIONS_CREATE_ROUTE} element={<CreateInstitution />} />
+          <Route path={INSTITUTION_UPDATE_ROUTE} element={<UpdateInstitution />} />
           <Route path={INSTITUTION_ROUTE} element={<InstitutionMainPage />} />
           <Route path={INSTITUTION_MEMBERS_ROUTE} element={<InstitutionMainPage />} />
           <Route path={INSTITUTION_GROUPS_ROUTE} element={<InstitutionMainPage />} />

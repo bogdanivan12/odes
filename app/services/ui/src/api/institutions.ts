@@ -61,6 +61,16 @@ export interface CreateInstitutionRequest {
   };
 }
 
+export interface UpdateInstitutionRequest {
+  name: string;
+  time_grid_config: {
+    weeks: number;
+    days: number;
+    timeslots_per_day: number;
+    max_timeslots_per_day_per_group: number;
+  };
+}
+
 function buildAuthHeaders(): Record<string, string> {
   const authToken = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
   const headers: Record<string, string> = {};
@@ -155,4 +165,11 @@ export async function deleteInstitution(institutionId: string): Promise<void> {
   const headers = buildAuthHeaders();
   await apiDelete<void>(url, headers);
 }
+
+export async function removeUserFromInstitution(institutionId: string, userId: string): Promise<void> {
+  const url = `${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/users/${userId}`;
+  const headers = buildAuthHeaders();
+  await apiDelete<void>(url, headers);
+}
+
 
