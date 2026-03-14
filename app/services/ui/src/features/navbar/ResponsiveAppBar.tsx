@@ -128,55 +128,61 @@ export default function ResponsiveAppBar() {
     return institutions.filter(i => (i.name || '').toLowerCase().includes(q));
   }, [institutions, searchQuery]);
 
-  // Fetch institutions on mount using API helper
-  React.useEffect(() => {
-    let mounted = true;
-    const fetchInstitutions = async () => {
+  const fetchInstitutions = React.useCallback(async () => {
       setInstitutionsLoading(true);
       setInstitutionsError(null);
       try {
         const instances = await getInstitutions();
-        if (!mounted) return;
         setInstitutions(instances);
-        // restore previously selected institution (persisted in localStorage), if any
+
+        // restore or validate selected institution against fresh list
         try {
           const storedId = localStorage.getItem('selectedInstitutionId');
           if (storedId) {
             const found = instances.find(i => String(i.id) === String(storedId));
             if (found) {
               setSelectedInstitution(found);
-              // notify other parts of the app
               try { window.dispatchEvent(new CustomEvent('institutionSelected', { detail: found })); } catch (e) { /* ignore */ }
+            } else {
+              setSelectedInstitution(null);
+              try { localStorage.removeItem('selectedInstitutionId'); } catch (e) { /* ignore */ }
             }
+          } else {
+            setSelectedInstitution(null);
           }
         } catch (e) {
           // ignore localStorage errors
         }
       } catch (err: any) {
-        if (!mounted) return;
         // If authentication failed, clear session and redirect to login
         const status = err?.status ?? err?.response?.status;
         if (status === 401 || status === 403) {
-          try {
-            // handleLogout clears token and navigates to login
-            handleLogout();
-          } catch (e) {
-            try { navigate(USER_LOGIN_ROUTE, { replace: true }); } catch (e) { /* ignore */ }
-          }
+          handleLogout();
           return;
         }
 
         setInstitutionsError(err?.message || 'Failed to load institutions');
       } finally {
-        if (mounted) setInstitutionsLoading(false);
+        setInstitutionsLoading(false);
       }
+  }, [navigate]);
+
+  // Fetch institutions on mount
+  React.useEffect(() => {
+    fetchInstitutions();
+  }, [fetchInstitutions]);
+
+  // Re-fetch institutions after create/delete/update events from institution pages.
+  React.useEffect(() => {
+    const onInstitutionsChanged = () => {
+      fetchInstitutions();
     };
 
-    fetchInstitutions();
+    window.addEventListener('institutionsChanged', onInstitutionsChanged as EventListener);
     return () => {
-      mounted = false;
+      window.removeEventListener('institutionsChanged', onInstitutionsChanged as EventListener);
     };
-  }, []);
+  }, [fetchInstitutions]);
 
   // ensure the search input is focused when a menu opens (more robust than relying solely on autoFocus)
   React.useEffect(() => {
