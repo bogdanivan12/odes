@@ -157,17 +157,7 @@ export default function ResponsiveAppBar() {
         // If authentication failed, clear session and redirect to login
         const status = err?.status ?? err?.response?.status;
         if (status === 401 || status === 403) {
-          try {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('selectedInstitutionId');
-          } catch (e) { /* ignore */ }
-          setSelectedInstitution(null);
-          setInstitutions([]);
-          try {
-            navigate(USER_LOGIN_ROUTE, { replace: true });
-          } catch (e) {
-            // ignore in non-router environments
-          }
+          handleLogout();
           return;
         }
 
