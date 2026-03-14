@@ -151,6 +151,9 @@ export default function UpdateInstitution() {
       });
 
       setSuccess(`Institution "${updated.name ?? values.name.trim()}" updated successfully.`);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('institutionsChanged'));
+      }
       setTimeout(() => {
         navigate(institutionRoute(institutionId));
       }, 500);
