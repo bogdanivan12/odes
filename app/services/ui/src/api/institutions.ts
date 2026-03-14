@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from '../utils/apiClient';
+import { apiDelete, apiGet, apiPost } from '../utils/apiClient';
 import { API_INSTITUTIONS_PATH, API_URL } from '../config/constants';
 import { Institution as InstitutionClass } from '../types/institution';
 import type { InstitutionData } from '../types/institution';
@@ -148,5 +148,11 @@ export async function createInstitution(payload: CreateInstitutionRequest): Prom
   const res = await apiPost<any>(url, payload, headers);
   const institutionData: InstitutionData = res?.institution ?? res;
   return InstitutionClass.from(institutionData);
+}
+
+export async function deleteInstitution(institutionId: string): Promise<void> {
+  const url = `${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}`;
+  const headers = buildAuthHeaders();
+  await apiDelete<void>(url, headers);
 }
 

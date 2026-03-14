@@ -5,12 +5,18 @@ import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
+import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid';
 import Avatar from '@mui/material/Avatar';
 import TextField from '@mui/material/TextField';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
 import GroupIcon from '@mui/icons-material/Group';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import Diversity3Icon from '@mui/icons-material/Diversity3';
@@ -24,11 +30,13 @@ import {
   activityRoute,
   courseRoute,
   groupRoute,
+  INSTITUTIONS_ROUTE,
   memberRoute,
   roomRoute,
   scheduleRoute,
 } from '../../config/routes';
 import {
+  deleteInstitution,
   getInstitutionActivities,
   getInstitutionById,
   getInstitutionCourses,
@@ -212,9 +220,13 @@ function SearchableList({ title, items, emptyText, loading, error }: SearchableL
 
 export default function InstitutionMainPage() {
   const { institutionId } = useParams();
+  const navigate = useNavigate();
   const [institution, setInstitution] = useState<Institution | null>(null);
   const [institutionLoading, setInstitutionLoading] = useState(true);
   const [institutionError, setInstitutionError] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const [usersState, setUsersState] = useState<RelatedState<InstitutionUser>>({ data: [], loading: false, error: null });
   const [groupsState, setGroupsState] = useState<RelatedState<InstitutionGroup>>({ data: [], loading: false, error: null });
@@ -430,6 +442,40 @@ export default function InstitutionMainPage() {
     };
   }), [schedulesState.data, institutionId]);
 
+  const openDeleteDialog = () => {
+    setDeleteError(null);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const closeDeleteDialog = () => {
+    if (isDeleting) return;
+    setIsDeleteDialogOpen(false);
+    setDeleteError(null);
+  };
+
+  const handleDeleteInstitution = async () => {
+    if (!institutionId) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+
+    try {
+      await deleteInstitution(institutionId);
+      try {
+        const selectedId = localStorage.getItem('selectedInstitutionId');
+        if (selectedId && String(selectedId) === String(institutionId)) {
+          localStorage.removeItem('selectedInstitutionId');
+        }
+      } catch (e) {
+        // Ignore local storage errors.
+      }
+      navigate(INSTITUTIONS_ROUTE, { replace: true });
+    } catch (err) {
+      setDeleteError((err as Error).message || 'Failed to delete institution.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (institutionLoading) {
     return (
       <PageContainer alignItems="center">
@@ -470,7 +516,12 @@ export default function InstitutionMainPage() {
             background: 'linear-gradient(120deg, rgba(33,150,243,0.16) 0%, rgba(33,203,243,0.08) 45%, rgba(0,0,0,0) 100%)',
           }}
         >
-          <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>{institution.name}</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', mb: 1 }}>
+            <Typography variant="h4" sx={{ fontWeight: 800 }}>{institution.name}</Typography>
+            <Button variant="outlined" color="error" onClick={openDeleteDialog} disabled={isDeleting}>
+              Delete institution
+            </Button>
+          </Box>
           <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
             <Chip label={`Different weeks: ${institution.time_grid_config.weeks}`} size="small" />
             <Chip label={`Days per week: ${institution.time_grid_config.days}`} size="small" />
@@ -497,6 +548,22 @@ export default function InstitutionMainPage() {
           <Grid size={{ xs: 12, md: 6 }}><SearchableList title="Activities" items={activitiesList} loading={activitiesState.loading} error={activitiesState.error} emptyText="No activities found." /></Grid>
           <Grid size={{ xs: 12, md: 6 }}><SearchableList title="Schedules" items={schedulesList} loading={schedulesState.loading} error={schedulesState.error} emptyText="No schedules found." /></Grid>
         </Grid>
+
+        <Dialog open={isDeleteDialogOpen} onClose={closeDeleteDialog} maxWidth="xs" fullWidth>
+          <DialogTitle>Delete institution?</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Are you sure you want to delete <strong>{institution.name}</strong>? This action cannot be undone.
+            </DialogContentText>
+            {deleteError && <Alert severity="error" sx={{ mt: 2 }}>{deleteError}</Alert>}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={closeDeleteDialog} disabled={isDeleting}>Cancel</Button>
+            <Button onClick={handleDeleteInstitution} color="error" variant="contained" disabled={isDeleting}>
+              {isDeleting ? <CircularProgress size={18} color="inherit" /> : 'Delete'}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Stack>
     </PageContainer>
   );
