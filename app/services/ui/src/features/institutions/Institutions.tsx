@@ -13,27 +13,45 @@ import { useNavigate } from 'react-router-dom';
 import PageContainer from '../layout/PageContainer';
 import { institutionRoute, INSTITUTIONS_CREATE_ROUTE } from '../../config/routes';
 
+const compareAlphabetical = (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: 'base' });
+
 export default function Institutions() {
   const [items, setItems] = useState<Institution[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [usersMap, setUsersMap] = useState<Record<string, { loading: boolean; membersCount?: number; admins?: string[] }>>({});
   const navigate = useNavigate();
 
+  const handleViewInstitution = (inst: Institution) => {
+    try {
+      localStorage.setItem('selectedInstitutionId', String(inst.id));
+    } catch (e) {
+      // Ignore local storage errors and still navigate.
+    }
+    try {
+      window.dispatchEvent(new CustomEvent('institutionSelected', { detail: inst }));
+      window.dispatchEvent(new Event('institutionsChanged'));
+    } catch (e) {
+      // Ignore cross-window/custom event errors and still navigate.
+    }
+    navigate(institutionRoute(inst.id));
+  };
+
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
         const inst = await getInstitutions();
-        if (mounted) setItems(inst);
+        const sortedInstitutions = [...inst].sort((a, b) => compareAlphabetical(a.name, b.name));
+        if (mounted) setItems(sortedInstitutions);
         // initialize users map for loading state
         if (mounted) {
           const initMap: Record<string, { loading: boolean }> = {};
-          inst.forEach(i => { initMap[i.id] = { loading: true }; });
+          sortedInstitutions.forEach(i => { initMap[i.id] = { loading: true }; });
           setUsersMap(initMap);
         }
         // fetch users for all institutions in parallel
         try {
-          const promises = inst.map(i => getInstitutionUsers(i.id).then(res => ({ id: i.id, res })).catch(err => ({ id: i.id, err })));
+          const promises = sortedInstitutions.map(i => getInstitutionUsers(i.id).then(res => ({ id: i.id, res })).catch(err => ({ id: i.id, err })));
           const results = await Promise.all(promises);
           const nextMap: Record<string, { loading: false; membersCount?: number; admins?: string[] }> = {};
           results.forEach(r => {
@@ -64,7 +82,7 @@ export default function Institutions() {
                 }
 
                 return isAdmin;
-              }).map((u: any) => (u.name ?? u.username ?? u.email ?? '—'));
+              }).map((u: any) => (u.name ?? u.username ?? u.email ?? '—')).sort(compareAlphabetical);
               nextMap[r.id] = { loading: false, membersCount, admins };
             }
           });
@@ -138,7 +156,7 @@ export default function Institutions() {
 
                 </CardContent>
                 <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
-                  <Button size="small" onClick={() => navigate(institutionRoute(inst.id))}>View</Button>
+                  <Button size="small" onClick={() => handleViewInstitution(inst)}>View</Button>
                   <Typography variant="caption" color="text.secondary">ID: {inst.id}</Typography>
                 </CardActions>
               </Card>
