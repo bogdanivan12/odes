@@ -90,7 +90,9 @@ type StatCardProps = {
 
 type InstitutionRole = 'student' | 'professor' | 'admin';
 
-const ALL_INSTITUTION_ROLES: InstitutionRole[] = ['student', 'professor', 'admin'];
+const ALL_INSTITUTION_ROLES: InstitutionRole[] = ['admin', 'professor', 'student'];
+
+const compareAlphabetical = (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: 'base' });
 
 function getAuthHeaders(): Record<string, string> {
   const authToken = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
@@ -469,7 +471,7 @@ export default function InstitutionMainPage() {
     return usersState.data.map((user) => {
       const name = user.name ?? user.email ?? 'Unknown user';
       const userId = String(user.id ?? user._id ?? user.email ?? name);
-      const roles = getInstitutionRoles(user, institutionId);
+      const roles = [...getInstitutionRoles(user, institutionId)].sort(compareAlphabetical);
       const isRemoving = removingMemberId === userId;
       return {
         key: userId,
@@ -511,7 +513,7 @@ export default function InstitutionMainPage() {
           </Stack>
         ) : undefined,
       };
-    });
+    }).sort((a, b) => compareAlphabetical(a.primary, b.primary));
   }, [usersState.data, institutionId, canManageInstitution, removingMemberId, isDeleting, isAddingMember]);
 
   const adminCount = useMemo(() => {
@@ -519,25 +521,24 @@ export default function InstitutionMainPage() {
     return usersState.data.filter((user) => isAdmin(user, institutionId)).length;
   }, [usersState.data, institutionId]);
 
-
   const groupsList = useMemo(() => groupsState.data.map((group) => ({
     key: String(group.id ?? group._id ?? group.name),
     primary: group.name,
     to: groupRoute(String(group.id ?? group._id ?? group.name)),
-  })), [groupsState.data, institutionId]);
+  })).sort((a, b) => compareAlphabetical(a.primary, b.primary)), [groupsState.data, institutionId]);
 
   const coursesList = useMemo(() => coursesState.data.map((course) => ({
     key: String(course.id ?? course._id ?? course.name),
     primary: course.name,
     to: courseRoute(String(course.id ?? course._id ?? course.name)),
-  })), [coursesState.data, institutionId]);
+  })).sort((a, b) => compareAlphabetical(a.primary, b.primary)), [coursesState.data, institutionId]);
 
   const roomsList = useMemo(() => roomsState.data.map((room) => ({
     key: String(room.id ?? room._id ?? room.name),
     primary: room.name,
     secondary: `${room.capacity} seats`,
     to: roomRoute(String(room.id ?? room._id ?? room.name)),
-  })), [roomsState.data, institutionId]);
+  })).sort((a, b) => compareAlphabetical(a.primary, b.primary)), [roomsState.data, institutionId]);
 
   const groupNameById = useMemo(() => {
     const map: Record<string, string> = {};
@@ -570,7 +571,7 @@ export default function InstitutionMainPage() {
       secondary: `Frequency: ${frequencyLabel} · Duration: ${activity.duration_slots}`,
       to: activityRoute(activityId),
     };
-  }), [activitiesState.data, groupNameById, courseNameById, institutionId]);
+  }).sort((a, b) => compareAlphabetical(a.primary, b.primary)), [activitiesState.data, groupNameById, courseNameById, institutionId]);
 
   const schedulesList = useMemo(() => schedulesState.data.map((schedule) => {
     const scheduleId = String(schedule.id ?? schedule._id ?? schedule.timestamp ?? 'schedule');
@@ -580,6 +581,10 @@ export default function InstitutionMainPage() {
       secondary: formatCreatedAt(schedule.timestamp),
       to: scheduleRoute(scheduleId),
     };
+  }).sort((a, b) => {
+    const byPrimary = compareAlphabetical(a.primary, b.primary);
+    if (byPrimary !== 0) return byPrimary;
+    return compareAlphabetical(a.secondary ?? '', b.secondary ?? '');
   }), [schedulesState.data, institutionId]);
 
   const openDeleteDialog = () => {
@@ -636,7 +641,9 @@ export default function InstitutionMainPage() {
       const res = await apiGet<any>(`${API_URL}/api/v1/users`, getAuthHeaders());
       const users = Array.isArray(res?.users) ? (res.users as InstitutionUser[]) : [];
       const existingIds = new Set(usersState.data.map((u) => String(u.id ?? u._id ?? '')));
-      const candidates = users.filter((u) => !existingIds.has(String(u.id ?? u._id ?? '')));
+      const candidates = users
+        .filter((u) => !existingIds.has(String(u.id ?? u._id ?? '')))
+        .sort((a, b) => compareAlphabetical(a.name ?? a.email ?? '', b.name ?? b.email ?? ''));
       setAvailableUsers(candidates);
     } catch (err) {
       setAvailableUsersError((err as Error).message || 'Failed to load users list.');

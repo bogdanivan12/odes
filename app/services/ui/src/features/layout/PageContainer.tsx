@@ -35,4 +35,3 @@ export default function PageContainer({ children, maxWidth = 2000, padding = { x
     </Box>
   );
 }
-

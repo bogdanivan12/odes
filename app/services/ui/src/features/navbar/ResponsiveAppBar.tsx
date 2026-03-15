@@ -29,6 +29,8 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 type Institution = InstitutionClass;
 
+const compareAlphabetical = (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: 'base' });
+
 export default function ResponsiveAppBar() {
   const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
   const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
@@ -122,24 +124,46 @@ export default function ResponsiveAppBar() {
     }
   };
 
+  const sortedInstitutions = React.useMemo(
+    () => [...institutions].sort((a, b) => compareAlphabetical(a.name ?? '', b.name ?? '')),
+    [institutions],
+  );
+
   const displayedInstitutions = React.useMemo(() => {
-    if (!searchQuery) return institutions;
     const q = searchQuery.trim().toLowerCase();
-    return institutions.filter(i => (i.name || '').toLowerCase().includes(q));
-  }, [institutions, searchQuery]);
+    if (!q) return sortedInstitutions;
+    return sortedInstitutions.filter((i) => (i.name || '').toLowerCase().includes(q));
+  }, [sortedInstitutions, searchQuery]);
+
+  const syncSelectedInstitutionFromStorage = React.useCallback((sourceInstitutions?: Institution[]) => {
+    try {
+      const storedId = localStorage.getItem('selectedInstitutionId');
+      if (!storedId) {
+        setSelectedInstitution(null);
+        return;
+      }
+      const fromList = (sourceInstitutions ?? institutions).find((i) => String(i.id) === String(storedId));
+      if (fromList) {
+        setSelectedInstitution(fromList);
+      }
+    } catch (e) {
+      // ignore localStorage errors
+    }
+  }, [institutions]);
 
   const fetchInstitutions = React.useCallback(async () => {
       setInstitutionsLoading(true);
       setInstitutionsError(null);
       try {
         const instances = await getInstitutions();
-        setInstitutions(instances);
+        const sortedInstitutions = [...instances].sort((a, b) => compareAlphabetical(a.name ?? '', b.name ?? ''));
+        setInstitutions(sortedInstitutions);
 
         // restore or validate selected institution against fresh list
         try {
           const storedId = localStorage.getItem('selectedInstitutionId');
           if (storedId) {
-            const found = instances.find(i => String(i.id) === String(storedId));
+            const found = sortedInstitutions.find(i => String(i.id) === String(storedId));
             if (found) {
               setSelectedInstitution(found);
               try { window.dispatchEvent(new CustomEvent('institutionSelected', { detail: found })); } catch (e) { /* ignore */ }
@@ -183,6 +207,41 @@ export default function ResponsiveAppBar() {
       window.removeEventListener('institutionsChanged', onInstitutionsChanged as EventListener);
     };
   }, [fetchInstitutions]);
+
+  // Keep navbar selection in sync when other pages select an institution.
+  React.useEffect(() => {
+    const onInstitutionSelected = (event: Event) => {
+      const selectedEvent = event as CustomEvent<Institution | { id?: string; _id?: string; name?: string } | undefined>;
+      const detail = selectedEvent.detail;
+      const selectedId = detail ? String((detail as any).id ?? (detail as any)._id ?? '') : '';
+      if (selectedId) {
+        const fromList = institutions.find((i) => String(i.id) === selectedId);
+        if (fromList) {
+          setSelectedInstitution(fromList);
+          return;
+        }
+      }
+      syncSelectedInstitutionFromStorage();
+    };
+
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === 'selectedInstitutionId') {
+        syncSelectedInstitutionFromStorage();
+      }
+    };
+
+    window.addEventListener('institutionSelected', onInstitutionSelected as EventListener);
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener('institutionSelected', onInstitutionSelected as EventListener);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [institutions, syncSelectedInstitutionFromStorage]);
+
+  // If institutions list changes, re-resolve the current selected id from storage.
+  React.useEffect(() => {
+    syncSelectedInstitutionFromStorage(institutions);
+  }, [institutions, syncSelectedInstitutionFromStorage]);
 
   // ensure the search input is focused when a menu opens (more robust than relying solely on autoFocus)
   React.useEffect(() => {
