@@ -155,9 +155,8 @@ export default function Institutions() {
                   )}
 
                 </CardContent>
-                <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
+                <CardActions sx={{ px: 2, pb: 2 }}>
                   <Button size="small" onClick={() => handleViewInstitution(inst)}>View</Button>
-                  <Typography variant="caption" color="text.secondary">ID: {inst.id}</Typography>
                 </CardActions>
               </Card>
             </Box>
