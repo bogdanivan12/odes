@@ -325,6 +325,7 @@ export default function CourseMainPage() {
                 const prof = activity.professor_id ? usersById.get(String(activity.professor_id)) : undefined;
                 const professorName = prof?.name ?? String(activity.professor_id ?? 'Unassigned');
                 const professorEmail = prof?.email;
+                const professorId = activity.professor_id ? String(activity.professor_id) : '';
                 return (
                   <Box key={activityId} sx={{ p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                     <Typography
@@ -340,14 +341,14 @@ export default function CourseMainPage() {
                     </Typography>
                     {professorEmail ? (
                       <Typography
-                        component="a"
-                        href={`mailto:${professorEmail}`}
                         variant="caption"
                         sx={{
-                          ...clickableSecondaryEntitySx,
+                          ...(professorId ? clickableSecondaryEntitySx : {}),
                           display: 'flex',
                           mt: 0.4,
+                          cursor: professorId ? 'pointer' : 'default',
                         }}
+                        onClick={() => professorId && navigate(memberRoute(professorId))}
                       >
                         {`Professor: ${professorName} (${professorEmail})`}
                       </Typography>
@@ -478,10 +479,6 @@ export default function CourseMainPage() {
               </Button>
             </Stack>
           </Box>
-          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-            <Chip label={`Course ID: ${course.id}`} size="small" />
-            <Chip label={`Institution ID: ${course.institution_id}`} size="small" />
-          </Stack>
         </Paper>
 
         <Grid container spacing={2}>
@@ -526,10 +523,12 @@ export default function CourseMainPage() {
                             <Box key={`${entry.activityType}-${professor.professorId}`}>
                               {professor.professorEmail ? (
                                 <Typography
-                                  component="a"
-                                  href={`mailto:${professor.professorEmail}`}
                                   variant="body2"
-                                  sx={clickableEntitySx}
+                                  onClick={() => professor.professorId !== 'unassigned' && navigate(memberRoute(professor.professorId))}
+                                  sx={{
+                                    ...(professor.professorId !== 'unassigned' ? clickableEntitySx : {}),
+                                    cursor: professor.professorId !== 'unassigned' ? 'pointer' : 'default',
+                                  }}
                                 >
                                   {`${professor.professorName} (${professor.professorEmail})`}
                                 </Typography>

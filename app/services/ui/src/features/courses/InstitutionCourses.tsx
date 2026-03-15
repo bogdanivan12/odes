@@ -168,7 +168,6 @@ export default function InstitutionCourses() {
             <Card key={course.id} variant="outlined" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
               <CardContent sx={{ flex: '1 1 auto' }}>
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>{course.name}</Typography>
-                <Typography variant="caption" color="text.secondary">ID: {course.id}</Typography>
               </CardContent>
               <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
                 <Stack direction="row" spacing={1}>

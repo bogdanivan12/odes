@@ -4,6 +4,7 @@ import {SignUp} from "./features/auth/SignUp.tsx";
 import {SignIn} from "./features/auth/SignIn.tsx";
 import {
   COURSE_ROUTE,
+  GROUP_ROUTE,
   HOME_ROUTE,
   INSTITUTION_ACTIVITIES_ROUTE,
   INSTITUTION_COURSES_ROUTE,
@@ -27,6 +28,8 @@ import InstitutionMainPage from './features/institutions/InstitutionMainPage';
 import UpdateInstitution from './features/institutions/UpdateInstitution';
 import InstitutionCourses from './features/courses/InstitutionCourses';
 import CourseMainPage from './features/courses/CourseMainPage';
+import InstitutionGroups from './features/groups/InstitutionGroups';
+import GroupMainPage from './features/groups/GroupMainPage';
 
 function App() {
   return (
@@ -44,12 +47,13 @@ function App() {
           <Route path={INSTITUTION_UPDATE_ROUTE} element={<UpdateInstitution />} />
           <Route path={INSTITUTION_ROUTE} element={<InstitutionMainPage />} />
           <Route path={INSTITUTION_MEMBERS_ROUTE} element={<InstitutionMainPage />} />
-          <Route path={INSTITUTION_GROUPS_ROUTE} element={<InstitutionMainPage />} />
+          <Route path={INSTITUTION_GROUPS_ROUTE} element={<InstitutionGroups />} />
           <Route path={INSTITUTION_COURSES_ROUTE} element={<InstitutionCourses />} />
           <Route path={INSTITUTION_ROOMS_ROUTE} element={<InstitutionMainPage />} />
           <Route path={INSTITUTION_ACTIVITIES_ROUTE} element={<InstitutionMainPage />} />
           <Route path={INSTITUTION_SCHEDULES_ROUTE} element={<InstitutionMainPage />} />
           <Route path={COURSE_ROUTE} element={<CourseMainPage />} />
+          <Route path={GROUP_ROUTE} element={<GroupMainPage />} />
           {/* Other protected routes can be nested here and will inherit the layout */}
         </Route>
       </Routes>
