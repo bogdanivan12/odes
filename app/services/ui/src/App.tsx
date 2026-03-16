@@ -3,6 +3,7 @@ import {BrowserRouter, Route, Routes} from "react-router-dom";
 import {SignUp} from "./features/auth/SignUp.tsx";
 import {SignIn} from "./features/auth/SignIn.tsx";
 import {
+  ACTIVITY_ROUTE,
   COURSE_ROUTE,
   GROUP_ROUTE,
   HOME_ROUTE,
@@ -33,6 +34,8 @@ import InstitutionGroups from './features/groups/InstitutionGroups';
 import GroupMainPage from './features/groups/GroupMainPage';
 import InstitutionRooms from './features/rooms/InstitutionRooms';
 import RoomMainPage from './features/rooms/RoomMainPage';
+import InstitutionActivities from './features/activities/InstitutionActivities';
+import ActivityMainPage from './features/activities/ActivityMainPage';
 
 function App() {
   return (
@@ -53,11 +56,12 @@ function App() {
           <Route path={INSTITUTION_GROUPS_ROUTE} element={<InstitutionGroups />} />
           <Route path={INSTITUTION_COURSES_ROUTE} element={<InstitutionCourses />} />
           <Route path={INSTITUTION_ROOMS_ROUTE} element={<InstitutionRooms />} />
-          <Route path={INSTITUTION_ACTIVITIES_ROUTE} element={<InstitutionMainPage />} />
+          <Route path={INSTITUTION_ACTIVITIES_ROUTE} element={<InstitutionActivities />} />
           <Route path={INSTITUTION_SCHEDULES_ROUTE} element={<InstitutionMainPage />} />
           <Route path={COURSE_ROUTE} element={<CourseMainPage />} />
           <Route path={GROUP_ROUTE} element={<GroupMainPage />} />
           <Route path={ROOM_ROUTE} element={<RoomMainPage />} />
+          <Route path={ACTIVITY_ROUTE} element={<ActivityMainPage />} />
           {/* Other protected routes can be nested here and will inherit the layout */}
         </Route>
       </Routes>
