@@ -17,7 +17,6 @@ import TextField from '@mui/material/TextField';
 import MenuItem from '@mui/material/MenuItem';
 import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid';
-import Avatar from '@mui/material/Avatar';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
@@ -26,16 +25,17 @@ import EventNoteIcon from '@mui/icons-material/EventNote';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import CallSplitIcon from '@mui/icons-material/CallSplit';
 import PageContainer from '../layout/PageContainer';
-import { apiGet } from '../../utils/apiClient';
-import { API_URL } from '../../config/constants';
+import EntityStatCard from '../../components/EntityStatCard';
+import { compareAlphabetical, toTitleLabel } from '../../utils/text';
+import { clickableEntitySx, clickableSecondaryEntitySx } from '../../utils/clickableEntity';
 import { deleteGroup, getGroupActivities, getGroupById, updateGroup } from '../../api/groups';
 import type { GroupActivity } from '../../api/groups';
 import { getInstitutionCourses, getInstitutionGroups, getInstitutionUsers } from '../../api/institutions';
 import type { InstitutionCourse, InstitutionGroup, InstitutionUser } from '../../api/institutions';
 import type { Group } from '../../types/group';
 import { activityRoute, groupRoute, institutionRoute, memberRoute, INSTITUTIONS_ROUTE } from '../../config/routes';
+import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionAdmin';
 
-const compareAlphabetical = (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: 'base' });
 const activityTypePriority: Record<string, number> = { course: 0, seminar: 1, laboratory: 2 };
 
 const compareActivityTypes = (a: string, b: string) => {
@@ -46,73 +46,6 @@ const compareActivityTypes = (a: string, b: string) => {
   if (aRank !== bRank) return aRank - bRank;
   return compareAlphabetical(a, b);
 };
-
-const clickableEntitySx = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  px: 0.75,
-  py: 0.35,
-  borderRadius: 1,
-  cursor: 'pointer',
-  color: 'text.primary',
-  textDecoration: 'none',
-  transition: 'background-color 0.15s ease',
-  '&:hover': {
-    backgroundColor: 'action.hover',
-    textDecoration: 'none',
-    color: 'text.primary',
-  },
-};
-
-const clickableSecondaryEntitySx = {
-  ...clickableEntitySx,
-  color: 'text.secondary',
-  '&:hover': {
-    backgroundColor: 'action.hover',
-    textDecoration: 'none',
-    color: 'text.secondary',
-  },
-};
-
-function getAuthHeaders(): Record<string, string> {
-  const authToken = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-  const headers: Record<string, string> = {};
-  if (authToken) headers.Authorization = authToken;
-  return headers;
-}
-
-async function getCurrentUserData(): Promise<InstitutionUser> {
-  const res = await apiGet<any>(`${API_URL}/api/v1/users/me`, getAuthHeaders());
-  return (res?.user ?? res) as InstitutionUser;
-}
-
-function isAdmin(user: InstitutionUser | null, institutionId?: string): boolean {
-  if (!user || !institutionId) return false;
-  const roles = user.user_roles?.[institutionId] ?? user.user_roles?.[String(institutionId)];
-  return Array.isArray(roles) && roles.includes('admin');
-}
-
-function StatCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-}) {
-  return (
-    <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, height: '100%' }}>
-      <Stack direction="row" spacing={1.5} alignItems="center">
-        <Avatar sx={{ bgcolor: 'primary.main', width: 34, height: 34 }}>{icon}</Avatar>
-        <Box>
-          <Typography variant="caption" color="text.secondary">{label}</Typography>
-          <Typography variant="h6" sx={{ lineHeight: 1.1, fontWeight: 700 }}>{value}</Typography>
-        </Box>
-      </Stack>
-    </Paper>
-  );
-}
 
 export default function GroupMainPage() {
   const { groupId } = useParams();
@@ -137,13 +70,9 @@ export default function GroupMainPage() {
   const [courses, setCourses] = useState<InstitutionCourse[]>([]);
   const [users, setUsers] = useState<InstitutionUser[]>([]);
   const [currentUser, setCurrentUser] = useState<InstitutionUser | null>(null);
+  const [currentUserLoading, setCurrentUserLoading] = useState(true);
   const [relatedLoading, setRelatedLoading] = useState(false);
   const [relatedError, setRelatedError] = useState<string | null>(null);
-
-  const toTitleLabel = (value: string) => value
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
 
   useEffect(() => {
     let mounted = true;
@@ -226,6 +155,8 @@ export default function GroupMainPage() {
       } catch {
         if (!mounted) return;
         setCurrentUser(null);
+      } finally {
+        if (mounted) setCurrentUserLoading(false);
       }
     })();
 
@@ -234,7 +165,7 @@ export default function GroupMainPage() {
     };
   }, []);
 
-  const isCurrentUserAdmin = useMemo(() => isAdmin(currentUser, group?.institution_id), [currentUser, group?.institution_id]);
+  const isCurrentUserAdmin = useMemo(() => isInstitutionAdmin(currentUser, group?.institution_id), [currentUser, group?.institution_id]);
 
   const groupsById = useMemo(() => {
     const map = new Map<string, InstitutionGroup>();
@@ -417,7 +348,7 @@ export default function GroupMainPage() {
     }
   };
 
-  if (loading) {
+  if (loading || currentUserLoading) {
     return (
       <PageContainer alignItems="center">
         <Stack direction="row" spacing={1.5} alignItems="center">
@@ -482,13 +413,13 @@ export default function GroupMainPage() {
 
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, sm: 4 }}>
-            <StatCard icon={<EventNoteIcon fontSize="small" />} label="Activities" value={activities.length} />
+            <EntityStatCard icon={<EventNoteIcon fontSize="small" />} label="Activities" value={activities.length} />
           </Grid>
           <Grid size={{ xs: 12, sm: 4 }}>
-            <StatCard icon={<AccountTreeIcon fontSize="small" />} label="Direct child groups" value={directChildGroupIds.length} />
+            <EntityStatCard icon={<AccountTreeIcon fontSize="small" />} label="Direct child groups" value={directChildGroupIds.length} />
           </Grid>
           <Grid size={{ xs: 12, sm: 4 }}>
-            <StatCard icon={<CallSplitIcon fontSize="small" />} label="Total descendants" value={descendantGroupIds.length} />
+            <EntityStatCard icon={<CallSplitIcon fontSize="small" />} label="Total descendants" value={descendantGroupIds.length} />
           </Grid>
         </Grid>
 

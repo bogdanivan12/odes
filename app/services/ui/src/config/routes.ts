@@ -13,6 +13,7 @@ export const INSTITUTION_ACTIVITIES_ROUTE = '/institutions/:institutionId/activi
 export const INSTITUTION_SCHEDULES_ROUTE = '/institutions/:institutionId/schedules';
 export const COURSE_ROUTE = '/courses/:courseId';
 export const GROUP_ROUTE = '/groups/:groupId';
+export const ROOM_ROUTE = '/rooms/:roomId';
 
 export const institutionRoute = (institutionId: string) => `/institutions/${institutionId}`;
 export const institutionUpdateRoute = (institutionId: string) => `/institutions/${institutionId}/edit`;

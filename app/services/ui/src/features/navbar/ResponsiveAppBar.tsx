@@ -13,7 +13,7 @@ import MenuItem from '@mui/material/MenuItem';
 import MenuIcon from '@mui/icons-material/Menu';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { USER_LOGIN_ROUTE } from '../../config/routes';
+import { institutionRoute, USER_LOGIN_ROUTE } from '../../config/routes';
 import { getInstitutions } from '../../api/institutions';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import TextField from '@mui/material/TextField';
@@ -26,10 +26,10 @@ import ClickAwayListener from '@mui/material/ClickAwayListener';
 import Grow from '@mui/material/Grow';
 import Collapse from '@mui/material/Collapse';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { compareAlphabetical } from '../../utils/text';
 
 type Institution = InstitutionClass;
 
-const compareAlphabetical = (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: 'base' });
 
 export default function ResponsiveAppBar() {
   const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
@@ -99,12 +99,12 @@ export default function ResponsiveAppBar() {
     setSearchQuery('');
     // also close mobile nav menu if open
     setAnchorElNav(null);
-    // navigate to institution page
-    // try {
-    //   navigate(`/institutions/${inst.id}`);
-    // } catch (e) {
-    //   // ignore navigation errors in environments without router
-    // }
+    // navigate to selected institution main page
+    try {
+      navigate(institutionRoute(String(inst.id)));
+    } catch (e) {
+      // ignore in non-router environments
+    }
   };
 
   // Navigate to a page for the currently selected institution
@@ -485,7 +485,11 @@ export default function ResponsiveAppBar() {
                 sx={{ my: 2, color: 'white', display: 'inline-flex', alignItems: 'center' }}
                 endIcon={<ArrowDropDownIcon sx={{ color: 'white' }} />}
               >
-                {institutionsLoading ? 'Loading...' : selectedInstitution ? selectedInstitution.name : 'Institutions'}
+                {selectedInstitution
+                  ? selectedInstitution.name
+                  : institutionsLoading
+                    ? 'Loading...'
+                    : 'Institutions'}
               </Button>
               <Popper
                 id="institutions-menu"

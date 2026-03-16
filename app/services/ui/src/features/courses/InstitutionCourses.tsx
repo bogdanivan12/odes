@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
+import Paper from '@mui/material/Paper';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import CardActions from '@mui/material/CardActions';
@@ -16,11 +17,13 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 import PageContainer from '../layout/PageContainer';
+import { compareAlphabetical } from '../../utils/text';
 import { createCourse, deleteCourse, getInstitutionCourses, updateCourse } from '../../api/courses';
 import type { Course } from '../../types/course';
 import { courseRoute } from '../../config/routes';
+import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionAdmin';
+import type { InstitutionUser } from '../../api/institutions';
 
-const compareAlphabetical = (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: 'base' });
 
 export default function InstitutionCourses() {
   const { institutionId } = useParams();
@@ -43,6 +46,10 @@ export default function InstitutionCourses() {
   const [editName, setEditName] = useState('');
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<InstitutionUser | null>(null);
+  const [currentUserLoading, setCurrentUserLoading] = useState(true);
+
+  const [searchQuery, setSearchQuery] = useState('');
 
   const loadCourses = async () => {
     if (!institutionId) {
@@ -67,7 +74,30 @@ export default function InstitutionCourses() {
     loadCourses();
   }, [institutionId]);
 
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const me = await getCurrentUserData();
+        if (!mounted) return;
+        setCurrentUser(me);
+      } catch {
+        if (!mounted) return;
+        setCurrentUser(null);
+      } finally {
+        if (mounted) setCurrentUserLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const canManageInstitution = useMemo(() => isInstitutionAdmin(currentUser, institutionId), [currentUser, institutionId]);
+
   const handleDelete = async () => {
+    if (!canManageInstitution) return;
     if (!courseToDelete) return;
     setDeletingId(courseToDelete.id);
     setDeleteError(null);
@@ -83,6 +113,7 @@ export default function InstitutionCourses() {
   };
 
   const handleCreateCourse = async () => {
+    if (!canManageInstitution) return;
     if (!institutionId) return;
     const name = createName.trim();
     if (!name) {
@@ -105,6 +136,7 @@ export default function InstitutionCourses() {
   };
 
   const handleUpdateCourse = async () => {
+    if (!canManageInstitution) return;
     if (!courseToEdit) return;
     const name = editName.trim();
     if (!name) {
@@ -128,7 +160,12 @@ export default function InstitutionCourses() {
 
   const isDeleting = useMemo(() => deletingId !== null, [deletingId]);
 
-  if (loading) {
+  const filteredCourses = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return courses.filter((course) => (course.name ?? '').toLowerCase().includes(query));
+  }, [courses, searchQuery]);
+
+  if (loading || currentUserLoading) {
     return (
       <PageContainer alignItems="center">
         <Stack direction="row" spacing={1.5} alignItems="center">
@@ -144,27 +181,56 @@ export default function InstitutionCourses() {
       <Box sx={{ width: '100%' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, gap: 2, flexWrap: 'wrap' }}>
           <Typography variant="h4" sx={{ fontWeight: 700 }}>Courses</Typography>
-          <Button
-            variant="contained"
-            onClick={() => {
-              setCreateError(null);
-              setCreateName('');
-              setIsCreateOpen(true);
-            }}
-            disabled={!institutionId}
-          >
-            Create course
-          </Button>
+          {canManageInstitution && (
+            <Button
+              variant="contained"
+              onClick={() => {
+                setCreateError(null);
+                setCreateName('');
+                setIsCreateOpen(true);
+              }}
+              disabled={!institutionId}
+            >
+              Create course
+            </Button>
+          )}
         </Box>
 
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+        {!error && (
+          <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', md: 'center' }}>
+              <TextField
+                size="small"
+                fullWidth
+                label="Search courses"
+                placeholder="Type course name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <Button
+                variant="outlined"
+                onClick={() => {
+                  setSearchQuery('');
+                }}
+              >
+                Reset
+              </Button>
+            </Stack>
+          </Paper>
+        )}
 
         {!error && courses.length === 0 && (
           <Typography color="text.secondary">No courses found for this institution.</Typography>
         )}
 
+        {!error && courses.length > 0 && filteredCourses.length === 0 && (
+          <Typography color="text.secondary">No courses match the current search/filter.</Typography>
+        )}
+
         <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' } }}>
-          {courses.map((course) => (
+          {filteredCourses.map((course) => (
             <Card key={course.id} variant="outlined" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
               <CardContent sx={{ flex: '1 1 auto' }}>
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>{course.name}</Typography>
@@ -172,33 +238,37 @@ export default function InstitutionCourses() {
               <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
                 <Stack direction="row" spacing={1}>
                   <Button size="small" onClick={() => navigate(courseRoute(course.id))}>Open</Button>
+                  {canManageInstitution && (
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        setEditError(null);
+                        setCourseToEdit(course);
+                        setEditName(course.name);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                  )}
+                </Stack>
+                {canManageInstitution && (
                   <Button
                     size="small"
+                    color="error"
                     onClick={() => {
-                      setEditError(null);
-                      setCourseToEdit(course);
-                      setEditName(course.name);
+                      setDeleteError(null);
+                      setCourseToDelete(course);
                     }}
                   >
-                    Edit
+                    Delete
                   </Button>
-                </Stack>
-                <Button
-                  size="small"
-                  color="error"
-                  onClick={() => {
-                    setDeleteError(null);
-                    setCourseToDelete(course);
-                  }}
-                >
-                  Delete
-                </Button>
+                )}
               </CardActions>
             </Card>
           ))}
         </Box>
 
-        <Dialog open={Boolean(courseToDelete)} onClose={() => !isDeleting && setCourseToDelete(null)} maxWidth="xs" fullWidth>
+        <Dialog open={Boolean(courseToDelete) && canManageInstitution} onClose={() => !isDeleting && setCourseToDelete(null)} maxWidth="xs" fullWidth>
           <DialogTitle>Delete course?</DialogTitle>
           <DialogContent>
             <DialogContentText>
@@ -214,7 +284,7 @@ export default function InstitutionCourses() {
           </DialogActions>
         </Dialog>
 
-        <Dialog open={isCreateOpen} onClose={() => !createLoading && setIsCreateOpen(false)} maxWidth="xs" fullWidth>
+        <Dialog open={isCreateOpen && canManageInstitution} onClose={() => !createLoading && setIsCreateOpen(false)} maxWidth="xs" fullWidth>
           <DialogTitle>Create course</DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 0.5 }}>
@@ -236,7 +306,7 @@ export default function InstitutionCourses() {
           </DialogActions>
         </Dialog>
 
-        <Dialog open={Boolean(courseToEdit)} onClose={() => !editLoading && setCourseToEdit(null)} maxWidth="xs" fullWidth>
+        <Dialog open={Boolean(courseToEdit) && canManageInstitution} onClose={() => !editLoading && setCourseToEdit(null)} maxWidth="xs" fullWidth>
           <DialogTitle>Update course</DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 0.5 }}>

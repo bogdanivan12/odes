@@ -14,38 +14,17 @@ import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 import TextField from '@mui/material/TextField';
 import MenuItem from '@mui/material/MenuItem';
-import Chip from '@mui/material/Chip';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import PageContainer from '../layout/PageContainer';
-import { apiGet } from '../../utils/apiClient';
-import { API_URL } from '../../config/constants';
+import { compareAlphabetical } from '../../utils/text';
 import { getInstitutionGroups } from '../../api/institutions';
 import type { InstitutionGroup, InstitutionUser } from '../../api/institutions';
 import { createGroup, deleteGroup, updateGroup } from '../../api/groups';
 import { groupRoute } from '../../config/routes';
-
-const compareAlphabetical = (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: 'base' });
-
-function getAuthHeaders(): Record<string, string> {
-  const authToken = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-  const headers: Record<string, string> = {};
-  if (authToken) headers.Authorization = authToken;
-  return headers;
-}
-
-async function getCurrentUserData(): Promise<InstitutionUser> {
-  const res = await apiGet<any>(`${API_URL}/api/v1/users/me`, getAuthHeaders());
-  return (res?.user ?? res) as InstitutionUser;
-}
-
-function isAdmin(user: InstitutionUser | null, institutionId?: string): boolean {
-  if (!user || !institutionId) return false;
-  const roles = user.user_roles?.[institutionId] ?? user.user_roles?.[String(institutionId)];
-  return Array.isArray(roles) && roles.includes('admin');
-}
+import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionAdmin';
 
 export default function InstitutionGroups() {
   const { institutionId } = useParams();
@@ -71,6 +50,9 @@ export default function InstitutionGroups() {
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<InstitutionUser | null>(null);
+  const [currentUserLoading, setCurrentUserLoading] = useState(true);
+
+  const [searchQuery, setSearchQuery] = useState('');
 
   const loadGroups = async () => {
     if (!institutionId) {
@@ -105,6 +87,8 @@ export default function InstitutionGroups() {
       } catch {
         if (!mounted) return;
         setCurrentUser(null);
+      } finally {
+        if (mounted) setCurrentUserLoading(false);
       }
     })();
 
@@ -113,7 +97,7 @@ export default function InstitutionGroups() {
     };
   }, []);
 
-  const isCurrentUserAdmin = useMemo(() => isAdmin(currentUser, institutionId), [currentUser, institutionId]);
+  const isCurrentUserAdmin = useMemo(() => isInstitutionAdmin(currentUser, institutionId), [currentUser, institutionId]);
 
   const groupsById = useMemo(() => {
     const map = new Map<string, InstitutionGroup>();
@@ -142,6 +126,35 @@ export default function InstitutionGroups() {
   }, [groups, groupsById]);
 
   const rootGroupIds = useMemo(() => childrenByParent.get(null) ?? [], [childrenByParent]);
+
+  const filteredGroupIds = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return new Set(
+      groups
+        .filter((group) => (group.name ?? '').toLowerCase().includes(query))
+        .map((group) => String(group.id ?? group._id ?? ''))
+        .filter(Boolean),
+    );
+  }, [groups, searchQuery]);
+
+  const displayedTreeGroupIds = useMemo(() => {
+    const included = new Set<string>(filteredGroupIds);
+    filteredGroupIds.forEach((id) => {
+      let current = groupsById.get(id);
+      while (current?.parent_group_id) {
+        const parentId = String(current.parent_group_id);
+        if (included.has(parentId)) break;
+        included.add(parentId);
+        current = groupsById.get(parentId);
+      }
+    });
+    return included;
+  }, [filteredGroupIds, groupsById]);
+
+  const displayedRootGroupIds = useMemo(
+    () => rootGroupIds.filter((groupId) => displayedTreeGroupIds.has(groupId)),
+    [rootGroupIds, displayedTreeGroupIds],
+  );
 
   const getDescendantIds = (groupId: string): Set<string> => {
     const descendants = new Set<string>();
@@ -178,6 +191,7 @@ export default function InstitutionGroups() {
   };
 
   const handleCreate = async () => {
+    if (!isCurrentUserAdmin) return;
     if (!institutionId) return;
     const name = createName.trim();
     if (!name) {
@@ -241,10 +255,10 @@ export default function InstitutionGroups() {
   };
 
   const renderGroupNode = (groupId: string, depth = 0): React.ReactNode => {
+    if (!displayedTreeGroupIds.has(groupId)) return null;
     const group = groupsById.get(groupId);
     if (!group) return null;
-    const children = childrenByParent.get(groupId) ?? [];
-    const parentName = group.parent_group_id ? groupsById.get(String(group.parent_group_id))?.name : null;
+    const children = (childrenByParent.get(groupId) ?? []).filter((childId) => displayedTreeGroupIds.has(childId));
 
     const actions = (
       <Stack direction="row" spacing={1}>
@@ -293,7 +307,6 @@ export default function InstitutionGroups() {
           <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
             <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
               <Typography variant="body2" sx={{ fontWeight: 700 }}>{group.name}</Typography>
-              {parentName && <Chip label={`Parent: ${parentName}`} size="small" variant="outlined" />}
             </Stack>
             {actions}
           </Box>
@@ -307,7 +320,6 @@ export default function InstitutionGroups() {
           <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, pr: 1 }}>
             <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
               <Typography variant="body2" sx={{ fontWeight: 700 }}>{group.name}</Typography>
-              {parentName && <Chip label={`Parent: ${parentName}`} size="small" variant="outlined" />}
             </Stack>
             {actions}
           </Box>
@@ -321,7 +333,7 @@ export default function InstitutionGroups() {
     );
   };
 
-  if (loading) {
+  if (loading || currentUserLoading) {
     return (
       <PageContainer alignItems="center">
         <Stack direction="row" spacing={1.5} alignItems="center">
@@ -337,30 +349,59 @@ export default function InstitutionGroups() {
       <Box sx={{ width: '100%' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, gap: 2, flexWrap: 'wrap' }}>
           <Typography variant="h4" sx={{ fontWeight: 700 }}>Groups</Typography>
-          <Button
-            variant="contained"
-            onClick={() => {
-              setCreateError(null);
-              setCreateName('');
-              setCreateParentGroupId('');
-              setIsCreateOpen(true);
-            }}
-            disabled={!institutionId}
-          >
-            Create group
-          </Button>
+          {isCurrentUserAdmin && (
+            <Button
+              variant="contained"
+              onClick={() => {
+                setCreateError(null);
+                setCreateName('');
+                setCreateParentGroupId('');
+                setIsCreateOpen(true);
+              }}
+              disabled={!institutionId}
+            >
+              Create group
+            </Button>
+          )}
         </Box>
 
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+        {!error && (
+          <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', md: 'center' }}>
+              <TextField
+                size="small"
+                fullWidth
+                label="Search groups"
+                placeholder="Type group name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <Button
+                variant="outlined"
+                onClick={() => {
+                  setSearchQuery('');
+                }}
+              >
+                Reset
+              </Button>
+            </Stack>
+          </Paper>
+        )}
 
         {!error && groups.length === 0 && (
           <Typography color="text.secondary">No groups found for this institution.</Typography>
         )}
 
-        {!error && rootGroupIds.length > 0 && (
+        {!error && groups.length > 0 && filteredGroupIds.size === 0 && (
+          <Typography color="text.secondary">No groups match the current search/filter.</Typography>
+        )}
+
+        {!error && displayedRootGroupIds.length > 0 && (
           <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
             <Stack spacing={1.2}>
-              {rootGroupIds.map((groupId) => renderGroupNode(groupId))}
+              {displayedRootGroupIds.map((groupId) => renderGroupNode(groupId))}
             </Stack>
           </Paper>
         )}
@@ -381,7 +422,7 @@ export default function InstitutionGroups() {
           </DialogActions>
         </Dialog>
 
-        <Dialog open={isCreateOpen} onClose={() => !createLoading && setIsCreateOpen(false)} maxWidth="xs" fullWidth>
+        <Dialog open={isCreateOpen && isCurrentUserAdmin} onClose={() => !createLoading && setIsCreateOpen(false)} maxWidth="xs" fullWidth>
           <DialogTitle>Create group</DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 0.5 }}>
