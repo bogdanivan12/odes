@@ -16,7 +16,6 @@ import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
 import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid';
-import Avatar from '@mui/material/Avatar';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
@@ -25,14 +24,17 @@ import EventNoteIcon from '@mui/icons-material/EventNote';
 import Diversity3Icon from '@mui/icons-material/Diversity3';
 import SchoolIcon from '@mui/icons-material/School';
 import PageContainer from '../layout/PageContainer';
+import EntityStatCard from '../../components/EntityStatCard';
+import { compareAlphabetical, toTitleLabel } from '../../utils/text';
+import { clickableEntitySx, clickableSecondaryEntitySx } from '../../utils/clickableEntity';
 import { deleteCourse, getCourseActivities, getCourseById, updateCourse } from '../../api/courses';
 import type { CourseActivity } from '../../api/courses';
 import { getInstitutionGroups, getInstitutionUsers } from '../../api/institutions';
 import type { InstitutionGroup, InstitutionUser } from '../../api/institutions';
 import type { Course } from '../../types/course';
 import { activityRoute, groupRoute, institutionRoute, memberRoute, INSTITUTIONS_ROUTE } from '../../config/routes';
+import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionAdmin';
 
-const compareAlphabetical = (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: 'base' });
 const activityTypePriority: Record<string, number> = { course: 0, seminar: 1, laboratory: 2 };
 const compareActivityTypes = (a: string, b: string) => {
   const aKey = a.trim().toLowerCase();
@@ -41,33 +43,6 @@ const compareActivityTypes = (a: string, b: string) => {
   const bRank = activityTypePriority[bKey] ?? Number.MAX_SAFE_INTEGER;
   if (aRank !== bRank) return aRank - bRank;
   return compareAlphabetical(a, b);
-};
-
-const clickableEntitySx = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  px: 0.75,
-  py: 0.35,
-  borderRadius: 1,
-  cursor: 'pointer',
-  color: 'text.primary',
-  textDecoration: 'none',
-  transition: 'background-color 0.15s ease',
-  '&:hover': {
-    backgroundColor: 'action.hover',
-    textDecoration: 'none',
-    color: 'text.primary',
-  },
-};
-
-const clickableSecondaryEntitySx = {
-  ...clickableEntitySx,
-  color: 'text.secondary',
-  '&:hover': {
-    backgroundColor: 'action.hover',
-    textDecoration: 'none',
-    color: 'text.secondary',
-  },
 };
 
 export default function CourseMainPage() {
@@ -92,11 +67,8 @@ export default function CourseMainPage() {
   const [users, setUsers] = useState<InstitutionUser[]>([]);
   const [relatedLoading, setRelatedLoading] = useState(false);
   const [relatedError, setRelatedError] = useState<string | null>(null);
-
-  const toTitleLabel = (value: string) => value
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
+  const [currentUser, setCurrentUser] = useState<InstitutionUser | null>(null);
+  const [currentUserLoading, setCurrentUserLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
@@ -164,6 +136,28 @@ export default function CourseMainPage() {
       mounted = false;
     };
   }, [course?.id, course?.institution_id]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const me = await getCurrentUserData();
+        if (!mounted) return;
+        setCurrentUser(me);
+      } catch {
+        if (!mounted) return;
+        setCurrentUser(null);
+      } finally {
+        if (mounted) setCurrentUserLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const canManageCourse = useMemo(() => isInstitutionAdmin(currentUser, course?.institution_id), [currentUser, course?.institution_id]);
 
   const groupsById = useMemo(() => {
     const map = new Map<string, InstitutionGroup>();
@@ -373,29 +367,8 @@ export default function CourseMainPage() {
     );
   };
 
-  function StatCard({
-    icon,
-    label,
-    value,
-  }: {
-    icon: React.ReactNode;
-    label: string;
-    value: number;
-  }) {
-    return (
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, height: '100%' }}>
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <Avatar sx={{ bgcolor: 'primary.main', width: 34, height: 34 }}>{icon}</Avatar>
-          <Box>
-            <Typography variant="caption" color="text.secondary">{label}</Typography>
-            <Typography variant="h6" sx={{ lineHeight: 1.1, fontWeight: 700 }}>{value}</Typography>
-          </Box>
-        </Stack>
-      </Paper>
-    );
-  }
-
   const handleUpdate = async () => {
+    if (!canManageCourse) return;
     if (!course) return;
     const name = editName.trim();
     if (!name) {
@@ -417,6 +390,7 @@ export default function CourseMainPage() {
   };
 
   const handleDelete = async () => {
+    if (!canManageCourse) return;
     if (!course) return;
     setDeleteLoading(true);
     setDeleteError(null);
@@ -430,7 +404,7 @@ export default function CourseMainPage() {
     }
   };
 
-  if (loading) {
+  if (loading || currentUserLoading) {
     return (
       <PageContainer alignItems="center">
         <Stack direction="row" spacing={1.5} alignItems="center">
@@ -472,24 +446,26 @@ export default function CourseMainPage() {
         >
           <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', mb: 1 }}>
             <Typography variant="h4" sx={{ fontWeight: 800 }}>{course.name}</Typography>
-            <Stack direction="row" spacing={1}>
-              <Button variant="outlined" onClick={() => { setEditError(null); setEditName(course.name); setEditOpen(true); }}>Edit</Button>
-              <Button variant="outlined" color="error" onClick={() => { setDeleteError(null); setDeleteOpen(true); }}>
-                Delete
-              </Button>
-            </Stack>
+            {canManageCourse && (
+              <Stack direction="row" spacing={1}>
+                <Button variant="outlined" onClick={() => { setEditError(null); setEditName(course.name); setEditOpen(true); }}>Edit</Button>
+                <Button variant="outlined" color="error" onClick={() => { setDeleteError(null); setDeleteOpen(true); }}>
+                  Delete
+                </Button>
+              </Stack>
+            )}
           </Box>
         </Paper>
 
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, sm: 4 }}>
-            <StatCard icon={<EventNoteIcon fontSize="small" />} label="Activities" value={activities.length} />
+            <EntityStatCard icon={<EventNoteIcon fontSize="small" />} label="Activities" value={activities.length} />
           </Grid>
           <Grid size={{ xs: 12, sm: 4 }}>
-            <StatCard icon={<Diversity3Icon fontSize="small" />} label="Groups" value={relatedGroups.length} />
+            <EntityStatCard icon={<Diversity3Icon fontSize="small" />} label="Groups" value={relatedGroups.length} />
           </Grid>
           <Grid size={{ xs: 12, sm: 4 }}>
-            <StatCard icon={<SchoolIcon fontSize="small" />} label="Professors" value={relatedProfessors.length} />
+            <EntityStatCard icon={<SchoolIcon fontSize="small" />} label="Professors" value={relatedProfessors.length} />
           </Grid>
         </Grid>
 
@@ -584,7 +560,7 @@ export default function CourseMainPage() {
         )}
       </Stack>
 
-      <Dialog open={deleteOpen} onClose={() => !deleteLoading && setDeleteOpen(false)} maxWidth="xs" fullWidth>
+      <Dialog open={deleteOpen && canManageCourse} onClose={() => !deleteLoading && setDeleteOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>Delete course?</DialogTitle>
         <DialogContent>
           <DialogContentText>
@@ -600,7 +576,7 @@ export default function CourseMainPage() {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={editOpen} onClose={() => !editLoading && setEditOpen(false)} maxWidth="xs" fullWidth>
+      <Dialog open={editOpen && canManageCourse} onClose={() => !editLoading && setEditOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>Update course</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 0.5 }}>

@@ -40,6 +40,7 @@ export interface InstitutionActivity {
   duration_slots: number;
   group_id: string;
   professor_id?: string | null;
+  required_room_features?: string[];
   frequency: string;
 }
 

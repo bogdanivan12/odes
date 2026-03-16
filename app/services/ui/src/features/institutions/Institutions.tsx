@@ -1,23 +1,28 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
+import Paper from '@mui/material/Paper';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import CardActions from '@mui/material/CardActions';
 import Typography from '@mui/material/Typography';
+import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
+import Alert from '@mui/material/Alert';
+import CircularProgress from '@mui/material/CircularProgress';
 import { getInstitutions, getInstitutionUsers } from '../../api/institutions';
 import { Institution } from '../../types/institution';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '../layout/PageContainer';
 import { institutionRoute, INSTITUTIONS_CREATE_ROUTE } from '../../config/routes';
-
-const compareAlphabetical = (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: 'base' });
+import { compareAlphabetical } from '../../utils/text';
 
 export default function Institutions() {
   const [items, setItems] = useState<Institution[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [usersMap, setUsersMap] = useState<Record<string, { loading: boolean; membersCount?: number; admins?: string[] }>>({});
   const navigate = useNavigate();
 
@@ -40,6 +45,7 @@ export default function Institutions() {
     let mounted = true;
     (async () => {
       try {
+        setError(null);
         const inst = await getInstitutions();
         const sortedInstitutions = [...inst].sort((a, b) => compareAlphabetical(a.name, b.name));
         if (mounted) setItems(sortedInstitutions);
@@ -91,6 +97,7 @@ export default function Institutions() {
           console.error('Failed fetching institution users', err);
         }
       } catch (err) {
+        setError((err as Error).message || 'Failed to load institutions.');
         console.error('Failed to load institutions', err);
       } finally {
         if (mounted) setLoading(false);
@@ -99,6 +106,22 @@ export default function Institutions() {
 
     return () => { mounted = false; };
   }, []);
+
+  const filteredInstitutions = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return items.filter((inst) => (inst.name ?? '').toLowerCase().includes(q));
+  }, [items, searchQuery]);
+
+  if (loading) {
+    return (
+      <PageContainer alignItems="center">
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <CircularProgress size={24} />
+          <Typography>Loading institutions...</Typography>
+        </Stack>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer alignItems="flex-start">
@@ -109,10 +132,30 @@ export default function Institutions() {
         </Button>
       </Box>
 
-      {loading && <Typography>Loading institutions...</Typography>}
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      {!loading && items.length === 0 && (
+      {!error && (
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', md: 'center' }}>
+            <TextField
+              size="small"
+              fullWidth
+              label="Search institutions"
+              placeholder="Type institution name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <Button variant="outlined" onClick={() => setSearchQuery('')}>Reset</Button>
+          </Stack>
+        </Paper>
+      )}
+
+      {!error && items.length === 0 && (
         <Typography color="text.secondary">No institutions found.</Typography>
+      )}
+
+      {!error && items.length > 0 && filteredInstitutions.length === 0 && (
+        <Typography color="text.secondary">No institutions match the current search/filter.</Typography>
       )}
 
       <Box sx={{
@@ -125,9 +168,8 @@ export default function Institutions() {
           lg: 'repeat(3, 1fr)'
         }
       }}>
-        {items.map(inst => {
+        {filteredInstitutions.map(inst => {
           const entry = usersMap[inst.id];
-          const admins = entry?.admins;
           return (
             <Box key={inst.id}>
               <Card variant="outlined" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -148,15 +190,12 @@ export default function Institutions() {
                       <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
                         Members: {entry?.membersCount ?? '—'}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Admins: {admins && admins.length > 0 ? admins.join(', ') : '—'}
-                      </Typography>
                     </>
                   )}
 
                 </CardContent>
                 <CardActions sx={{ px: 2, pb: 2 }}>
-                  <Button size="small" onClick={() => handleViewInstitution(inst)}>View</Button>
+                  <Button size="small" onClick={() => handleViewInstitution(inst)}>Open</Button>
                 </CardActions>
               </Card>
             </Box>

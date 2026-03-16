@@ -11,7 +11,6 @@ import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid';
-import Avatar from '@mui/material/Avatar';
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
 import Dialog from '@mui/material/Dialog';
@@ -34,6 +33,8 @@ import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
 import PageContainer from '../layout/PageContainer';
+import EntityStatCard from '../../components/EntityStatCard';
+import { compareAlphabetical, toTitleLabel } from '../../utils/text';
 import {
   activityRoute,
   courseRoute,
@@ -65,6 +66,7 @@ import type {
 import { Institution } from '../../types/institution';
 import { API_INSTITUTIONS_PATH, API_URL } from '../../config/constants';
 import { apiGet, apiPost } from '../../utils/apiClient';
+import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionAdmin';
 
 type RelatedState<T> = {
   data: T[];
@@ -81,29 +83,15 @@ type ListItem = {
   rowAction?: React.ReactNode;
 };
 
-type StatCardProps = {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  loading?: boolean;
-};
-
 type InstitutionRole = 'student' | 'professor' | 'admin';
 
 const ALL_INSTITUTION_ROLES: InstitutionRole[] = ['admin', 'professor', 'student'];
-
-const compareAlphabetical = (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: 'base' });
 
 function getAuthHeaders(): Record<string, string> {
   const authToken = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
   const headers: Record<string, string> = {};
   if (authToken) headers.Authorization = authToken;
   return headers;
-}
-
-async function getCurrentUserData(): Promise<InstitutionUser> {
-  const res = await apiGet<any>(`${API_URL}/api/v1/users/me`, getAuthHeaders());
-  return (res?.user ?? res) as InstitutionUser;
 }
 
 async function assignRoleToUser(institutionId: string, userId: string, role: InstitutionRole): Promise<void> {
@@ -127,18 +115,6 @@ function getInstitutionRoles(user: InstitutionUser, institutionId: string): Inst
   return Array.isArray(roles) ? (roles as InstitutionRole[]) : [];
 }
 
-function toTitleLabel(value: string): string {
-  return value
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-}
-
-function isAdmin(user: InstitutionUser, institutionId: string): boolean {
-  const roles = user.user_roles?.[institutionId] ?? user.user_roles?.[String(institutionId)];
-  return Array.isArray(roles) && roles.includes('admin');
-}
-
 function formatCreatedAt(timestamp?: string): string | undefined {
   if (!timestamp) return undefined;
   const date = new Date(timestamp);
@@ -147,28 +123,6 @@ function formatCreatedAt(timestamp?: string): string | undefined {
   const datePart = date.toLocaleDateString();
   const timePart = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   return `Created on ${datePart} at ${timePart}`;
-}
-
-function StatCard({ icon, label, value, loading = false }: StatCardProps) {
-  return (
-    <Paper
-      variant="outlined"
-      sx={{
-        p: 2,
-        height: '100%',
-        borderRadius: 3,
-        background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)',
-      }}
-    >
-      <Stack direction="row" spacing={1.5} alignItems="center">
-        <Avatar sx={{ bgcolor: 'primary.main', width: 34, height: 34 }}>{icon}</Avatar>
-        <Box>
-          <Typography variant="caption" color="text.secondary">{label}</Typography>
-          {loading ? <CircularProgress size={18} /> : <Typography variant="h6" sx={{ lineHeight: 1.1, fontWeight: 700 }}>{value}</Typography>}
-        </Box>
-      </Stack>
-    </Paper>
-  );
 }
 
 type SearchableListProps = {
@@ -279,6 +233,7 @@ export default function InstitutionMainPage() {
   const [institutionLoading, setInstitutionLoading] = useState(true);
   const [institutionError, setInstitutionError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<InstitutionUser | null>(null);
+  const [currentUserLoading, setCurrentUserLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -344,6 +299,8 @@ export default function InstitutionMainPage() {
       } catch (err) {
         if (!mounted) return;
         setCurrentUser(null);
+      } finally {
+        if (mounted) setCurrentUserLoading(false);
       }
     })();
 
@@ -461,9 +418,7 @@ export default function InstitutionMainPage() {
   };
 
   const canManageInstitution = useMemo(() => {
-    if (!institutionId || !currentUser) return false;
-    const roles = currentUser.user_roles?.[institutionId] ?? currentUser.user_roles?.[String(institutionId)] ?? [];
-    return Array.isArray(roles) && roles.includes('admin');
+    return isInstitutionAdmin(currentUser, institutionId);
   }, [currentUser, institutionId]);
 
   const membersList = useMemo(() => {
@@ -518,7 +473,7 @@ export default function InstitutionMainPage() {
 
   const adminCount = useMemo(() => {
     if (!institutionId) return 0;
-    return usersState.data.filter((user) => isAdmin(user, institutionId)).length;
+    return usersState.data.filter((user) => isInstitutionAdmin(user, institutionId)).length;
   }, [usersState.data, institutionId]);
 
   const groupsList = useMemo(() => groupsState.data.map((group) => ({
@@ -733,7 +688,7 @@ export default function InstitutionMainPage() {
     }
   };
 
-  if (institutionLoading) {
+  if (institutionLoading || currentUserLoading) {
     return (
       <PageContainer alignItems="center">
         <Stack direction="row" spacing={1.5} alignItems="center">
@@ -795,13 +750,13 @@ export default function InstitutionMainPage() {
         </Paper>
 
         <Grid container spacing={2}>
-          <Grid size={{ xs: 6, md: 3 }}><StatCard icon={<GroupIcon fontSize="small" />} label="Members" value={usersState.data.length} loading={usersState.loading} /></Grid>
-          <Grid size={{ xs: 6, md: 3 }}><StatCard icon={<AdminPanelSettingsIcon fontSize="small" />} label="Admins" value={adminCount} loading={usersState.loading} /></Grid>
-          <Grid size={{ xs: 6, md: 3 }}><StatCard icon={<Diversity3Icon fontSize="small" />} label="Groups" value={groupsState.data.length} loading={groupsState.loading} /></Grid>
-          <Grid size={{ xs: 6, md: 3 }}><StatCard icon={<MenuBookIcon fontSize="small" />} label="Courses" value={coursesState.data.length} loading={coursesState.loading} /></Grid>
-          <Grid size={{ xs: 6, md: 4 }}><StatCard icon={<MeetingRoomIcon fontSize="small" />} label="Rooms" value={roomsState.data.length} loading={roomsState.loading} /></Grid>
-          <Grid size={{ xs: 6, md: 4 }}><StatCard icon={<EventNoteIcon fontSize="small" />} label="Activities" value={activitiesState.data.length} loading={activitiesState.loading} /></Grid>
-          <Grid size={{ xs: 12, md: 4 }}><StatCard icon={<ScheduleIcon fontSize="small" />} label="Schedules" value={schedulesState.data.length} loading={schedulesState.loading} /></Grid>
+          <Grid size={{ xs: 6, md: 3 }}><EntityStatCard icon={<GroupIcon fontSize="small" />} label="Members" value={usersState.data.length} loading={usersState.loading} gradient /></Grid>
+          <Grid size={{ xs: 6, md: 3 }}><EntityStatCard icon={<AdminPanelSettingsIcon fontSize="small" />} label="Admins" value={adminCount} loading={usersState.loading} gradient /></Grid>
+          <Grid size={{ xs: 6, md: 3 }}><EntityStatCard icon={<Diversity3Icon fontSize="small" />} label="Groups" value={groupsState.data.length} loading={groupsState.loading} gradient /></Grid>
+          <Grid size={{ xs: 6, md: 3 }}><EntityStatCard icon={<MenuBookIcon fontSize="small" />} label="Courses" value={coursesState.data.length} loading={coursesState.loading} gradient /></Grid>
+          <Grid size={{ xs: 6, md: 4 }}><EntityStatCard icon={<MeetingRoomIcon fontSize="small" />} label="Rooms" value={roomsState.data.length} loading={roomsState.loading} gradient /></Grid>
+          <Grid size={{ xs: 6, md: 4 }}><EntityStatCard icon={<EventNoteIcon fontSize="small" />} label="Activities" value={activitiesState.data.length} loading={activitiesState.loading} gradient /></Grid>
+          <Grid size={{ xs: 12, md: 4 }}><EntityStatCard icon={<ScheduleIcon fontSize="small" />} label="Schedules" value={schedulesState.data.length} loading={schedulesState.loading} gradient /></Grid>
         </Grid>
 
         <Grid container spacing={2}>
