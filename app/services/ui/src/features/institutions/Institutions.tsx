@@ -11,6 +11,7 @@ import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import { getInstitutions, getInstitutionUsers } from '../../api/institutions';
 import { Institution } from '../../types/institution';
 import { useNavigate } from 'react-router-dom';
@@ -126,7 +127,10 @@ export default function Institutions() {
   return (
     <PageContainer alignItems="flex-start">
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, gap: 2, flexWrap: 'wrap' }}>
-        <Typography variant="h4" sx={{ fontWeight: 700 }}>Institutions</Typography>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <AccountBalanceIcon color="primary" />
+          <Typography variant="h4" sx={{ fontWeight: 700 }}>Institutions</Typography>
+        </Stack>
         <Button variant="contained" onClick={() => navigate(INSTITUTIONS_CREATE_ROUTE)}>
           Create institution
         </Button>
@@ -174,7 +178,10 @@ export default function Institutions() {
             <Box key={inst.id}>
               <Card variant="outlined" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <CardContent sx={{ flex: '1 1 auto' }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>{inst.name}</Typography>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <AccountBalanceIcon fontSize="small" color="action" />
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>{inst.name}</Typography>
+                  </Stack>
 
                   <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
                     <Chip label={`Weeks: ${inst.time_grid_config.weeks}`} size="small" />

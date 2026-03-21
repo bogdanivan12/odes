@@ -203,8 +203,8 @@ export default function RoomMainPage() {
       })
       .sort((a, b) => {
         const courseCompare = compareAlphabetical(
-          coursesById.get(String(a.course_id))?.name ?? String(a.course_id),
-          coursesById.get(String(b.course_id))?.name ?? String(b.course_id),
+          coursesById.get(String(a.course_id))?.name ?? 'Unknown course',
+          coursesById.get(String(b.course_id))?.name ?? 'Unknown course',
         );
         if (courseCompare !== 0) return courseCompare;
 
@@ -380,10 +380,10 @@ export default function RoomMainPage() {
               <Stack spacing={1}>
                 {compatibleActivities.map((activity) => {
                   const activityId = String(activity.id ?? activity._id ?? `${activity.course_id}-${activity.group_id}-${activity.activity_type}`);
-                  const courseName = coursesById.get(String(activity.course_id))?.name ?? String(activity.course_id);
-                  const groupName = groupsById.get(String(activity.group_id))?.name ?? String(activity.group_id);
+                  const courseName = coursesById.get(String(activity.course_id))?.name ?? 'Unknown course';
+                  const groupName = groupsById.get(String(activity.group_id))?.name ?? 'Unknown group';
                   const professor = activity.professor_id ? usersById.get(String(activity.professor_id)) : undefined;
-                  const professorName = professor?.name ?? String(activity.professor_id ?? 'Unassigned');
+                  const professorName = professor?.name ?? 'Unassigned';
                   const professorEmail = professor?.email;
 
                   return (

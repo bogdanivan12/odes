@@ -13,7 +13,7 @@ import MenuItem from '@mui/material/MenuItem';
 import MenuIcon from '@mui/icons-material/Menu';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { institutionRoute, USER_LOGIN_ROUTE } from '../../config/routes';
+import { institutionRoute, PROFILE_ROUTE, USER_LOGIN_ROUTE } from '../../config/routes';
 import { getInstitutions } from '../../api/institutions';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import TextField from '@mui/material/TextField';
@@ -87,6 +87,11 @@ export default function ResponsiveAppBar() {
     setAnchorElNav(null);
     // navigate to login
     try { navigate(USER_LOGIN_ROUTE, { replace: true }); } catch (e) { /* ignore */ }
+  };
+
+  const handleOpenProfile = () => {
+    handleCloseUserMenu();
+    navigate(PROFILE_ROUTE);
   };
 
   const handleSelectInstitution = (inst: Institution) => {
@@ -584,7 +589,7 @@ export default function ResponsiveAppBar() {
               open={Boolean(anchorElUser)}
               onClose={handleCloseUserMenu}
             >
-              <MenuItem onClick={handleCloseUserMenu}>
+              <MenuItem onClick={handleOpenProfile}>
                 <Typography sx={{ textAlign: 'center' }}>Profile</Typography>
               </MenuItem>
               <MenuItem onClick={handleLogout}>

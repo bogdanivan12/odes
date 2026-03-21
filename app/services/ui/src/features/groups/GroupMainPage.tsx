@@ -246,7 +246,7 @@ export default function GroupMainPage() {
     const typeCompare = compareActivityTypes(a.activity_type, b.activity_type);
     if (typeCompare !== 0) return typeCompare;
 
-    const courseCompare = compareAlphabetical(coursesById.get(String(a.course_id))?.name ?? String(a.course_id), coursesById.get(String(b.course_id))?.name ?? String(b.course_id));
+    const courseCompare = compareAlphabetical(coursesById.get(String(a.course_id))?.name ?? 'Unknown course', coursesById.get(String(b.course_id))?.name ?? 'Unknown course');
     if (courseCompare !== 0) return courseCompare;
 
     const frequencyCompare = compareAlphabetical(a.frequency, b.frequency);
@@ -447,7 +447,7 @@ export default function GroupMainPage() {
                     {ancestryChain.map((ancestorId) => (
                       <Chip
                         key={ancestorId}
-                        label={groupsById.get(ancestorId)?.name ?? ancestorId}
+                        label={groupsById.get(ancestorId)?.name ?? 'Unknown group'}
                         size="small"
                         clickable
                         onClick={() => navigate(groupRoute(ancestorId))}
@@ -479,9 +479,9 @@ export default function GroupMainPage() {
                   <Stack spacing={1}>
                     {sortedActivities.map((activity) => {
                       const activityId = String(activity.id ?? activity._id ?? `${activity.course_id}-${activity.activity_type}`);
-                      const courseName = coursesById.get(String(activity.course_id))?.name ?? String(activity.course_id);
+                      const courseName = coursesById.get(String(activity.course_id))?.name ?? 'Unknown course';
                       const professor = activity.professor_id ? usersById.get(String(activity.professor_id)) : undefined;
-                      const professorName = professor?.name ?? String(activity.professor_id ?? 'Unassigned');
+                      const professorName = professor?.name ?? 'Unassigned';
                       const professorEmail = professor?.email;
 
                       return (

@@ -17,7 +17,10 @@ import {
   INSTITUTION_UPDATE_ROUTE,
   INSTITUTIONS_ROUTE,
   INSTITUTIONS_CREATE_ROUTE,
+  PROFILE_ROUTE,
   ROOM_ROUTE,
+  USER_ROUTE,
+  USER_UPDATE_ROUTE,
   USER_LOGIN_ROUTE,
   USER_REGISTER_ROUTE,
 } from "./config/routes.ts";
@@ -36,6 +39,10 @@ import InstitutionRooms from './features/rooms/InstitutionRooms';
 import RoomMainPage from './features/rooms/RoomMainPage';
 import InstitutionActivities from './features/activities/InstitutionActivities';
 import ActivityMainPage from './features/activities/ActivityMainPage';
+import InstitutionMembers from './features/members/InstitutionMembers';
+import MemberMainPage from './features/members/MemberMainPage';
+import UpdateMemberRoles from './features/members/UpdateMemberRoles';
+import ProfilePage from './features/members/ProfilePage';
 
 function App() {
   return (
@@ -52,7 +59,7 @@ function App() {
           <Route path={INSTITUTIONS_CREATE_ROUTE} element={<CreateInstitution />} />
           <Route path={INSTITUTION_UPDATE_ROUTE} element={<UpdateInstitution />} />
           <Route path={INSTITUTION_ROUTE} element={<InstitutionMainPage />} />
-          <Route path={INSTITUTION_MEMBERS_ROUTE} element={<InstitutionMainPage />} />
+          <Route path={INSTITUTION_MEMBERS_ROUTE} element={<InstitutionMembers />} />
           <Route path={INSTITUTION_GROUPS_ROUTE} element={<InstitutionGroups />} />
           <Route path={INSTITUTION_COURSES_ROUTE} element={<InstitutionCourses />} />
           <Route path={INSTITUTION_ROOMS_ROUTE} element={<InstitutionRooms />} />
@@ -62,6 +69,9 @@ function App() {
           <Route path={GROUP_ROUTE} element={<GroupMainPage />} />
           <Route path={ROOM_ROUTE} element={<RoomMainPage />} />
           <Route path={ACTIVITY_ROUTE} element={<ActivityMainPage />} />
+          <Route path={PROFILE_ROUTE} element={<ProfilePage />} />
+          <Route path={USER_ROUTE} element={<MemberMainPage />} />
+          <Route path={USER_UPDATE_ROUTE} element={<UpdateMemberRoles />} />
           {/* Other protected routes can be nested here and will inherit the layout */}
         </Route>
       </Routes>
