@@ -16,6 +16,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 import PageContainer from '../layout/PageContainer';
 import { compareAlphabetical } from '../../utils/text';
 import { createCourse, deleteCourse, getInstitutionCourses, updateCourse } from '../../api/courses';
@@ -180,7 +181,10 @@ export default function InstitutionCourses() {
     <PageContainer alignItems="flex-start">
       <Box sx={{ width: '100%' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, gap: 2, flexWrap: 'wrap' }}>
-          <Typography variant="h4" sx={{ fontWeight: 700 }}>Courses</Typography>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <MenuBookIcon color="primary" />
+            <Typography variant="h4" sx={{ fontWeight: 700 }}>Courses</Typography>
+          </Stack>
           {canManageInstitution && (
             <Button
               variant="contained"
@@ -233,7 +237,10 @@ export default function InstitutionCourses() {
           {filteredCourses.map((course) => (
             <Card key={course.id} variant="outlined" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
               <CardContent sx={{ flex: '1 1 auto' }}>
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>{course.name}</Typography>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <MenuBookIcon fontSize="small" color="action" />
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>{course.name}</Typography>
+                  </Stack>
               </CardContent>
               <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
                 <Stack direction="row" spacing={1}>

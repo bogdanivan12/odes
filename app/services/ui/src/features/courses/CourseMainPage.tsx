@@ -174,7 +174,7 @@ export default function CourseMainPage() {
   const relatedGroups = useMemo(() => Array.from(new Set(activities.map((a) => String(a.group_id))))
     .map((groupId) => ({
       id: groupId,
-      name: groupsById.get(groupId)?.name ?? groupId,
+      name: groupsById.get(groupId)?.name ?? 'Unknown group',
     }))
     .sort((a, b) => compareAlphabetical(a.name, b.name)), [activities, groupsById]);
 
@@ -295,7 +295,7 @@ export default function CourseMainPage() {
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 1 }}>
             <Typography variant="body2" sx={{ fontWeight: 700 }}>
-              {group?.name ?? groupId}
+              {group?.name ?? 'Unknown group'}
             </Typography>
             <Button
               size="small"
@@ -317,7 +317,7 @@ export default function CourseMainPage() {
               {groupRows.map((activity) => {
                 const activityId = String(activity.id ?? activity._id ?? `${activity.group_id}-${activity.activity_type}`);
                 const prof = activity.professor_id ? usersById.get(String(activity.professor_id)) : undefined;
-                const professorName = prof?.name ?? String(activity.professor_id ?? 'Unassigned');
+                const professorName = prof?.name ?? 'Unassigned';
                 const professorEmail = prof?.email;
                 const professorId = activity.professor_id ? String(activity.professor_id) : '';
                 return (
@@ -524,7 +524,7 @@ export default function CourseMainPage() {
                                 {professor.groupIds.map((groupId) => (
                                   <Chip
                                     key={`${entry.activityType}-${professor.professorId}-${groupId}`}
-                                    label={groupsById.get(groupId)?.name ?? groupId}
+                                    label={groupsById.get(groupId)?.name ?? 'Unknown group'}
                                     size="small"
                                     clickable
                                     onClick={() => navigate(groupRoute(groupId))}

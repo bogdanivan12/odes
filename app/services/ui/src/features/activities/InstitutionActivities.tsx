@@ -21,6 +21,10 @@ import AccordionDetails from '@mui/material/AccordionDetails';
 import Divider from '@mui/material/Divider';
 import Chip from '@mui/material/Chip';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import EventNoteIcon from '@mui/icons-material/EventNote';
+import Diversity3Icon from '@mui/icons-material/Diversity3';
+import SchoolIcon from '@mui/icons-material/School';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 import PageContainer from '../layout/PageContainer';
 import { createActivity, deleteActivity, updateActivity } from '../../api/activities';
 import { getInstitutionActivities, getInstitutionCourses, getInstitutionGroups, getInstitutionUsers } from '../../api/institutions';
@@ -180,20 +184,20 @@ export default function InstitutionActivities() {
     if (!q) return activities;
 
     return activities.filter((activity) => {
-      const courseName = coursesById.get(String(activity.course_id))?.name ?? String(activity.course_id);
-      const groupName = groupsById.get(String(activity.group_id))?.name ?? String(activity.group_id);
+      const courseName = coursesById.get(String(activity.course_id))?.name ?? 'Unknown course';
+      const groupName = groupsById.get(String(activity.group_id))?.name ?? 'Unknown group';
       const professor = activity.professor_id ? usersById.get(String(activity.professor_id)) : undefined;
-      const professorName = professor?.name ?? String(activity.professor_id ?? 'unassigned');
+      const professorName = professor?.name ?? 'Unassigned';
       const text = `${courseName} ${groupName} ${professorName} ${activity.activity_type} ${activity.frequency}`.toLowerCase();
       return text.includes(q);
     });
   }, [activities, searchQuery, coursesById, groupsById, usersById]);
 
   const getActivitySearchText = (activity: Activity): string => {
-    const courseName = coursesById.get(String(activity.course_id))?.name ?? String(activity.course_id);
-    const groupName = groupsById.get(String(activity.group_id))?.name ?? String(activity.group_id);
+    const courseName = coursesById.get(String(activity.course_id))?.name ?? 'Unknown course';
+    const groupName = groupsById.get(String(activity.group_id))?.name ?? 'Unknown group';
     const professor = activity.professor_id ? usersById.get(String(activity.professor_id)) : undefined;
-    const professorName = professor?.name ?? String(activity.professor_id ?? 'unassigned');
+    const professorName = professor?.name ?? 'Unassigned';
     return `${courseName} ${groupName} ${professorName} ${activity.activity_type} ${activity.frequency}`.toLowerCase();
   };
 
@@ -220,7 +224,7 @@ export default function InstitutionActivities() {
     const q = groupSectionQuery.trim().toLowerCase();
     if (!q) return filteredActivities;
     return filteredActivities.filter((activity) => {
-      const groupName = groupsById.get(String(activity.group_id))?.name ?? String(activity.group_id);
+      const groupName = groupsById.get(String(activity.group_id))?.name ?? 'Unknown group';
       return groupName.toLowerCase().includes(q) || getActivitySearchText(activity).includes(q);
     });
   }, [filteredActivities, groupSectionQuery, groupsById]);
@@ -278,13 +282,13 @@ export default function InstitutionActivities() {
 
     return Array.from(map.entries())
       .sort(([aId], [bId]) => {
-        const aName = aId === 'unassigned' ? 'Unassigned' : (usersById.get(aId)?.name ?? aId);
-        const bName = bId === 'unassigned' ? 'Unassigned' : (usersById.get(bId)?.name ?? bId);
+        const aName = aId === 'unassigned' ? 'Unassigned' : (usersById.get(aId)?.name ?? 'Unknown professor');
+        const bName = bId === 'unassigned' ? 'Unassigned' : (usersById.get(bId)?.name ?? 'Unknown professor');
         return compareAlphabetical(aName, bName);
       })
       .map(([professorId, rows]) => {
         const user = usersById.get(professorId);
-        const name = professorId === 'unassigned' ? 'Unassigned' : (user?.name ?? professorId);
+        const name = professorId === 'unassigned' ? 'Unassigned' : (user?.name ?? 'Unknown professor');
         const email = user?.email;
         const label = email ? `${name} (${email})` : name;
         const rowActivities = [...rows].sort((a, b) => compareAlphabetical(getActivityId(a), getActivityId(b)));
@@ -309,9 +313,9 @@ export default function InstitutionActivities() {
     const q = courseSectionQuery.trim().toLowerCase();
 
     return Array.from(map.entries())
-      .sort(([aId], [bId]) => compareAlphabetical(coursesById.get(aId)?.name ?? aId, coursesById.get(bId)?.name ?? bId))
+      .sort(([aId], [bId]) => compareAlphabetical(coursesById.get(aId)?.name ?? 'Unknown course', coursesById.get(bId)?.name ?? 'Unknown course'))
       .map(([courseId, rows]) => {
-        const label = coursesById.get(courseId)?.name ?? courseId;
+        const label = coursesById.get(courseId)?.name ?? 'Unknown course';
         const rowActivities = [...rows].sort((a, b) => compareAlphabetical(getActivityId(a), getActivityId(b)));
         if (q && !label.toLowerCase().includes(q) && !rowActivities.some((a) => getActivitySearchText(a).includes(q))) return null;
         return {
@@ -326,26 +330,29 @@ export default function InstitutionActivities() {
   const renderActivityCard = (activity: Activity) => {
     const activityId = getActivityId(activity);
     const canOpenActivity = Boolean(activityId);
-    const courseName = coursesById.get(String(activity.course_id))?.name ?? String(activity.course_id);
-    const groupName = groupsById.get(String(activity.group_id))?.name ?? String(activity.group_id);
+    const courseName = coursesById.get(String(activity.course_id))?.name ?? 'Unknown course';
+    const groupName = groupsById.get(String(activity.group_id))?.name ?? 'Unknown group';
     const professor = activity.professor_id ? usersById.get(String(activity.professor_id)) : undefined;
-    const professorName = professor?.name ?? String(activity.professor_id ?? 'Unassigned');
+    const professorName = professor?.name ?? 'Unassigned';
     const professorEmail = professor?.email;
 
     return (
       <Box key={activityId || `${activity.course_id}-${activity.group_id}-${activity.activity_type}`} sx={{ p: 1.1, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
-          <Typography
-            variant="body2"
-            sx={{
-              fontWeight: 700,
-              cursor: canOpenActivity ? 'pointer' : 'default',
-              '&:hover': canOpenActivity ? { textDecoration: 'underline' } : undefined,
-            }}
-            onClick={() => canOpenActivity && navigate(activityRoute(activityId))}
-          >
-            {`${courseName} ${toTitleLabel(activity.activity_type)} (${toTitleLabel(activity.frequency)})`}
-          </Typography>
+          <Stack direction="row" spacing={0.8} alignItems="center">
+            <EventNoteIcon fontSize="small" color="action" />
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 700,
+                cursor: canOpenActivity ? 'pointer' : 'default',
+                '&:hover': canOpenActivity ? { textDecoration: 'underline' } : undefined,
+              }}
+              onClick={() => canOpenActivity && navigate(activityRoute(activityId))}
+            >
+              {`${courseName} ${toTitleLabel(activity.activity_type)} (${toTitleLabel(activity.frequency)})`}
+            </Typography>
+          </Stack>
           <Stack direction="row" spacing={0.4}>
             <Button size="small" sx={{ minWidth: 0, px: 0.8 }} disabled={!canOpenActivity} onClick={() => canOpenActivity && navigate(activityRoute(activityId))}>Open</Button>
           </Stack>
@@ -390,7 +397,10 @@ export default function InstitutionActivities() {
     placeholder: string,
   ) => (
     <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
-      <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.2 }}>{title}</Typography>
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.2 }}>
+        {title === 'By professor' ? <SchoolIcon color="primary" /> : <MenuBookIcon color="primary" />}
+        <Typography variant="h6" sx={{ fontWeight: 700 }}>{title}</Typography>
+      </Stack>
       <TextField
         size="small"
         fullWidth
@@ -436,7 +446,7 @@ export default function InstitutionActivities() {
       <Accordion key={`group-${groupId}`} disableGutters>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 1 }}>
-            <Typography variant="body2" sx={{ fontWeight: 700 }}>{group?.name ?? groupId}</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 700 }}>{group?.name ?? 'Unknown group'}</Typography>
             <Chip size="small" label={`${groupActivities.length} activities`} />
           </Box>
         </AccordionSummary>
@@ -460,7 +470,10 @@ export default function InstitutionActivities() {
 
   const renderGroupSection = () => (
     <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
-      <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.2 }}>By group</Typography>
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.2 }}>
+        <Diversity3Icon color="primary" />
+        <Typography variant="h6" sx={{ fontWeight: 700 }}>By group</Typography>
+      </Stack>
       <TextField
         size="small"
         fullWidth
@@ -584,7 +597,10 @@ export default function InstitutionActivities() {
     <PageContainer alignItems="flex-start">
       <Box sx={{ width: '100%' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, gap: 2, flexWrap: 'wrap' }}>
-          <Typography variant="h4" sx={{ fontWeight: 700 }}>Activities</Typography>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <EventNoteIcon color="primary" />
+            <Typography variant="h4" sx={{ fontWeight: 700 }}>Activities</Typography>
+          </Stack>
           {canManageInstitution && (
             <Button
               variant="contained"

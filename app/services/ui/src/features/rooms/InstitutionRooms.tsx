@@ -18,6 +18,7 @@ import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 import Chip from '@mui/material/Chip';
 import MenuItem from '@mui/material/MenuItem';
+import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
 import PageContainer from '../layout/PageContainer';
 import { compareAlphabetical } from '../../utils/text';
 import { parseFeatures, featuresToInput } from '../../utils/roomFeatures';
@@ -258,7 +259,10 @@ export default function InstitutionRooms() {
     <PageContainer alignItems="flex-start">
       <Box sx={{ width: '100%' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, gap: 2, flexWrap: 'wrap' }}>
-          <Typography variant="h4" sx={{ fontWeight: 700 }}>Rooms</Typography>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <MeetingRoomIcon color="primary" />
+            <Typography variant="h4" sx={{ fontWeight: 700 }}>Rooms</Typography>
+          </Stack>
           {canManageInstitution && (
             <Button
               variant="contained"
@@ -348,7 +352,10 @@ export default function InstitutionRooms() {
             return (
               <Card key={roomId || room.name} variant="outlined" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <CardContent sx={{ flex: '1 1 auto' }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>{room.name}</Typography>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <MeetingRoomIcon fontSize="small" color="action" />
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>{room.name}</Typography>
+                  </Stack>
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                     Capacity: {room.capacity}
                   </Typography>

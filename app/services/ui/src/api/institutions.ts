@@ -11,6 +11,8 @@ export interface InstitutionUser {
   user_roles?: Record<string, string[]>;
 }
 
+export type InstitutionRole = 'student' | 'professor' | 'admin';
+
 export interface InstitutionGroup {
   id?: string;
   _id?: string;
@@ -169,6 +171,18 @@ export async function deleteInstitution(institutionId: string): Promise<void> {
 
 export async function removeUserFromInstitution(institutionId: string, userId: string): Promise<void> {
   const url = `${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/users/${userId}`;
+  const headers = buildAuthHeaders();
+  await apiDelete<void>(url, headers);
+}
+
+export async function assignRoleToUser(institutionId: string, userId: string, role: InstitutionRole): Promise<void> {
+  const url = `${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/users/${userId}/roles/${role}`;
+  const headers = buildAuthHeaders();
+  await apiPost<void>(url, undefined, headers);
+}
+
+export async function removeRoleFromUser(institutionId: string, userId: string, role: InstitutionRole): Promise<void> {
+  const url = `${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/users/${userId}/roles/${role}`;
   const headers = buildAuthHeaders();
   await apiDelete<void>(url, headers);
 }

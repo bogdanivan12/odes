@@ -18,6 +18,7 @@ import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import Diversity3Icon from '@mui/icons-material/Diversity3';
 import PageContainer from '../layout/PageContainer';
 import { compareAlphabetical } from '../../utils/text';
 import { getInstitutionGroups } from '../../api/institutions';
@@ -306,6 +307,7 @@ export default function InstitutionGroups() {
         <Paper key={groupId} variant="outlined" sx={{ ml: depth > 0 ? 2 : 0, p: 1.5, borderRadius: 2 }}>
           <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
             <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
+              <Diversity3Icon fontSize="small" color="action" />
               <Typography variant="body2" sx={{ fontWeight: 700 }}>{group.name}</Typography>
             </Stack>
             {actions}
@@ -319,6 +321,7 @@ export default function InstitutionGroups() {
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, pr: 1 }}>
             <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
+              <Diversity3Icon fontSize="small" color="action" />
               <Typography variant="body2" sx={{ fontWeight: 700 }}>{group.name}</Typography>
             </Stack>
             {actions}
@@ -348,7 +351,10 @@ export default function InstitutionGroups() {
     <PageContainer alignItems="flex-start">
       <Box sx={{ width: '100%' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, gap: 2, flexWrap: 'wrap' }}>
-          <Typography variant="h4" sx={{ fontWeight: 700 }}>Groups</Typography>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Diversity3Icon color="primary" />
+            <Typography variant="h4" sx={{ fontWeight: 700 }}>Groups</Typography>
+          </Stack>
           {isCurrentUserAdmin && (
             <Button
               variant="contained"

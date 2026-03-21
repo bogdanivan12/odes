@@ -34,6 +34,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
 import PageContainer from '../layout/PageContainer';
 import EntityStatCard from '../../components/EntityStatCard';
+import EditMemberRolesDialog from '../../components/EditMemberRolesDialog';
 import { compareAlphabetical, toTitleLabel } from '../../utils/text';
 import {
   activityRoute,
@@ -797,56 +798,45 @@ export default function InstitutionMainPage() {
           </DialogActions>
         </Dialog>
 
-        <Dialog open={isMemberRolesDialogOpen} onClose={closeAddMemberDialog} maxWidth="xs" fullWidth>
-          <DialogTitle>{memberDialogMode === 'add' ? 'Add member' : 'Edit member roles'}</DialogTitle>
+        <Dialog open={isMemberRolesDialogOpen && memberDialogMode === 'add'} onClose={closeAddMemberDialog} maxWidth="xs" fullWidth>
+          <DialogTitle>Add member</DialogTitle>
           <DialogContent>
             <DialogContentText sx={{ mb: 2 }}>
-              {memberDialogMode === 'add'
-                ? 'Select a user by name or email and choose one or more roles.'
-                : 'Update the roles assigned to this member in the institution.'}
+              Select a user by name or email and choose one or more roles.
             </DialogContentText>
             <Stack spacing={2}>
-              {memberDialogMode === 'add' ? (
-                <>
-                  <Autocomplete
-                    options={availableUsers}
-                    loading={availableUsersLoading}
-                    value={selectedUserToAdd}
-                    onChange={(_event, value) => setSelectedUserToAdd(value)}
-                    getOptionLabel={(option) => {
-                      const name = option.name ?? 'Unknown user';
-                      const email = option.email ?? 'No email';
-                      return `${name} (${email})`;
-                    }}
-                    isOptionEqualToValue={(option, value) => String(option.id ?? option._id) === String(value.id ?? value._id)}
-                    disabled={isAddingMember}
-                    renderOption={(props, option) => (
-                      <Box component="li" {...props} key={String(option.id ?? option._id ?? option.email)}>
-                        <Stack spacing={0}>
-                          <Typography variant="body2">{option.name ?? 'Unknown user'}</Typography>
-                          <Typography variant="caption" color="text.secondary">{option.email ?? 'No email'}</Typography>
-                        </Stack>
-                      </Box>
-                    )}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="User"
-                        placeholder="Search by name or email"
-                        fullWidth
-                      />
-                    )}
-                  />
-                  {availableUsersError && <Alert severity="error">{availableUsersError}</Alert>}
-                </>
-              ) : (
-                <TextField
-                  label="Member"
-                  value={editingMember ? `${editingMember.name ?? 'Unknown user'} (${editingMember.email ?? 'No email'})` : ''}
-                  fullWidth
-                  disabled
+              <>
+                <Autocomplete
+                  options={availableUsers}
+                  loading={availableUsersLoading}
+                  value={selectedUserToAdd}
+                  onChange={(_event, value) => setSelectedUserToAdd(value)}
+                  getOptionLabel={(option) => {
+                    const name = option.name ?? 'Unknown user';
+                    const email = option.email ?? 'No email';
+                    return `${name} (${email})`;
+                  }}
+                  isOptionEqualToValue={(option, value) => String(option.id ?? option._id) === String(value.id ?? value._id)}
+                  disabled={isAddingMember}
+                  renderOption={(props, option) => (
+                    <Box component="li" {...props} key={String(option.id ?? option._id ?? option.email)}>
+                      <Stack spacing={0}>
+                        <Typography variant="body2">{option.name ?? 'Unknown user'}</Typography>
+                        <Typography variant="caption" color="text.secondary">{option.email ?? 'No email'}</Typography>
+                      </Stack>
+                    </Box>
+                  )}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="User"
+                      placeholder="Search by name or email"
+                      fullWidth
+                    />
+                  )}
                 />
-              )}
+                {availableUsersError && <Alert severity="error">{availableUsersError}</Alert>}
+              </>
               <FormControl fullWidth>
                 <InputLabel id="new-member-role-label">Role</InputLabel>
                 <Select
@@ -875,14 +865,26 @@ export default function InstitutionMainPage() {
           <DialogActions>
             <Button onClick={closeAddMemberDialog} disabled={isAddingMember}>Cancel</Button>
             <Button
-              onClick={memberDialogMode === 'add' ? handleAddMember : handleUpdateMemberRoles}
+              onClick={handleAddMember}
               variant="contained"
               disabled={isAddingMember}
             >
-              {isAddingMember ? <CircularProgress size={18} color="inherit" /> : memberDialogMode === 'add' ? 'Add member' : 'Save roles'}
+              {isAddingMember ? <CircularProgress size={18} color="inherit" /> : 'Add member'}
             </Button>
           </DialogActions>
         </Dialog>
+
+        <EditMemberRolesDialog
+          open={isMemberRolesDialogOpen && memberDialogMode === 'edit'}
+          memberLabel={editingMember ? `${editingMember.name ?? 'Unknown user'} (${editingMember.email ?? 'No email'})` : ''}
+          selectedRoles={selectedMemberRoles}
+          roleOptions={ALL_INSTITUTION_ROLES}
+          loading={isAddingMember}
+          error={addMemberError}
+          onClose={closeAddMemberDialog}
+          onRolesChange={(roles) => setSelectedMemberRoles(roles)}
+          onSubmit={handleUpdateMemberRoles}
+        />
       </Stack>
     </PageContainer>
   );
