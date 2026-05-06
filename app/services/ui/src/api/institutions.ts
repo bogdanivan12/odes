@@ -49,9 +49,20 @@ export interface InstitutionActivity {
 export interface InstitutionSchedule {
   id?: string;
   _id?: string;
+  institution_id?: string;
   status?: string;
   timestamp?: string;
   error_message?: string | null;
+}
+
+export interface ScheduledActivityRecord {
+  id?: string;
+  _id?: string;
+  schedule_id: string;
+  activity_id: string;
+  room_id: string;
+  start_timeslot: number;
+  active_weeks: number[];
 }
 
 export interface CreateInstitutionRequest {
@@ -148,11 +159,32 @@ export async function getInstitutionActivities(institutionId: string): Promise<I
   return normalizeCollection<InstitutionActivity>(res, 'activities');
 }
 
+export async function triggerScheduleGeneration(institutionId: string): Promise<InstitutionSchedule> {
+  const url = `${API_URL}/api/v1/schedules/`;
+  const headers = buildAuthHeaders();
+  const res = await apiPost<any>(url, { institution_id: institutionId }, headers);
+  return (res?.schedule ?? res) as InstitutionSchedule;
+}
+
+export async function getScheduleById(scheduleId: string): Promise<InstitutionSchedule> {
+  const url = `${API_URL}/api/v1/schedules/${scheduleId}`;
+  const headers = buildAuthHeaders();
+  const res = await apiGet<any>(url, headers);
+  return (res?.schedule ?? res) as InstitutionSchedule;
+}
+
 export async function getInstitutionSchedules(institutionId: string): Promise<InstitutionSchedule[]> {
   const url = `${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/schedules`;
   const headers = buildAuthHeaders();
   const res = await apiGet<unknown>(url, headers);
   return normalizeCollection<InstitutionSchedule>(res, 'schedules');
+}
+
+export async function getScheduleActivities(scheduleId: string): Promise<ScheduledActivityRecord[]> {
+  const url = `${API_URL}/api/v1/schedules/${scheduleId}/scheduled-activities`;
+  const headers = buildAuthHeaders();
+  const res = await apiGet<unknown>(url, headers);
+  return normalizeCollection<ScheduledActivityRecord>(res, 'scheduled_activities');
 }
 
 export async function createInstitution(payload: CreateInstitutionRequest): Promise<InstitutionClass> {

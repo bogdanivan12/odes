@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -13,6 +14,10 @@ import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid';
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
+import Tooltip from '@mui/material/Tooltip';
+import Accordion from '@mui/material/Accordion';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -30,8 +35,6 @@ import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import SearchIcon from '@mui/icons-material/Search';
-import CloseIcon from '@mui/icons-material/Close';
-import EditIcon from '@mui/icons-material/Edit';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import CalendarViewWeekIcon from '@mui/icons-material/CalendarViewWeek';
@@ -40,6 +43,11 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import SpeedIcon from '@mui/icons-material/Speed';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
+import Diversity3RoundedIcon from '@mui/icons-material/Diversity3Rounded';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import PageContainer from '../layout/PageContainer';
 import EntityStatCard from '../../components/EntityStatCard';
 import EditMemberRolesDialog from '../../components/EditMemberRolesDialog';
@@ -63,7 +71,13 @@ import {
   getInstitutionSchedules,
   getInstitutionUsers,
   removeUserFromInstitution,
+  triggerScheduleGeneration,
 } from '../../api/institutions';
+import { createCourse, updateCourse, deleteCourse } from '../../api/courses';
+import { createRoom, updateRoom, deleteRoom } from '../../api/rooms';
+import { createGroup, updateGroup, deleteGroup } from '../../api/groups';
+import { createActivity, updateActivity, deleteActivity } from '../../api/activities';
+import { parseFeatures, featuresToInput } from '../../utils/roomFeatures';
 import type {
   InstitutionActivity,
   InstitutionCourse,
@@ -148,6 +162,14 @@ function formatCreatedAt(timestamp?: string): string | undefined {
   const datePart = date.toLocaleDateString();
   const timePart = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   return `Created on ${datePart} at ${timePart}`;
+}
+
+function scheduleStatusColor(status: string): 'success' | 'warning' | 'error' | 'default' {
+  const s = status.toLowerCase();
+  if (s === 'completed') return 'success';
+  if (s === 'running') return 'warning';
+  if (s === 'failed') return 'error';
+  return 'default';
 }
 
 function roleChipColor(role: string): 'primary' | 'warning' | 'success' | 'default' {
@@ -438,6 +460,89 @@ export default function InstitutionMainPage() {
   const [activitiesState, setActivitiesState] = useState<RelatedState<InstitutionActivity>>({ data: [], loading: false, error: null });
   const [schedulesState, setSchedulesState] = useState<RelatedState<InstitutionSchedule>>({ data: [], loading: false, error: null });
 
+  // ── Course CRUD state ──────────────────────────────────────────────────────
+  const [isCourseCreateOpen, setIsCourseCreateOpen] = useState(false);
+  const [courseCreateName, setCourseCreateName] = useState('');
+  const [courseCreateLoading, setCourseCreateLoading] = useState(false);
+  const [courseCreateError, setCourseCreateError] = useState<string | null>(null);
+
+  const [courseToEdit, setCourseToEdit] = useState<InstitutionCourse | null>(null);
+  const [courseEditName, setCourseEditName] = useState('');
+  const [courseEditLoading, setCourseEditLoading] = useState(false);
+  const [courseEditError, setCourseEditError] = useState<string | null>(null);
+
+  const [courseToDelete, setCourseToDelete] = useState<InstitutionCourse | null>(null);
+  const [courseDeleteLoading, setCourseDeleteLoading] = useState(false);
+  const [courseDeleteError, setCourseDeleteError] = useState<string | null>(null);
+
+  // ── Room CRUD state ────────────────────────────────────────────────────────
+  const [isRoomCreateOpen, setIsRoomCreateOpen] = useState(false);
+  const [roomCreateName, setRoomCreateName] = useState('');
+  const [roomCreateCapacity, setRoomCreateCapacity] = useState('30');
+  const [roomCreateFeatures, setRoomCreateFeatures] = useState('');
+  const [roomCreateLoading, setRoomCreateLoading] = useState(false);
+  const [roomCreateError, setRoomCreateError] = useState<string | null>(null);
+
+  const [roomToEdit, setRoomToEdit] = useState<InstitutionRoom | null>(null);
+  const [roomEditName, setRoomEditName] = useState('');
+  const [roomEditCapacity, setRoomEditCapacity] = useState('30');
+  const [roomEditFeatures, setRoomEditFeatures] = useState('');
+  const [roomEditLoading, setRoomEditLoading] = useState(false);
+  const [roomEditError, setRoomEditError] = useState<string | null>(null);
+
+  const [roomToDelete, setRoomToDelete] = useState<InstitutionRoom | null>(null);
+  const [roomDeleteLoading, setRoomDeleteLoading] = useState(false);
+  const [roomDeleteError, setRoomDeleteError] = useState<string | null>(null);
+
+  // ── Group CRUD state ───────────────────────────────────────────────────────
+  const [isGroupCreateOpen, setIsGroupCreateOpen] = useState(false);
+  const [groupCreateName, setGroupCreateName] = useState('');
+  const [groupCreateParentId, setGroupCreateParentId] = useState('');
+  const [groupCreateLoading, setGroupCreateLoading] = useState(false);
+  const [groupCreateError, setGroupCreateError] = useState<string | null>(null);
+
+  const [groupToEdit, setGroupToEdit] = useState<InstitutionGroup | null>(null);
+  const [groupEditName, setGroupEditName] = useState('');
+  const [groupEditParentId, setGroupEditParentId] = useState('');
+  const [groupEditLoading, setGroupEditLoading] = useState(false);
+  const [groupEditError, setGroupEditError] = useState<string | null>(null);
+
+  const [groupToDelete, setGroupToDelete] = useState<InstitutionGroup | null>(null);
+  const [groupDeleteLoading, setGroupDeleteLoading] = useState(false);
+  const [groupDeleteError, setGroupDeleteError] = useState<string | null>(null);
+
+  // ── Activity CRUD state ────────────────────────────────────────────────────
+  const ACTIVITY_TYPE_OPTIONS = ['course', 'seminar', 'laboratory', 'other'];
+  const FREQUENCY_OPTIONS = ['weekly', 'biweekly', 'biweekly_odd', 'biweekly_even'];
+
+  const [isActivityCreateOpen, setIsActivityCreateOpen] = useState(false);
+  const [actCreateCourseId, setActCreateCourseId] = useState('');
+  const [actCreateGroupId, setActCreateGroupId] = useState('');
+  const [actCreateProfId, setActCreateProfId] = useState('');
+  const [actCreateType, setActCreateType] = useState('course');
+  const [actCreateFrequency, setActCreateFrequency] = useState('weekly');
+  const [actCreateDuration, setActCreateDuration] = useState('2');
+  const [actCreateFeatures, setActCreateFeatures] = useState('');
+  const [actCreateLoading, setActCreateLoading] = useState(false);
+  const [actCreateError, setActCreateError] = useState<string | null>(null);
+
+  const [activityToEdit, setActivityToEdit] = useState<InstitutionActivity | null>(null);
+  const [actEditCourseId, setActEditCourseId] = useState('');
+  const [actEditGroupId, setActEditGroupId] = useState('');
+  const [actEditProfId, setActEditProfId] = useState('');
+  const [actEditType, setActEditType] = useState('course');
+  const [actEditFrequency, setActEditFrequency] = useState('weekly');
+  const [actEditDuration, setActEditDuration] = useState('2');
+  const [actEditFeatures, setActEditFeatures] = useState('');
+  const [actEditLoading, setActEditLoading] = useState(false);
+  const [actEditError, setActEditError] = useState<string | null>(null);
+
+  const [activityToDelete, setActivityToDelete] = useState<InstitutionActivity | null>(null);
+  const [actDeleteLoading, setActDeleteLoading] = useState(false);
+  const [actDeleteError, setActDeleteError] = useState<string | null>(null);
+
+  const [groupSearchQuery, setGroupSearchQuery] = useState('');
+
   const institutionBase = institutionId ? `/institutions/${institutionId}` : '';
 
   useEffect(() => {
@@ -516,6 +621,218 @@ export default function InstitutionMainPage() {
     [currentUser, institutionId],
   );
 
+  const handleGenerateSchedule = async () => {
+    if (!institutionId) return;
+    setSchedulesState((prev) => ({ ...prev, loading: true, error: null }));
+    try {
+      await triggerScheduleGeneration(institutionId);
+      const updated = await getInstitutionSchedules(institutionId);
+      setSchedulesState({ data: updated, loading: false, error: null });
+    } catch (err) {
+      setSchedulesState((prev) => ({ ...prev, loading: false, error: (err as Error).message || 'Failed to generate schedule.' }));
+    }
+  };
+
+  // ── Course handlers ────────────────────────────────────────────────────────
+  const handleCourseCreate = async () => {
+    if (!institutionId) return;
+    const name = courseCreateName.trim();
+    if (!name) { setCourseCreateError('Course name is required.'); return; }
+    setCourseCreateLoading(true); setCourseCreateError(null);
+    try {
+      await createCourse({ institution_id: institutionId, name });
+      const updated = await getInstitutionCourses(institutionId);
+      setCoursesState({ data: updated, loading: false, error: null });
+      setIsCourseCreateOpen(false); setCourseCreateName('');
+    } catch (err) { setCourseCreateError((err as Error).message || 'Failed to create course.'); }
+    finally { setCourseCreateLoading(false); }
+  };
+
+  const handleCourseEdit = async () => {
+    if (!courseToEdit) return;
+    const name = courseEditName.trim();
+    if (!name) { setCourseEditError('Course name is required.'); return; }
+    const id = String(courseToEdit.id ?? courseToEdit._id ?? '');
+    setCourseEditLoading(true); setCourseEditError(null);
+    try {
+      await updateCourse(id, { name });
+      const updated = await getInstitutionCourses(institutionId!);
+      setCoursesState({ data: updated, loading: false, error: null });
+      setCourseToEdit(null);
+    } catch (err) { setCourseEditError((err as Error).message || 'Failed to update course.'); }
+    finally { setCourseEditLoading(false); }
+  };
+
+  const handleCourseDelete = async () => {
+    if (!courseToDelete) return;
+    const id = String(courseToDelete.id ?? courseToDelete._id ?? '');
+    setCourseDeleteLoading(true); setCourseDeleteError(null);
+    try {
+      await deleteCourse(id);
+      const updated = await getInstitutionCourses(institutionId!);
+      setCoursesState({ data: updated, loading: false, error: null });
+      setCourseToDelete(null);
+    } catch (err) { setCourseDeleteError((err as Error).message || 'Failed to delete course.'); }
+    finally { setCourseDeleteLoading(false); }
+  };
+
+  // ── Room handlers ──────────────────────────────────────────────────────────
+  const handleRoomCreate = async () => {
+    if (!institutionId) return;
+    const name = roomCreateName.trim();
+    const capacity = Number(roomCreateCapacity);
+    if (!name) { setRoomCreateError('Room name is required.'); return; }
+    if (!Number.isFinite(capacity) || capacity < 1) { setRoomCreateError('Capacity must be a positive number.'); return; }
+    setRoomCreateLoading(true); setRoomCreateError(null);
+    try {
+      await createRoom({ institution_id: institutionId, name, capacity, features: parseFeatures(roomCreateFeatures) });
+      const updated = await getInstitutionRooms(institutionId);
+      setRoomsState({ data: updated, loading: false, error: null });
+      setIsRoomCreateOpen(false); setRoomCreateName(''); setRoomCreateCapacity('30'); setRoomCreateFeatures('');
+    } catch (err) { setRoomCreateError((err as Error).message || 'Failed to create room.'); }
+    finally { setRoomCreateLoading(false); }
+  };
+
+  const handleRoomEdit = async () => {
+    if (!roomToEdit) return;
+    const name = roomEditName.trim();
+    const capacity = Number(roomEditCapacity);
+    if (!name) { setRoomEditError('Room name is required.'); return; }
+    if (!Number.isFinite(capacity) || capacity < 1) { setRoomEditError('Capacity must be a positive number.'); return; }
+    const id = String(roomToEdit.id ?? roomToEdit._id ?? '');
+    setRoomEditLoading(true); setRoomEditError(null);
+    try {
+      await updateRoom(id, { name, capacity, features: parseFeatures(roomEditFeatures) });
+      const updated = await getInstitutionRooms(institutionId!);
+      setRoomsState({ data: updated, loading: false, error: null });
+      setRoomToEdit(null);
+    } catch (err) { setRoomEditError((err as Error).message || 'Failed to update room.'); }
+    finally { setRoomEditLoading(false); }
+  };
+
+  const handleRoomDelete = async () => {
+    if (!roomToDelete) return;
+    const id = String(roomToDelete.id ?? roomToDelete._id ?? '');
+    setRoomDeleteLoading(true); setRoomDeleteError(null);
+    try {
+      await deleteRoom(id);
+      const updated = await getInstitutionRooms(institutionId!);
+      setRoomsState({ data: updated, loading: false, error: null });
+      setRoomToDelete(null);
+    } catch (err) { setRoomDeleteError((err as Error).message || 'Failed to delete room.'); }
+    finally { setRoomDeleteLoading(false); }
+  };
+
+  // ── Group handlers ─────────────────────────────────────────────────────────
+  const handleGroupCreate = async () => {
+    if (!institutionId) return;
+    const name = groupCreateName.trim();
+    if (!name) { setGroupCreateError('Group name is required.'); return; }
+    setGroupCreateLoading(true); setGroupCreateError(null);
+    try {
+      await createGroup({ institution_id: institutionId, name, parent_group_id: groupCreateParentId || null });
+      const updated = await getInstitutionGroups(institutionId);
+      setGroupsState({ data: updated, loading: false, error: null });
+      setIsGroupCreateOpen(false); setGroupCreateName(''); setGroupCreateParentId('');
+    } catch (err) { setGroupCreateError((err as Error).message || 'Failed to create group.'); }
+    finally { setGroupCreateLoading(false); }
+  };
+
+  const handleGroupEdit = async () => {
+    if (!groupToEdit) return;
+    const name = groupEditName.trim();
+    if (!name) { setGroupEditError('Group name is required.'); return; }
+    const id = String(groupToEdit.id ?? groupToEdit._id ?? '');
+    setGroupEditLoading(true); setGroupEditError(null);
+    try {
+      await updateGroup(id, { name, parent_group_id: groupEditParentId || null });
+      const updated = await getInstitutionGroups(institutionId!);
+      setGroupsState({ data: updated, loading: false, error: null });
+      setGroupToEdit(null);
+    } catch (err) { setGroupEditError((err as Error).message || 'Failed to update group.'); }
+    finally { setGroupEditLoading(false); }
+  };
+
+  const handleGroupDelete = async () => {
+    if (!groupToDelete) return;
+    const id = String(groupToDelete.id ?? groupToDelete._id ?? '');
+    setGroupDeleteLoading(true); setGroupDeleteError(null);
+    try {
+      await deleteGroup(id);
+      const updated = await getInstitutionGroups(institutionId!);
+      setGroupsState({ data: updated, loading: false, error: null });
+      setGroupToDelete(null);
+    } catch (err) { setGroupDeleteError((err as Error).message || 'Failed to delete group.'); }
+    finally { setGroupDeleteLoading(false); }
+  };
+
+  // ── Activity handlers ──────────────────────────────────────────────────────
+  const handleActivityCreate = async () => {
+    if (!institutionId) return;
+    if (!actCreateCourseId) { setActCreateError('Course is required.'); return; }
+    if (!actCreateGroupId) { setActCreateError('Group is required.'); return; }
+    const duration = Number(actCreateDuration);
+    if (!Number.isInteger(duration) || duration < 1) { setActCreateError('Duration must be a positive integer.'); return; }
+    setActCreateLoading(true); setActCreateError(null);
+    try {
+      await createActivity({
+        institution_id: institutionId,
+        course_id: actCreateCourseId,
+        group_id: actCreateGroupId,
+        professor_id: actCreateProfId || null,
+        activity_type: actCreateType,
+        frequency: actCreateFrequency,
+        duration_slots: duration,
+        required_room_features: parseFeatures(actCreateFeatures),
+      });
+      const updated = await getInstitutionActivities(institutionId);
+      setActivitiesState({ data: updated, loading: false, error: null });
+      setIsActivityCreateOpen(false);
+      setActCreateCourseId(''); setActCreateGroupId(''); setActCreateProfId('');
+      setActCreateType('course'); setActCreateFrequency('weekly');
+      setActCreateDuration('2'); setActCreateFeatures('');
+    } catch (err) { setActCreateError((err as Error).message || 'Failed to create activity.'); }
+    finally { setActCreateLoading(false); }
+  };
+
+  const handleActivityEdit = async () => {
+    if (!activityToEdit) return;
+    if (!actEditCourseId) { setActEditError('Course is required.'); return; }
+    if (!actEditGroupId) { setActEditError('Group is required.'); return; }
+    const duration = Number(actEditDuration);
+    if (!Number.isInteger(duration) || duration < 1) { setActEditError('Duration must be a positive integer.'); return; }
+    const id = String(activityToEdit.id ?? activityToEdit._id ?? '');
+    setActEditLoading(true); setActEditError(null);
+    try {
+      await updateActivity(id, {
+        course_id: actEditCourseId,
+        group_id: actEditGroupId,
+        professor_id: actEditProfId || null,
+        activity_type: actEditType,
+        frequency: actEditFrequency,
+        duration_slots: duration,
+        required_room_features: parseFeatures(actEditFeatures),
+      });
+      const updated = await getInstitutionActivities(institutionId!);
+      setActivitiesState({ data: updated, loading: false, error: null });
+      setActivityToEdit(null);
+    } catch (err) { setActEditError((err as Error).message || 'Failed to update activity.'); }
+    finally { setActEditLoading(false); }
+  };
+
+  const handleActivityDelete = async () => {
+    if (!activityToDelete) return;
+    const id = String(activityToDelete.id ?? activityToDelete._id ?? '');
+    setActDeleteLoading(true); setActDeleteError(null);
+    try {
+      await deleteActivity(id);
+      const updated = await getInstitutionActivities(institutionId!);
+      setActivitiesState({ data: updated, loading: false, error: null });
+      setActivityToDelete(null);
+    } catch (err) { setActDeleteError((err as Error).message || 'Failed to delete activity.'); }
+    finally { setActDeleteLoading(false); }
+  };
+
   const handleRemoveMember = async (userId: string) => {
     if (!institutionId || !canManageInstitution) return;
     setRemovingMemberId(userId);
@@ -545,37 +862,42 @@ export default function InstitutionMainPage() {
         to: memberRoute(userId),
         roles,
         rowAction: canManageInstitution ? (
-          <Stack direction="row" spacing={0.25} alignItems="center">
-            <IconButton
-              size="small"
-              aria-label="Edit roles"
-              disabled={isRemoving || isDeleting || isAddingMember}
-              onClick={(event) => {
-                event.stopPropagation();
-                setAddMemberError(null);
-                setAvailableUsersError(null);
-                setEditingMember(user);
-                setSelectedUserToAdd(null);
-                setSelectedMemberRoles(roles.length > 0 ? roles : ['student']);
-                setMemberDialogMode('edit');
-                setIsMemberRolesDialogOpen(true);
-              }}
-              sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
-            >
-              <EditIcon sx={{ fontSize: '0.9rem' }} />
-            </IconButton>
-            <IconButton
-              size="small"
-              aria-label="Remove member"
-              disabled={isRemoving || isDeleting || isAddingMember}
-              onClick={(event) => {
-                event.stopPropagation();
-                handleRemoveMember(userId);
-              }}
-              sx={{ color: 'text.secondary', '&:hover': { color: 'error.main' } }}
-            >
-              {isRemoving ? <CircularProgress size={12} color="inherit" /> : <CloseIcon sx={{ fontSize: '0.9rem' }} />}
-            </IconButton>
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <Tooltip title="Edit roles">
+              <IconButton
+                size="small"
+                aria-label="Edit roles"
+                disabled={isRemoving || isDeleting || isAddingMember}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setAddMemberError(null);
+                  setAvailableUsersError(null);
+                  setEditingMember(user);
+                  setSelectedUserToAdd(null);
+                  setSelectedMemberRoles(roles.length > 0 ? roles : ['student']);
+                  setMemberDialogMode('edit');
+                  setIsMemberRolesDialogOpen(true);
+                }}
+                sx={{ borderRadius: 1.5 }}
+              >
+                <EditRoundedIcon sx={{ fontSize: '0.85rem' }} />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Remove">
+              <IconButton
+                size="small"
+                aria-label="Remove member"
+                color="error"
+                disabled={isRemoving || isDeleting || isAddingMember}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleRemoveMember(userId);
+                }}
+                sx={{ borderRadius: 1.5 }}
+              >
+                {isRemoving ? <CircularProgress size={12} color="inherit" /> : <DeleteOutlineRoundedIcon sx={{ fontSize: '0.85rem' }} />}
+              </IconButton>
+            </Tooltip>
           </Stack>
         ) : undefined,
       };
@@ -587,24 +909,83 @@ export default function InstitutionMainPage() {
     return usersState.data.filter((user) => isInstitutionAdmin(user, institutionId)).length;
   }, [usersState.data, institutionId]);
 
-  const groupsList = useMemo(() => groupsState.data.map((group) => ({
-    key: String(group.id ?? group._id ?? group.name),
-    primary: group.name,
-    to: groupRoute(String(group.id ?? group._id ?? group.name)),
-  })).sort((a, b) => compareAlphabetical(a.primary, b.primary)), [groupsState.data]);
+  const groupsById = useMemo(() => {
+    const map = new Map<string, InstitutionGroup>();
+    groupsState.data.forEach((g) => {
+      const id = String(g.id ?? g._id ?? '');
+      if (id) map.set(id, g);
+    });
+    return map;
+  }, [groupsState.data]);
+
+  const childrenByParent = useMemo(() => {
+    const map = new Map<string | null, string[]>();
+    groupsState.data.forEach((g) => {
+      const gId = String(g.id ?? g._id ?? '');
+      if (!gId) return;
+      const parentId = g.parent_group_id ? String(g.parent_group_id) : null;
+      if (!map.has(parentId)) map.set(parentId, []);
+      map.get(parentId)!.push(gId);
+    });
+    map.forEach((ids) => ids.sort((a, b) => compareAlphabetical(groupsById.get(a)?.name ?? a, groupsById.get(b)?.name ?? b)));
+    return map;
+  }, [groupsState.data, groupsById]);
+
+  const rootGroupIds = useMemo(() => childrenByParent.get(null) ?? [], [childrenByParent]);
+
+  const filteredGroupIds = useMemo(() => {
+    const q = groupSearchQuery.trim().toLowerCase();
+    return new Set(
+      groupsState.data
+        .filter((g) => (g.name ?? '').toLowerCase().includes(q))
+        .map((g) => String(g.id ?? g._id ?? ''))
+        .filter(Boolean),
+    );
+  }, [groupsState.data, groupSearchQuery]);
+
+  const displayedTreeGroupIds = useMemo(() => {
+    const included = new Set<string>(filteredGroupIds);
+    filteredGroupIds.forEach((id) => {
+      let current = groupsById.get(id);
+      while (current?.parent_group_id) {
+        const parentId = String(current.parent_group_id);
+        if (included.has(parentId)) break;
+        included.add(parentId);
+        current = groupsById.get(parentId);
+      }
+    });
+    return included;
+  }, [filteredGroupIds, groupsById]);
+
+  const displayedRootGroupIds = useMemo(
+    () => rootGroupIds.filter((id) => displayedTreeGroupIds.has(id)),
+    [rootGroupIds, displayedTreeGroupIds],
+  );
 
   const coursesList = useMemo(() => coursesState.data.map((course) => ({
     key: String(course.id ?? course._id ?? course.name),
     primary: course.name,
     to: courseRoute(String(course.id ?? course._id ?? course.name)),
-  })).sort((a, b) => compareAlphabetical(a.primary, b.primary)), [coursesState.data]);
+    rowAction: canManageInstitution ? (
+      <Stack direction="row" spacing={0.5}>
+        <Tooltip title="Edit"><IconButton size="small" sx={{ borderRadius: 1.5 }} onClick={(e) => { e.stopPropagation(); setCourseEditName(course.name); setCourseToEdit(course); }}><EditRoundedIcon sx={{ fontSize: '0.85rem' }} /></IconButton></Tooltip>
+        <Tooltip title="Delete"><IconButton size="small" color="error" sx={{ borderRadius: 1.5 }} onClick={(e) => { e.stopPropagation(); setCourseToDelete(course); }}><DeleteOutlineRoundedIcon sx={{ fontSize: '0.85rem' }} /></IconButton></Tooltip>
+      </Stack>
+    ) : undefined,
+  })).sort((a, b) => compareAlphabetical(a.primary, b.primary)), [coursesState.data, canManageInstitution]);
 
   const roomsList = useMemo(() => roomsState.data.map((room) => ({
     key: String(room.id ?? room._id ?? room.name),
     primary: room.name,
     secondary: `${room.capacity} seats`,
     to: roomRoute(String(room.id ?? room._id ?? room.name)),
-  })).sort((a, b) => compareAlphabetical(a.primary, b.primary)), [roomsState.data]);
+    rowAction: canManageInstitution ? (
+      <Stack direction="row" spacing={0.5}>
+        <Tooltip title="Edit"><IconButton size="small" sx={{ borderRadius: 1.5 }} onClick={(e) => { e.stopPropagation(); setRoomEditName(room.name); setRoomEditCapacity(String(room.capacity)); setRoomEditFeatures(featuresToInput(room.features ?? [])); setRoomToEdit(room); }}><EditRoundedIcon sx={{ fontSize: '0.85rem' }} /></IconButton></Tooltip>
+        <Tooltip title="Delete"><IconButton size="small" color="error" sx={{ borderRadius: 1.5 }} onClick={(e) => { e.stopPropagation(); setRoomToDelete(room); }}><DeleteOutlineRoundedIcon sx={{ fontSize: '0.85rem' }} /></IconButton></Tooltip>
+      </Stack>
+    ) : undefined,
+  })).sort((a, b) => compareAlphabetical(a.primary, b.primary)), [roomsState.data, canManageInstitution]);
 
   const groupNameById = useMemo(() => {
     const map: Record<string, string> = {};
@@ -634,22 +1015,40 @@ export default function InstitutionMainPage() {
       primary: `${groupName} · ${courseName} · ${toTitleLabel(activity.activity_type)}`,
       secondary: `${toTitleLabel(activity.frequency)} · ${activity.duration_slots} slots`,
       to: activityRoute(activityId),
+      rowAction: canManageInstitution ? (
+        <Stack direction="row" spacing={0.5}>
+          <Tooltip title="Edit"><IconButton size="small" sx={{ borderRadius: 1.5 }} onClick={(e) => { e.stopPropagation(); setActEditCourseId(String(activity.course_id)); setActEditGroupId(String(activity.group_id)); setActEditProfId(activity.professor_id ? String(activity.professor_id) : ''); setActEditType(activity.activity_type); setActEditFrequency(activity.frequency); setActEditDuration(String(activity.duration_slots)); setActEditFeatures(featuresToInput(activity.required_room_features ?? [])); setActivityToEdit(activity); }}><EditRoundedIcon sx={{ fontSize: '0.85rem' }} /></IconButton></Tooltip>
+          <Tooltip title="Delete"><IconButton size="small" color="error" sx={{ borderRadius: 1.5 }} onClick={(e) => { e.stopPropagation(); setActivityToDelete(activity); }}><DeleteOutlineRoundedIcon sx={{ fontSize: '0.85rem' }} /></IconButton></Tooltip>
+        </Stack>
+      ) : undefined,
     };
-  }).sort((a, b) => compareAlphabetical(a.primary, b.primary)), [activitiesState.data, groupNameById, courseNameById]);
+  }).sort((a, b) => compareAlphabetical(a.primary, b.primary)), [activitiesState.data, groupNameById, courseNameById, canManageInstitution]);
 
-  const schedulesList = useMemo(() => schedulesState.data.map((schedule) => {
-    const scheduleId = String(schedule.id ?? schedule._id ?? schedule.timestamp ?? 'schedule');
-    return {
-      key: scheduleId,
-      primary: String(schedule.status ?? 'unknown').toUpperCase(),
-      secondary: formatCreatedAt(schedule.timestamp),
-      to: scheduleRoute(scheduleId),
-    };
-  }).sort((a, b) => {
-    const byPrimary = compareAlphabetical(a.primary, b.primary);
-    if (byPrimary !== 0) return byPrimary;
-    return compareAlphabetical(a.secondary ?? '', b.secondary ?? '');
-  }), [schedulesState.data]);
+  const schedulesList = useMemo(() => {
+    const sorted = [...schedulesState.data].sort((a, b) => {
+      const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+      const tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+      return tb - ta;
+    });
+    return sorted.map((schedule, index) => {
+      const scheduleId = String(schedule.id ?? schedule._id ?? schedule.timestamp ?? 'schedule');
+      const num = sorted.length - index;
+      return {
+        key: scheduleId,
+        primary: `Schedule #${num}`,
+        secondary: formatCreatedAt(schedule.timestamp),
+        to: scheduleRoute(scheduleId),
+        rowAction: schedule.status ? (
+          <Chip
+            label={schedule.status}
+            size="small"
+            color={scheduleStatusColor(schedule.status)}
+            sx={{ borderRadius: 1.5, fontSize: '0.7rem', height: 20 }}
+          />
+        ) : undefined,
+      };
+    });
+  }, [schedulesState.data]);
 
   const openEditDialog = () => {
     if (!institution) return;
@@ -810,6 +1209,87 @@ export default function InstitutionMainPage() {
     } finally {
       setIsAddingMember(false);
     }
+  };
+
+  // ── Group tree renderer ────────────────────────────────────────────────────
+
+  const renderGroupTreeNode = (groupId: string, depth = 0): React.ReactNode => {
+    if (!displayedTreeGroupIds.has(groupId)) return null;
+    const group = groupsById.get(groupId);
+    if (!group) return null;
+    const children = (childrenByParent.get(groupId) ?? []).filter((cId) => displayedTreeGroupIds.has(cId));
+    const childCount = (childrenByParent.get(groupId) ?? []).length;
+
+    const rowContent = (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, flex: 1 }}>
+        <Box sx={{ width: 28, height: 28, borderRadius: 1.5, flexShrink: 0, bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Diversity3RoundedIcon sx={{ fontSize: '0.85rem' }} />
+        </Box>
+        <Typography variant="body2" sx={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {group.name}
+        </Typography>
+        {childCount > 0 && <Chip size="small" label={childCount} sx={{ height: 18, fontSize: '0.7rem', ml: 0.5 }} />}
+      </Box>
+    );
+
+    const actionButtons = (
+      <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+        <Tooltip title="Open">
+          <IconButton size="small" onClick={() => navigate(groupRoute(groupId))} sx={{ borderRadius: 1.5 }}>
+            <OpenInNewRoundedIcon sx={{ fontSize: '0.85rem' }} />
+          </IconButton>
+        </Tooltip>
+        {canManageInstitution && (
+          <Tooltip title="Edit">
+            <IconButton size="small" sx={{ borderRadius: 1.5 }} onClick={() => { setGroupEditError(null); setGroupEditName(group.name); setGroupEditParentId(group.parent_group_id ? String(group.parent_group_id) : ''); setGroupToEdit(group); }}>
+              <EditRoundedIcon sx={{ fontSize: '0.85rem' }} />
+            </IconButton>
+          </Tooltip>
+        )}
+        {canManageInstitution && (
+          <Tooltip title="Delete">
+            <IconButton size="small" color="error" sx={{ borderRadius: 1.5 }} onClick={() => { setGroupDeleteError(null); setGroupToDelete(group); }}>
+              <DeleteOutlineRoundedIcon sx={{ fontSize: '0.85rem' }} />
+            </IconButton>
+          </Tooltip>
+        )}
+      </Stack>
+    );
+
+    const wrapperSx = {
+      ml: depth > 0 ? 1.5 : 0,
+      borderLeft: depth > 0 ? `2px solid ${alpha(theme.palette.primary.main, 0.15)}` : 'none',
+      pl: depth > 0 ? 1 : 0,
+    };
+
+    if (children.length === 0) {
+      return (
+        <Box key={groupId} sx={wrapperSx}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, px: 1, py: 0.75, borderRadius: 1.5, border: '1px solid', borderColor: 'divider', transition: 'border-color 150ms ease, background 150ms ease', '&:hover': { borderColor: 'primary.light', bgcolor: alpha(theme.palette.primary.main, 0.03) } }}>
+            {rowContent}
+            {actionButtons}
+          </Box>
+        </Box>
+      );
+    }
+
+    return (
+      <Box key={groupId} sx={wrapperSx}>
+        <Accordion disableGutters elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '6px !important', overflow: 'hidden', '&:before': { display: 'none' }, '&.Mui-expanded': { borderColor: alpha(theme.palette.primary.main, 0.4) } }}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ fontSize: '1rem', color: 'text.secondary' }} />} sx={{ px: 1, py: 0.25, minHeight: 40, '& .MuiAccordionSummary-content': { my: 0.5 } }}>
+            <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, pr: 1 }}>
+              {rowContent}
+              {actionButtons}
+            </Box>
+          </AccordionSummary>
+          <AccordionDetails sx={{ px: 1, pb: 1, pt: 0 }}>
+            <Stack spacing={0.75}>
+              {children.map((cId) => renderGroupTreeNode(cId, depth + 1))}
+            </Stack>
+          </AccordionDetails>
+        </Accordion>
+      </Box>
+    );
   };
 
   // ── Loading / error states ─────────────────────────────────────────────────
@@ -992,25 +1472,83 @@ export default function InstitutionMainPage() {
                 </Button>
               ) : undefined}
               navigationRoute={`${institutionBase}/rooms`}
+              headerAction={canManageInstitution ? (
+                <Button size="small" variant="contained" startIcon={<AddRoundedIcon />} onClick={() => { setRoomCreateName(''); setRoomCreateCapacity('30'); setRoomCreateFeatures(''); setIsRoomCreateOpen(true); }} sx={{ borderRadius: 2, fontSize: '0.8rem', py: 0.5 }}>
+                  Create
+                </Button>
+              ) : undefined}
             />
           </Grid>
 
           <Grid size={{ xs: 12, md: 6 }}>
-            <SearchableList
-              title="Groups"
-              items={groupsList}
-              loading={groupsState.loading}
-              error={groupsState.error}
-              emptyText="No groups yet"
-              emptyDescription="Organize students into groups to assign them activities and schedules."
-              emptyIcon={<Diversity3Icon />}
-              emptyAction={canManageInstitution ? (
-                <Button size="small" variant="outlined" onClick={() => navigate(`${institutionBase}/groups`)} sx={{ borderRadius: 2 }}>
-                  Manage groups
-                </Button>
-              ) : undefined}
-              navigationRoute={`${institutionBase}/groups`}
-            />
+            <Paper variant="outlined" sx={{ borderRadius: 3, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              {/* Header */}
+              <Box sx={{ px: 2.5, py: 1.75, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, borderBottom: '1px solid', borderColor: 'divider', flexShrink: 0 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                  <Typography
+                    variant="subtitle1"
+                    onClick={() => navigate(`${institutionBase}/groups`)}
+                    sx={{ fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 0.4, transition: 'color 150ms', '&:hover': { color: 'primary.main' } }}
+                  >
+                    Groups
+                    <ArrowForwardRoundedIcon sx={{ fontSize: '0.85rem', opacity: 0.5 }} />
+                  </Typography>
+                  {!groupsState.loading && (
+                    <Box sx={{ px: 0.75, py: 0.1, borderRadius: 1, bgcolor: 'action.selected', lineHeight: 1 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.72rem' }}>{groupsState.data.length}</Typography>
+                    </Box>
+                  )}
+                </Box>
+                {canManageInstitution && (
+                  <Button size="small" variant="contained" startIcon={<AddRoundedIcon />} onClick={() => { setGroupCreateName(''); setGroupCreateParentId(''); setGroupCreateError(null); setIsGroupCreateOpen(true); }} sx={{ borderRadius: 2, fontSize: '0.8rem', py: 0.5 }}>
+                    Create
+                  </Button>
+                )}
+              </Box>
+              {/* Search */}
+              <Box sx={{ px: 2, pt: 1.5, pb: 1, flexShrink: 0 }}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  placeholder="Search groups..."
+                  value={groupSearchQuery}
+                  onChange={(e) => setGroupSearchQuery(e.target.value)}
+                  slotProps={{ input: { startAdornment: <SearchIcon sx={{ fontSize: '1rem', mr: 0.75, color: 'text.disabled' }} /> } }}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, fontSize: '0.875rem' } }}
+                />
+              </Box>
+              {/* Content */}
+              <Box sx={{ flexGrow: 1, overflow: 'hidden', px: 1.5, pb: 1.5 }}>
+                {groupsState.loading ? (
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ px: 1, py: 1.5 }}>
+                    <CircularProgress size={16} />
+                    <Typography variant="caption" color="text.secondary">Loading...</Typography>
+                  </Stack>
+                ) : groupsState.error ? (
+                  <Alert severity="error" sx={{ mx: 0.5, mt: 0.5 }}>{groupsState.error}</Alert>
+                ) : groupsState.data.length === 0 ? (
+                  <Box sx={{ py: 3.5, px: 1, textAlign: 'center' }}>
+                    <Box sx={{ display: 'inline-flex', p: 1.5, borderRadius: 3, bgcolor: 'action.hover', color: 'text.disabled', mb: 1.5, '& svg': { fontSize: '1.5rem' } }}>
+                      <Diversity3Icon />
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>No groups yet</Typography>
+                    <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.5, lineHeight: 1.5 }}>
+                      Organize students into groups to assign them activities and schedules.
+                    </Typography>
+                  </Box>
+                ) : displayedRootGroupIds.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary" sx={{ px: 1, py: 1.5 }}>
+                    No results for &ldquo;{groupSearchQuery}&rdquo;
+                  </Typography>
+                ) : (
+                  <Box sx={{ maxHeight: 248, overflowY: 'auto', '&::-webkit-scrollbar': { width: 4 }, '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 2 }, '&::-webkit-scrollbar-track': { bgcolor: 'transparent' } }}>
+                    <Stack spacing={0.75}>
+                      {displayedRootGroupIds.map((id) => renderGroupTreeNode(id))}
+                    </Stack>
+                  </Box>
+                )}
+              </Box>
+            </Paper>
           </Grid>
 
           <Grid size={{ xs: 12, md: 6 }}>
@@ -1028,6 +1566,11 @@ export default function InstitutionMainPage() {
                 </Button>
               ) : undefined}
               navigationRoute={`${institutionBase}/courses`}
+              headerAction={canManageInstitution ? (
+                <Button size="small" variant="contained" startIcon={<AddRoundedIcon />} onClick={() => { setCourseCreateName(''); setIsCourseCreateOpen(true); }} sx={{ borderRadius: 2, fontSize: '0.8rem', py: 0.5 }}>
+                  Create
+                </Button>
+              ) : undefined}
             />
           </Grid>
         </Grid>
@@ -1051,6 +1594,11 @@ export default function InstitutionMainPage() {
                 </Button>
               ) : undefined}
               navigationRoute={`${institutionBase}/activities`}
+              headerAction={canManageInstitution ? (
+                <Button size="small" variant="contained" startIcon={<AddRoundedIcon />} onClick={() => { setActCreateCourseId(''); setActCreateGroupId(''); setActCreateProfId(''); setActCreateType('course'); setActCreateFrequency('weekly'); setActCreateDuration('2'); setActCreateFeatures(''); setIsActivityCreateOpen(true); }} sx={{ borderRadius: 2, fontSize: '0.8rem', py: 0.5 }}>
+                  Create
+                </Button>
+              ) : undefined}
             />
           </Grid>
 
@@ -1064,8 +1612,13 @@ export default function InstitutionMainPage() {
               emptyDescription="Once activities are configured, generate a schedule to see the result."
               emptyIcon={<ScheduleIcon />}
               emptyAction={canManageInstitution ? (
-                <Button size="small" variant="outlined" onClick={() => navigate(`${institutionBase}/schedules`)} sx={{ borderRadius: 2 }}>
-                  View schedules
+                <Button size="small" variant="contained" onClick={handleGenerateSchedule} sx={{ borderRadius: 2 }}>
+                  Generate schedule
+                </Button>
+              ) : undefined}
+              headerAction={canManageInstitution ? (
+                <Button size="small" variant="contained" onClick={handleGenerateSchedule} sx={{ borderRadius: 2, flexShrink: 0 }}>
+                  Generate
                 </Button>
               ) : undefined}
               navigationRoute={`${institutionBase}/schedules`}
@@ -1239,6 +1792,468 @@ export default function InstitutionMainPage() {
         onRolesChange={(roles) => setSelectedMemberRoles(roles)}
         onSubmit={handleUpdateMemberRoles}
       />
+
+      {/* ── Create course dialog ── */}
+      <Dialog open={isCourseCreateOpen} onClose={() => { if (!courseCreateLoading) { setIsCourseCreateOpen(false); setCourseCreateError(null); } }} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>New course</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ pt: 0.5 }}>
+            <TextField
+              label="Course name"
+              value={courseCreateName}
+              onChange={(e) => setCourseCreateName(e.target.value)}
+              fullWidth
+              autoFocus
+              disabled={courseCreateLoading}
+            />
+            {courseCreateError && <Alert severity="error">{courseCreateError}</Alert>}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => { if (!courseCreateLoading) { setIsCourseCreateOpen(false); setCourseCreateError(null); } }} disabled={courseCreateLoading} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleCourseCreate} variant="contained" disabled={courseCreateLoading} sx={{ borderRadius: 2 }}>
+            {courseCreateLoading ? <CircularProgress size={18} color="inherit" /> : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Edit course dialog ── */}
+      <Dialog open={!!courseToEdit} onClose={() => { if (!courseEditLoading) { setCourseToEdit(null); setCourseEditError(null); } }} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Edit course</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ pt: 0.5 }}>
+            <TextField
+              label="Course name"
+              value={courseEditName}
+              onChange={(e) => setCourseEditName(e.target.value)}
+              fullWidth
+              autoFocus
+              disabled={courseEditLoading}
+            />
+            {courseEditError && <Alert severity="error">{courseEditError}</Alert>}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => { if (!courseEditLoading) { setCourseToEdit(null); setCourseEditError(null); } }} disabled={courseEditLoading} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleCourseEdit} variant="contained" disabled={courseEditLoading} sx={{ borderRadius: 2 }}>
+            {courseEditLoading ? <CircularProgress size={18} color="inherit" /> : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Delete course dialog ── */}
+      <Dialog open={!!courseToDelete} onClose={() => { if (!courseDeleteLoading) { setCourseToDelete(null); setCourseDeleteError(null); } }} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Delete course?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete <strong>{courseToDelete?.name}</strong>? This action cannot be undone.
+          </DialogContentText>
+          {courseDeleteError && <Alert severity="error" sx={{ mt: 2 }}>{courseDeleteError}</Alert>}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => { if (!courseDeleteLoading) { setCourseToDelete(null); setCourseDeleteError(null); } }} disabled={courseDeleteLoading} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleCourseDelete} color="error" variant="contained" disabled={courseDeleteLoading} sx={{ borderRadius: 2 }}>
+            {courseDeleteLoading ? <CircularProgress size={18} color="inherit" /> : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Create room dialog ── */}
+      <Dialog open={isRoomCreateOpen} onClose={() => { if (!roomCreateLoading) { setIsRoomCreateOpen(false); setRoomCreateError(null); } }} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>New room</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ pt: 0.5 }}>
+            <TextField
+              label="Room name"
+              value={roomCreateName}
+              onChange={(e) => setRoomCreateName(e.target.value)}
+              fullWidth
+              autoFocus
+              disabled={roomCreateLoading}
+            />
+            <TextField
+              label="Capacity"
+              type="number"
+              value={roomCreateCapacity}
+              onChange={(e) => setRoomCreateCapacity(e.target.value)}
+              fullWidth
+              disabled={roomCreateLoading}
+              slotProps={{ htmlInput: { min: 1 } }}
+            />
+            <TextField
+              label="Features"
+              value={roomCreateFeatures}
+              onChange={(e) => setRoomCreateFeatures(e.target.value)}
+              fullWidth
+              disabled={roomCreateLoading}
+              helperText="Comma-separated list of room features"
+            />
+            {roomCreateError && <Alert severity="error">{roomCreateError}</Alert>}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => { if (!roomCreateLoading) { setIsRoomCreateOpen(false); setRoomCreateError(null); } }} disabled={roomCreateLoading} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleRoomCreate} variant="contained" disabled={roomCreateLoading} sx={{ borderRadius: 2 }}>
+            {roomCreateLoading ? <CircularProgress size={18} color="inherit" /> : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Edit room dialog ── */}
+      <Dialog open={!!roomToEdit} onClose={() => { if (!roomEditLoading) { setRoomToEdit(null); setRoomEditError(null); } }} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Edit room</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ pt: 0.5 }}>
+            <TextField
+              label="Room name"
+              value={roomEditName}
+              onChange={(e) => setRoomEditName(e.target.value)}
+              fullWidth
+              autoFocus
+              disabled={roomEditLoading}
+            />
+            <TextField
+              label="Capacity"
+              type="number"
+              value={roomEditCapacity}
+              onChange={(e) => setRoomEditCapacity(e.target.value)}
+              fullWidth
+              disabled={roomEditLoading}
+              slotProps={{ htmlInput: { min: 1 } }}
+            />
+            <TextField
+              label="Features"
+              value={roomEditFeatures}
+              onChange={(e) => setRoomEditFeatures(e.target.value)}
+              fullWidth
+              disabled={roomEditLoading}
+              helperText="Comma-separated list of room features"
+            />
+            {roomEditError && <Alert severity="error">{roomEditError}</Alert>}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => { if (!roomEditLoading) { setRoomToEdit(null); setRoomEditError(null); } }} disabled={roomEditLoading} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleRoomEdit} variant="contained" disabled={roomEditLoading} sx={{ borderRadius: 2 }}>
+            {roomEditLoading ? <CircularProgress size={18} color="inherit" /> : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Delete room dialog ── */}
+      <Dialog open={!!roomToDelete} onClose={() => { if (!roomDeleteLoading) { setRoomToDelete(null); setRoomDeleteError(null); } }} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Delete room?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete <strong>{roomToDelete?.name}</strong>? This action cannot be undone.
+          </DialogContentText>
+          {roomDeleteError && <Alert severity="error" sx={{ mt: 2 }}>{roomDeleteError}</Alert>}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => { if (!roomDeleteLoading) { setRoomToDelete(null); setRoomDeleteError(null); } }} disabled={roomDeleteLoading} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleRoomDelete} color="error" variant="contained" disabled={roomDeleteLoading} sx={{ borderRadius: 2 }}>
+            {roomDeleteLoading ? <CircularProgress size={18} color="inherit" /> : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Create group dialog ── */}
+      <Dialog open={isGroupCreateOpen} onClose={() => { if (!groupCreateLoading) { setIsGroupCreateOpen(false); setGroupCreateError(null); } }} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>New group</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ pt: 0.5 }}>
+            <TextField
+              label="Group name"
+              value={groupCreateName}
+              onChange={(e) => setGroupCreateName(e.target.value)}
+              fullWidth
+              autoFocus
+              disabled={groupCreateLoading}
+            />
+            <TextField
+              label="Parent group"
+              select
+              value={groupCreateParentId}
+              onChange={(e) => setGroupCreateParentId(e.target.value)}
+              fullWidth
+              disabled={groupCreateLoading}
+            >
+              <MenuItem value="">(None)</MenuItem>
+              {groupsState.data.map((g) => (
+                <MenuItem key={String(g.id ?? g._id)} value={String(g.id ?? g._id)}>{g.name}</MenuItem>
+              ))}
+            </TextField>
+            {groupCreateError && <Alert severity="error">{groupCreateError}</Alert>}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => { if (!groupCreateLoading) { setIsGroupCreateOpen(false); setGroupCreateError(null); } }} disabled={groupCreateLoading} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleGroupCreate} variant="contained" disabled={groupCreateLoading} sx={{ borderRadius: 2 }}>
+            {groupCreateLoading ? <CircularProgress size={18} color="inherit" /> : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Edit group dialog ── */}
+      <Dialog open={!!groupToEdit} onClose={() => { if (!groupEditLoading) { setGroupToEdit(null); setGroupEditError(null); } }} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Edit group</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ pt: 0.5 }}>
+            <TextField
+              label="Group name"
+              value={groupEditName}
+              onChange={(e) => setGroupEditName(e.target.value)}
+              fullWidth
+              autoFocus
+              disabled={groupEditLoading}
+            />
+            <TextField
+              label="Parent group"
+              select
+              value={groupEditParentId}
+              onChange={(e) => setGroupEditParentId(e.target.value)}
+              fullWidth
+              disabled={groupEditLoading}
+            >
+              <MenuItem value="">(None)</MenuItem>
+              {groupsState.data
+                .filter((g) => String(g.id ?? g._id) !== String(groupToEdit?.id ?? groupToEdit?._id))
+                .map((g) => (
+                  <MenuItem key={String(g.id ?? g._id)} value={String(g.id ?? g._id)}>{g.name}</MenuItem>
+                ))}
+            </TextField>
+            {groupEditError && <Alert severity="error">{groupEditError}</Alert>}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => { if (!groupEditLoading) { setGroupToEdit(null); setGroupEditError(null); } }} disabled={groupEditLoading} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleGroupEdit} variant="contained" disabled={groupEditLoading} sx={{ borderRadius: 2 }}>
+            {groupEditLoading ? <CircularProgress size={18} color="inherit" /> : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Delete group dialog ── */}
+      <Dialog open={!!groupToDelete} onClose={() => { if (!groupDeleteLoading) { setGroupToDelete(null); setGroupDeleteError(null); } }} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Delete group?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete <strong>{groupToDelete?.name}</strong>? This action cannot be undone.
+          </DialogContentText>
+          {groupDeleteError && <Alert severity="error" sx={{ mt: 2 }}>{groupDeleteError}</Alert>}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => { if (!groupDeleteLoading) { setGroupToDelete(null); setGroupDeleteError(null); } }} disabled={groupDeleteLoading} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleGroupDelete} color="error" variant="contained" disabled={groupDeleteLoading} sx={{ borderRadius: 2 }}>
+            {groupDeleteLoading ? <CircularProgress size={18} color="inherit" /> : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Create activity dialog ── */}
+      <Dialog open={isActivityCreateOpen} onClose={() => { if (!actCreateLoading) { setIsActivityCreateOpen(false); setActCreateError(null); } }} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>New activity</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ pt: 0.5 }}>
+            <TextField
+              label="Course"
+              select
+              value={actCreateCourseId}
+              onChange={(e) => setActCreateCourseId(e.target.value)}
+              fullWidth
+              disabled={actCreateLoading}
+            >
+              {coursesState.data.map((c) => (
+                <MenuItem key={String(c.id ?? c._id)} value={String(c.id ?? c._id)}>{c.name}</MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              label="Group"
+              select
+              value={actCreateGroupId}
+              onChange={(e) => setActCreateGroupId(e.target.value)}
+              fullWidth
+              disabled={actCreateLoading}
+            >
+              {groupsState.data.map((g) => (
+                <MenuItem key={String(g.id ?? g._id)} value={String(g.id ?? g._id)}>{g.name}</MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              label="Professor (optional)"
+              select
+              value={actCreateProfId}
+              onChange={(e) => setActCreateProfId(e.target.value)}
+              fullWidth
+              disabled={actCreateLoading}
+            >
+              <MenuItem value="">(None)</MenuItem>
+              {usersState.data.map((u) => (
+                <MenuItem key={String(u.id ?? u._id)} value={String(u.id ?? u._id)}>{u.name ?? u.email ?? 'Unknown'}</MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              label="Activity type"
+              select
+              value={actCreateType}
+              onChange={(e) => setActCreateType(e.target.value)}
+              fullWidth
+              disabled={actCreateLoading}
+            >
+              {ACTIVITY_TYPE_OPTIONS.map((opt) => (
+                <MenuItem key={opt} value={opt}>{toTitleLabel(opt)}</MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              label="Frequency"
+              select
+              value={actCreateFrequency}
+              onChange={(e) => setActCreateFrequency(e.target.value)}
+              fullWidth
+              disabled={actCreateLoading}
+            >
+              {FREQUENCY_OPTIONS.map((opt) => (
+                <MenuItem key={opt} value={opt}>{toTitleLabel(opt)}</MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              label="Duration slots"
+              type="number"
+              value={actCreateDuration}
+              onChange={(e) => setActCreateDuration(e.target.value)}
+              fullWidth
+              disabled={actCreateLoading}
+              slotProps={{ htmlInput: { min: 1 } }}
+            />
+            <TextField
+              label="Required features"
+              value={actCreateFeatures}
+              onChange={(e) => setActCreateFeatures(e.target.value)}
+              fullWidth
+              disabled={actCreateLoading}
+              helperText="Comma-separated list of room features"
+            />
+            {actCreateError && <Alert severity="error">{actCreateError}</Alert>}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => { if (!actCreateLoading) { setIsActivityCreateOpen(false); setActCreateError(null); } }} disabled={actCreateLoading} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleActivityCreate} variant="contained" disabled={actCreateLoading} sx={{ borderRadius: 2 }}>
+            {actCreateLoading ? <CircularProgress size={18} color="inherit" /> : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Edit activity dialog ── */}
+      <Dialog open={!!activityToEdit} onClose={() => { if (!actEditLoading) { setActivityToEdit(null); setActEditError(null); } }} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Edit activity</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ pt: 0.5 }}>
+            <TextField
+              label="Course"
+              select
+              value={actEditCourseId}
+              onChange={(e) => setActEditCourseId(e.target.value)}
+              fullWidth
+              disabled={actEditLoading}
+            >
+              {coursesState.data.map((c) => (
+                <MenuItem key={String(c.id ?? c._id)} value={String(c.id ?? c._id)}>{c.name}</MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              label="Group"
+              select
+              value={actEditGroupId}
+              onChange={(e) => setActEditGroupId(e.target.value)}
+              fullWidth
+              disabled={actEditLoading}
+            >
+              {groupsState.data.map((g) => (
+                <MenuItem key={String(g.id ?? g._id)} value={String(g.id ?? g._id)}>{g.name}</MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              label="Professor (optional)"
+              select
+              value={actEditProfId}
+              onChange={(e) => setActEditProfId(e.target.value)}
+              fullWidth
+              disabled={actEditLoading}
+            >
+              <MenuItem value="">(None)</MenuItem>
+              {usersState.data.map((u) => (
+                <MenuItem key={String(u.id ?? u._id)} value={String(u.id ?? u._id)}>{u.name ?? u.email ?? 'Unknown'}</MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              label="Activity type"
+              select
+              value={actEditType}
+              onChange={(e) => setActEditType(e.target.value)}
+              fullWidth
+              disabled={actEditLoading}
+            >
+              {ACTIVITY_TYPE_OPTIONS.map((opt) => (
+                <MenuItem key={opt} value={opt}>{toTitleLabel(opt)}</MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              label="Frequency"
+              select
+              value={actEditFrequency}
+              onChange={(e) => setActEditFrequency(e.target.value)}
+              fullWidth
+              disabled={actEditLoading}
+            >
+              {FREQUENCY_OPTIONS.map((opt) => (
+                <MenuItem key={opt} value={opt}>{toTitleLabel(opt)}</MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              label="Duration slots"
+              type="number"
+              value={actEditDuration}
+              onChange={(e) => setActEditDuration(e.target.value)}
+              fullWidth
+              disabled={actEditLoading}
+              slotProps={{ htmlInput: { min: 1 } }}
+            />
+            <TextField
+              label="Required features"
+              value={actEditFeatures}
+              onChange={(e) => setActEditFeatures(e.target.value)}
+              fullWidth
+              disabled={actEditLoading}
+              helperText="Comma-separated list of room features"
+            />
+            {actEditError && <Alert severity="error">{actEditError}</Alert>}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => { if (!actEditLoading) { setActivityToEdit(null); setActEditError(null); } }} disabled={actEditLoading} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleActivityEdit} variant="contained" disabled={actEditLoading} sx={{ borderRadius: 2 }}>
+            {actEditLoading ? <CircularProgress size={18} color="inherit" /> : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Delete activity dialog ── */}
+      <Dialog open={!!activityToDelete} onClose={() => { if (!actDeleteLoading) { setActivityToDelete(null); setActDeleteError(null); } }} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Delete activity?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this activity? This action cannot be undone.
+          </DialogContentText>
+          {actDeleteError && <Alert severity="error" sx={{ mt: 2 }}>{actDeleteError}</Alert>}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => { if (!actDeleteLoading) { setActivityToDelete(null); setActDeleteError(null); } }} disabled={actDeleteLoading} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleActivityDelete} color="error" variant="contained" disabled={actDeleteLoading} sx={{ borderRadius: 2 }}>
+            {actDeleteLoading ? <CircularProgress size={18} color="inherit" /> : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </PageContainer>
   );
 }

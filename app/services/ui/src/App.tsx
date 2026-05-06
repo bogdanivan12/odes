@@ -13,6 +13,7 @@ import {
   INSTITUTION_MEMBERS_ROUTE,
   INSTITUTION_ROOMS_ROUTE,
   INSTITUTION_SCHEDULES_ROUTE,
+  SCHEDULE_VIEW_ROUTE,
   INSTITUTION_ROUTE,
   INSTITUTION_UPDATE_ROUTE,
   INSTITUTIONS_ROUTE,
@@ -39,6 +40,8 @@ import InstitutionRooms from './features/rooms/InstitutionRooms';
 import RoomMainPage from './features/rooms/RoomMainPage';
 import InstitutionActivities from './features/activities/InstitutionActivities';
 import ActivityMainPage from './features/activities/ActivityMainPage';
+import InstitutionSchedules from './features/schedules/InstitutionSchedules';
+import ScheduleViewPage from './features/schedules/ScheduleViewPage';
 import InstitutionMembers from './features/members/InstitutionMembers';
 import MemberMainPage from './features/members/MemberMainPage';
 import UpdateMemberRoles from './features/members/UpdateMemberRoles';
@@ -64,7 +67,8 @@ function App() {
           <Route path={INSTITUTION_COURSES_ROUTE} element={<InstitutionCourses />} />
           <Route path={INSTITUTION_ROOMS_ROUTE} element={<InstitutionRooms />} />
           <Route path={INSTITUTION_ACTIVITIES_ROUTE} element={<InstitutionActivities />} />
-          <Route path={INSTITUTION_SCHEDULES_ROUTE} element={<InstitutionMainPage />} />
+          <Route path={INSTITUTION_SCHEDULES_ROUTE} element={<InstitutionSchedules />} />
+          <Route path={SCHEDULE_VIEW_ROUTE} element={<ScheduleViewPage />} />
           <Route path={COURSE_ROUTE} element={<CourseMainPage />} />
           <Route path={GROUP_ROUTE} element={<GroupMainPage />} />
           <Route path={ROOM_ROUTE} element={<RoomMainPage />} />
