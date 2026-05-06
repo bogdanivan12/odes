@@ -25,7 +25,7 @@ export default function PageContainer({ children, maxWidth = 2000, padding = { x
       display: 'flex',
       alignItems: alignItems,
       justifyContent: 'center',
-      backgroundColor: theme.palette.background.paper,
+      backgroundColor: theme.palette.background.default,
       color: theme.palette.text.primary,
       overflow: 'auto'
     })}>

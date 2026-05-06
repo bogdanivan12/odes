@@ -16,33 +16,36 @@ import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
 import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid';
-import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
-import EventNoteIcon from '@mui/icons-material/EventNote';
-import Diversity3Icon from '@mui/icons-material/Diversity3';
+import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
+import MeetingRoomRoundedIcon from '@mui/icons-material/MeetingRoomRounded';
+import EventNoteRoundedIcon from '@mui/icons-material/EventNoteRounded';
+import Diversity3RoundedIcon from '@mui/icons-material/Diversity3Rounded';
+import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
+import PeopleAltRoundedIcon from '@mui/icons-material/PeopleAltRounded';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import PageContainer from '../layout/PageContainer';
 import EntityStatCard from '../../components/EntityStatCard';
 import { compareAlphabetical, toTitleLabel } from '../../utils/text';
 import { parseFeatures, featuresToInput } from '../../utils/roomFeatures';
-import { clickableEntitySx, clickableSecondaryEntitySx } from '../../utils/clickableEntity';
 import { deleteRoom, getRoomById, updateRoom } from '../../api/rooms';
 import type { Room } from '../../types/room';
 import { getInstitutionActivities, getInstitutionCourses, getInstitutionGroups, getInstitutionUsers } from '../../api/institutions';
 import type { InstitutionActivity, InstitutionCourse, InstitutionGroup, InstitutionUser } from '../../api/institutions';
 import { activityRoute, courseRoute, groupRoute, institutionRoute, memberRoute, INSTITUTIONS_ROUTE } from '../../config/routes';
 import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionAdmin';
+import { useTheme } from '@mui/material/styles';
+import { alpha } from '@mui/material/styles';
 
 const activityTypePriority: Record<string, number> = { course: 0, seminar: 1, laboratory: 2 };
-
 const compareActivityTypes = (a: string, b: string) => {
-  const aKey = a.trim().toLowerCase();
-  const bKey = b.trim().toLowerCase();
-  const aRank = activityTypePriority[aKey] ?? Number.MAX_SAFE_INTEGER;
-  const bRank = activityTypePriority[bKey] ?? Number.MAX_SAFE_INTEGER;
-  if (aRank !== bRank) return aRank - bRank;
-  return compareAlphabetical(a, b);
+  const aRank = activityTypePriority[a.trim().toLowerCase()] ?? Number.MAX_SAFE_INTEGER;
+  const bRank = activityTypePriority[b.trim().toLowerCase()] ?? Number.MAX_SAFE_INTEGER;
+  return aRank !== bRank ? aRank - bRank : compareAlphabetical(a, b);
 };
 
 export default function RoomMainPage() {
+  const theme = useTheme();
   const { roomId } = useParams();
   const navigate = useNavigate();
 
@@ -72,15 +75,7 @@ export default function RoomMainPage() {
 
   useEffect(() => {
     let mounted = true;
-
-    if (!roomId) {
-      setLoading(false);
-      setError('Missing room id in route.');
-      return () => {
-        mounted = false;
-      };
-    }
-
+    if (!roomId) { setLoading(false); setError('Missing room id in route.'); return () => { mounted = false; }; }
     (async () => {
       setLoading(true);
       setError(null);
@@ -98,21 +93,12 @@ export default function RoomMainPage() {
         if (mounted) setLoading(false);
       }
     })();
-
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [roomId]);
 
   useEffect(() => {
     let mounted = true;
-
-    if (!room?.institution_id) {
-      return () => {
-        mounted = false;
-      };
-    }
-
+    if (!room?.institution_id) return () => { mounted = false; };
     (async () => {
       setRelatedLoading(true);
       setRelatedError(null);
@@ -123,7 +109,6 @@ export default function RoomMainPage() {
           getInstitutionGroups(room.institution_id),
           getInstitutionUsers(room.institution_id),
         ]);
-
         if (!mounted) return;
         setActivities(institutionActivities);
         setCourses(institutionCourses);
@@ -136,10 +121,7 @@ export default function RoomMainPage() {
         if (mounted) setRelatedLoading(false);
       }
     })();
-
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [room?.institution_id]);
 
   useEffect(() => {
@@ -156,91 +138,55 @@ export default function RoomMainPage() {
         if (mounted) setCurrentUserLoading(false);
       }
     })();
-
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, []);
 
   const canManageRoom = useMemo(() => isInstitutionAdmin(currentUser, room?.institution_id), [currentUser, room?.institution_id]);
 
   const coursesById = useMemo(() => {
     const map = new Map<string, InstitutionCourse>();
-    courses.forEach((item) => {
-      const id = String(item.id ?? item._id ?? '');
-      if (id) map.set(id, item);
-    });
+    courses.forEach((item) => { const id = String(item.id ?? item._id ?? ''); if (id) map.set(id, item); });
     return map;
   }, [courses]);
 
   const groupsById = useMemo(() => {
     const map = new Map<string, InstitutionGroup>();
-    groups.forEach((item) => {
-      const id = String(item.id ?? item._id ?? '');
-      if (id) map.set(id, item);
-    });
+    groups.forEach((item) => { const id = String(item.id ?? item._id ?? ''); if (id) map.set(id, item); });
     return map;
   }, [groups]);
 
   const usersById = useMemo(() => {
     const map = new Map<string, InstitutionUser>();
-    users.forEach((item) => {
-      const id = String(item.id ?? item._id ?? '');
-      if (id) map.set(id, item);
-    });
+    users.forEach((item) => { const id = String(item.id ?? item._id ?? ''); if (id) map.set(id, item); });
     return map;
   }, [users]);
 
   const compatibleActivities = useMemo(() => {
     if (!room) return [];
-    const featureSet = new Set((room.features ?? []).map((feature) => feature.toLowerCase()));
-
+    const featureSet = new Set((room.features ?? []).map((f) => f.toLowerCase()));
     return activities
       .filter((activity) => {
-        const required = ((activity as { required_room_features?: string[] }).required_room_features ?? [])
-          .map((feature: string) => feature.toLowerCase());
-        return required.every((requiredFeature: string) => featureSet.has(requiredFeature));
+        const required = ((activity as { required_room_features?: string[] }).required_room_features ?? []).map((f: string) => f.toLowerCase());
+        return required.every((f: string) => featureSet.has(f));
       })
       .sort((a, b) => {
-        const courseCompare = compareAlphabetical(
-          coursesById.get(String(a.course_id))?.name ?? 'Unknown course',
-          coursesById.get(String(b.course_id))?.name ?? 'Unknown course',
-        );
-        if (courseCompare !== 0) return courseCompare;
-
-        const typeCompare = compareActivityTypes(a.activity_type, b.activity_type);
-        if (typeCompare !== 0) return typeCompare;
-
-        const frequencyCompare = compareAlphabetical(a.frequency, b.frequency);
-        if (frequencyCompare !== 0) return frequencyCompare;
-
-        return compareAlphabetical(String(a.id ?? a._id ?? ''), String(b.id ?? b._id ?? ''));
+        const byCourse = compareAlphabetical(coursesById.get(String(a.course_id))?.name ?? '', coursesById.get(String(b.course_id))?.name ?? '');
+        if (byCourse !== 0) return byCourse;
+        const byType = compareActivityTypes(a.activity_type, b.activity_type);
+        if (byType !== 0) return byType;
+        return compareAlphabetical(a.frequency, b.frequency);
       });
   }, [activities, room, coursesById]);
 
-  const relatedCoursesCount = useMemo(() => {
-    const ids = new Set(compatibleActivities.map((activity) => String(activity.course_id)));
-    return ids.size;
-  }, [compatibleActivities]);
+  const relatedCoursesCount = useMemo(() => new Set(compatibleActivities.map((a) => String(a.course_id))).size, [compatibleActivities]);
 
   const handleUpdate = async () => {
-    if (!canManageRoom) return;
-    if (!room) return;
-
+    if (!canManageRoom || !room) return;
     const name = editName.trim();
     const capacity = Number(editCapacity);
     const features = parseFeatures(editFeatures);
-
-    if (!name) {
-      setEditError('Room name is required.');
-      return;
-    }
-
-    if (!Number.isFinite(capacity) || capacity < 1) {
-      setEditError('Capacity must be a positive number.');
-      return;
-    }
-
+    if (!name) { setEditError('Room name is required.'); return; }
+    if (!Number.isFinite(capacity) || capacity < 1) { setEditError('Capacity must be a positive number.'); return; }
     setEditLoading(true);
     setEditError(null);
     try {
@@ -255,9 +201,7 @@ export default function RoomMainPage() {
   };
 
   const handleDelete = async () => {
-    if (!canManageRoom) return;
-    if (!room) return;
-
+    if (!canManageRoom || !room) return;
     setDeleteLoading(true);
     setDeleteError(null);
     try {
@@ -270,12 +214,14 @@ export default function RoomMainPage() {
     }
   };
 
+  const backRoute = room?.institution_id ? `${institutionRoute(room.institution_id)}/rooms` : INSTITUTIONS_ROUTE;
+
   if (loading || currentUserLoading) {
     return (
       <PageContainer alignItems="center">
         <Stack direction="row" spacing={1.5} alignItems="center">
-          <CircularProgress size={24} />
-          <Typography>Loading room...</Typography>
+          <CircularProgress size={22} />
+          <Typography color="text.secondary">Loading room...</Typography>
         </Stack>
       </PageContainer>
     );
@@ -284,7 +230,7 @@ export default function RoomMainPage() {
   if (error) {
     return (
       <PageContainer alignItems="flex-start">
-        <Alert severity="error" sx={{ width: '100%' }}>{error}</Alert>
+        <Alert severity="error" sx={{ width: '100%', borderRadius: 2 }}>{error}</Alert>
       </PageContainer>
     );
   }
@@ -292,197 +238,224 @@ export default function RoomMainPage() {
   if (!room) {
     return (
       <PageContainer alignItems="flex-start">
-        <Alert severity="warning" sx={{ width: '100%' }}>Room data is unavailable.</Alert>
+        <Alert severity="warning" sx={{ width: '100%', borderRadius: 2 }}>Room data is unavailable.</Alert>
       </PageContainer>
     );
   }
 
   return (
     <PageContainer alignItems="flex-start">
-      <Stack spacing={2.5} sx={{ width: '100%' }}>
-        <Paper
-          elevation={0}
-          sx={{
-            p: { xs: 2.5, md: 3 },
-            borderRadius: 4,
-            border: '1px solid',
-            borderColor: 'divider',
-            background: 'linear-gradient(120deg, rgba(33,150,243,0.16) 0%, rgba(33,203,243,0.08) 45%, rgba(0,0,0,0) 100%)',
-          }}
+      <Box sx={{ width: '100%', maxWidth: 960, mx: 'auto' }}>
+
+        {/* Back link */}
+        <Button
+          startIcon={<ArrowBackRoundedIcon />}
+          onClick={() => navigate(backRoute)}
+          sx={{ mb: 2.5, color: 'text.secondary', borderRadius: 2, '&:hover': { color: 'text.primary' } }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', mb: 1 }}>
-            <Typography variant="h4" sx={{ fontWeight: 800 }}>{room.name}</Typography>
-            {canManageRoom && (
-              <Stack direction="row" spacing={1}>
-                <Button
+          Rooms
+        </Button>
+
+        <Stack spacing={3}>
+          {/* Header card */}
+          <Paper
+            variant="outlined"
+            sx={{
+              borderRadius: 4, overflow: 'hidden',
+              boxShadow: `0 4px 24px ${alpha(theme.palette.common.black, theme.palette.mode === 'dark' ? 0.3 : 0.06)}`,
+            }}
+          >
+            <Box sx={{ height: 3, background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})` }} />
+            <Box sx={{ p: { xs: 3, md: 4 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Box sx={{
+                    width: 48, height: 48, borderRadius: 3, flexShrink: 0,
+                    bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <MeetingRoomRoundedIcon />
+                  </Box>
+                  <Box>
+                    <Typography variant="h5" sx={{ fontWeight: 800, lineHeight: 1.2 }}>{room.name}</Typography>
+                    {room.institution_id && (
+                      <Typography variant="body2" color="primary.main" sx={{ cursor: 'pointer', fontWeight: 500, mt: 0.25 }} onClick={() => navigate(institutionRoute(room.institution_id))}>
+                        View institution
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
+                {canManageRoom && (
+                  <Stack direction="row" spacing={1}>
+                    <Button variant="outlined" startIcon={<EditRoundedIcon />} onClick={() => { setEditError(null); setEditName(room.name); setEditCapacity(String(room.capacity)); setEditFeatures(featuresToInput(room.features)); setEditOpen(true); }} sx={{ borderRadius: 2 }}>
+                      Edit
+                    </Button>
+                    <Button variant="outlined" color="error" startIcon={<DeleteOutlineRoundedIcon />} onClick={() => { setDeleteError(null); setDeleteOpen(true); }} sx={{ borderRadius: 2 }}>
+                      Delete
+                    </Button>
+                  </Stack>
+                )}
+              </Box>
+
+              {/* Capacity + features */}
+              <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" sx={{ mt: 2, alignItems: 'center' }}>
+                <Chip
+                  icon={<PeopleAltRoundedIcon sx={{ fontSize: '0.85rem !important' }} />}
+                  label={`Capacity: ${room.capacity}`}
+                  size="small"
+                  color="primary"
                   variant="outlined"
-                  onClick={() => {
-                    setEditError(null);
-                    setEditName(room.name);
-                    setEditCapacity(String(room.capacity));
-                    setEditFeatures(featuresToInput(room.features));
-                    setEditOpen(true);
-                  }}
-                >
-                  Edit
-                </Button>
-                <Button variant="outlined" color="error" onClick={() => { setDeleteError(null); setDeleteOpen(true); }}>
-                  Delete
-                </Button>
+                  sx={{ fontWeight: 600 }}
+                />
+                {(room.features ?? []).length === 0 ? (
+                  <Typography variant="caption" color="text.disabled" sx={{ ml: 0.5 }}>No features</Typography>
+                ) : (
+                  (room.features ?? []).sort(compareAlphabetical).map((feature) => (
+                    <Chip key={feature} label={feature} size="small" variant="outlined" sx={{ fontSize: '0.72rem', height: 24 }} />
+                  ))
+                )}
               </Stack>
-            )}
+            </Box>
+          </Paper>
+
+          {/* Stat cards */}
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <EntityStatCard icon={<TuneRoundedIcon fontSize="small" />} label="Features" value={(room.features ?? []).length} />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <EntityStatCard icon={<EventNoteRoundedIcon fontSize="small" />} label="Compatible activities" value={compatibleActivities.length} />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <EntityStatCard icon={<Diversity3RoundedIcon fontSize="small" />} label="Related courses" value={relatedCoursesCount} />
+            </Grid>
+          </Grid>
+
+          {/* Section divider */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Typography variant="overline" color="text.disabled" sx={{ fontWeight: 700, letterSpacing: '0.1em', whiteSpace: 'nowrap' }}>Details</Typography>
+            <Divider sx={{ flex: 1 }} />
           </Box>
-          <Stack direction="row" spacing={0.8} useFlexGap flexWrap="wrap">
-            <Chip label={`Capacity: ${room.capacity}`} size="small" />
-            {(room.features ?? []).length === 0 ? (
-              <Chip label="No features" size="small" variant="outlined" />
-            ) : (
-              (room.features ?? []).sort(compareAlphabetical).map((feature) => (
-                <Chip key={feature} label={feature} size="small" variant="outlined" />
-              ))
-            )}
-          </Stack>
-        </Paper>
 
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <EntityStatCard icon={<MeetingRoomIcon fontSize="small" />} label="Features" value={(room.features ?? []).length} />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <EntityStatCard icon={<EventNoteIcon fontSize="small" />} label="Compatible activities" value={compatibleActivities.length} />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <EntityStatCard icon={<Diversity3Icon fontSize="small" />} label="Related courses" value={relatedCoursesCount} />
-          </Grid>
-        </Grid>
-
-        {relatedLoading && (
-          <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
+          {relatedLoading && (
             <Stack direction="row" spacing={1.5} alignItems="center">
               <CircularProgress size={18} />
-              <Typography>Loading room dashboard data...</Typography>
+              <Typography variant="body2" color="text.secondary">Loading details...</Typography>
             </Stack>
-          </Paper>
-        )}
+          )}
+          {relatedError && <Alert severity="error" sx={{ borderRadius: 2 }}>{relatedError}</Alert>}
 
-        {relatedError && <Alert severity="error">{relatedError}</Alert>}
+          {!relatedLoading && !relatedError && (
+            <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+              <Box sx={{ height: 3, background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})` }} />
+              <Box sx={{ p: 2.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Compatible activities</Typography>
+                  <Typography variant="caption" color="text.secondary">{compatibleActivities.length} total</Typography>
+                </Box>
+                {compatibleActivities.length === 0 ? (
+                  <Box sx={{ textAlign: 'center', py: 4 }}>
+                    <EventNoteRoundedIcon sx={{ fontSize: '2rem', color: 'text.disabled', mb: 1 }} />
+                    <Typography variant="body2" color="text.secondary">No activities currently fit this room's feature set.</Typography>
+                  </Box>
+                ) : (
+                  <Stack
+                    spacing={1}
+                    sx={{
+                      maxHeight: 480, overflowY: 'auto', pr: 0.5,
+                      scrollbarWidth: 'thin',
+                      scrollbarColor: `${alpha(theme.palette.primary.main, 0.4)} transparent`,
+                    }}
+                  >
+                    {compatibleActivities.map((activity) => {
+                      const activityId = String(activity.id ?? activity._id ?? `${activity.course_id}-${activity.group_id}-${activity.activity_type}`);
+                      const courseName = coursesById.get(String(activity.course_id))?.name ?? 'Unknown course';
+                      const groupName = groupsById.get(String(activity.group_id))?.name ?? 'Unknown group';
+                      const professor = activity.professor_id ? usersById.get(String(activity.professor_id)) : undefined;
+                      const professorName = professor?.name ?? 'Unassigned';
 
-        {!relatedLoading && !relatedError && (
-          <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.5 }}>
-              Compatible activities
-            </Typography>
-            <Divider sx={{ mb: 1.5 }} />
+                      return (
+                        <Box
+                          key={activityId}
+                          sx={{
+                            p: 1.5, borderRadius: 2, border: '1px solid', borderColor: 'divider',
+                            cursor: 'pointer',
+                            transition: 'border-color 150ms ease, background 150ms ease',
+                            '&:hover': { borderColor: 'primary.main', bgcolor: alpha(theme.palette.primary.main, 0.04) },
+                          }}
+                          onClick={() => navigate(activityRoute(activityId))}
+                        >
+                          <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                            {`${courseName} ${toTitleLabel(activity.activity_type)} · ${toTitleLabel(activity.frequency)}`}
+                          </Typography>
+                          <Stack direction="row" spacing={1.5} flexWrap="wrap">
+                            <Typography
+                              variant="caption"
+                              color="primary.main"
+                              sx={{ cursor: 'pointer' }}
+                              onClick={(e) => { e.stopPropagation(); navigate(courseRoute(String(activity.course_id))); }}
+                            >
+                              {courseName}
+                            </Typography>
+                            <Typography variant="caption" color="text.disabled">·</Typography>
+                            <Typography
+                              variant="caption"
+                              color="primary.main"
+                              sx={{ cursor: 'pointer' }}
+                              onClick={(e) => { e.stopPropagation(); navigate(groupRoute(String(activity.group_id))); }}
+                            >
+                              {groupName}
+                            </Typography>
+                            <Typography variant="caption" color="text.disabled">·</Typography>
+                            <Typography
+                              variant="caption"
+                              color={activity.professor_id ? 'primary.main' : 'text.secondary'}
+                              sx={{ cursor: activity.professor_id ? 'pointer' : 'default' }}
+                              onClick={(e) => { if (activity.professor_id) { e.stopPropagation(); navigate(memberRoute(String(activity.professor_id))); } }}
+                            >
+                              {professorName}{professor?.email ? ` (${professor.email})` : ''}
+                            </Typography>
+                          </Stack>
+                        </Box>
+                      );
+                    })}
+                  </Stack>
+                )}
+              </Box>
+            </Paper>
+          )}
+        </Stack>
+      </Box>
 
-            {compatibleActivities.length === 0 ? (
-              <Typography color="text.secondary" variant="body2">No activities currently fit this room's feature set.</Typography>
-            ) : (
-              <Stack spacing={1}>
-                {compatibleActivities.map((activity) => {
-                  const activityId = String(activity.id ?? activity._id ?? `${activity.course_id}-${activity.group_id}-${activity.activity_type}`);
-                  const courseName = coursesById.get(String(activity.course_id))?.name ?? 'Unknown course';
-                  const groupName = groupsById.get(String(activity.group_id))?.name ?? 'Unknown group';
-                  const professor = activity.professor_id ? usersById.get(String(activity.professor_id)) : undefined;
-                  const professorName = professor?.name ?? 'Unassigned';
-                  const professorEmail = professor?.email;
-
-                  return (
-                    <Box key={activityId} sx={{ p: 1.2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                      <Typography
-                        variant="body2"
-                        sx={{ ...clickableEntitySx, display: 'flex', fontWeight: 700 }}
-                        onClick={() => navigate(activityRoute(activityId))}
-                      >
-                        {`${courseName} ${toTitleLabel(activity.activity_type)} (${toTitleLabel(activity.frequency)})`}
-                      </Typography>
-
-                      <Typography
-                        variant="caption"
-                        sx={{ ...clickableSecondaryEntitySx, display: 'flex', mt: 0.4 }}
-                        onClick={() => navigate(courseRoute(String(activity.course_id)))}
-                      >
-                        {`Course: ${courseName}`}
-                      </Typography>
-
-                      <Typography
-                        variant="caption"
-                        sx={{ ...clickableSecondaryEntitySx, display: 'flex', mt: 0.4 }}
-                        onClick={() => navigate(groupRoute(String(activity.group_id)))}
-                      >
-                        {`Group: ${groupName}`}
-                      </Typography>
-
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          ...(activity.professor_id ? clickableSecondaryEntitySx : {}),
-                          display: 'flex',
-                          mt: 0.4,
-                          cursor: activity.professor_id ? 'pointer' : 'default',
-                        }}
-                        onClick={() => activity.professor_id && navigate(memberRoute(String(activity.professor_id)))}
-                      >
-                        {`Professor: ${professorName}${professorEmail ? ` (${professorEmail})` : ''}`}
-                      </Typography>
-                    </Box>
-                  );
-                })}
-              </Stack>
-            )}
-          </Paper>
-        )}
-      </Stack>
-
+      {/* Delete dialog */}
       <Dialog open={deleteOpen && canManageRoom} onClose={() => !deleteLoading && setDeleteOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Delete room?</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>Delete room?</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete <strong>{room.name}</strong>? This action cannot be undone.
-          </DialogContentText>
-          {deleteError && <Alert severity="error" sx={{ mt: 2 }}>{deleteError}</Alert>}
+          <DialogContentText>Are you sure you want to delete <strong>{room.name}</strong>? This action cannot be undone.</DialogContentText>
+          {deleteError && <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>{deleteError}</Alert>}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteOpen(false)} disabled={deleteLoading}>Cancel</Button>
-          <Button onClick={handleDelete} color="error" variant="contained" disabled={deleteLoading}>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDeleteOpen(false)} disabled={deleteLoading} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleDelete} color="error" variant="contained" disabled={deleteLoading} sx={{ borderRadius: 2 }}>
             {deleteLoading ? <CircularProgress size={18} color="inherit" /> : 'Delete'}
           </Button>
         </DialogActions>
       </Dialog>
 
+      {/* Edit dialog */}
       <Dialog open={editOpen && canManageRoom} onClose={() => !editLoading && setEditOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Update room</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>Edit room</DialogTitle>
         <DialogContent>
-          <Stack spacing={2} sx={{ mt: 0.5 }}>
-            <TextField
-              label="Room name"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              fullWidth
-              disabled={editLoading}
-            />
-            <TextField
-              label="Capacity"
-              type="number"
-              value={editCapacity}
-              onChange={(e) => setEditCapacity(e.target.value)}
-              fullWidth
-              disabled={editLoading}
-              slotProps={{ htmlInput: { min: 1 } }}
-            />
-            <TextField
-              label="Features"
-              placeholder="projector, whiteboard"
-              value={editFeatures}
-              onChange={(e) => setEditFeatures(e.target.value)}
-              fullWidth
-              disabled={editLoading}
-            />
+          <Stack spacing={2.5} sx={{ mt: 0.5 }}>
+            <TextField label="Room name" value={editName} onChange={(e) => setEditName(e.target.value)} fullWidth autoFocus disabled={editLoading} />
+            <TextField label="Capacity" type="number" value={editCapacity} onChange={(e) => setEditCapacity(e.target.value)} fullWidth disabled={editLoading} slotProps={{ htmlInput: { min: 1 } }} />
+            <TextField label="Features" placeholder="projector, whiteboard" value={editFeatures} onChange={(e) => setEditFeatures(e.target.value)} fullWidth disabled={editLoading} helperText="Comma-separated list of features" />
+            {editError && <Alert severity="error" sx={{ borderRadius: 2 }}>{editError}</Alert>}
           </Stack>
-          {editError && <Alert severity="error" sx={{ mt: 2 }}>{editError}</Alert>}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditOpen(false)} disabled={editLoading}>Cancel</Button>
-          <Button onClick={handleUpdate} variant="contained" disabled={editLoading}>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setEditOpen(false)} disabled={editLoading} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleUpdate} variant="contained" disabled={editLoading} sx={{ borderRadius: 2 }}>
             {editLoading ? <CircularProgress size={18} color="inherit" /> : 'Save'}
           </Button>
         </DialogActions>
@@ -490,7 +463,3 @@ export default function RoomMainPage() {
     </PageContainer>
   );
 }
-
-
-
-

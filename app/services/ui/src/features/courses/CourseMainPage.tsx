@@ -19,14 +19,18 @@ import Grid from '@mui/material/Grid';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
+import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import EventNoteIcon from '@mui/icons-material/EventNote';
-import Diversity3Icon from '@mui/icons-material/Diversity3';
-import SchoolIcon from '@mui/icons-material/School';
+import EventNoteRoundedIcon from '@mui/icons-material/EventNoteRounded';
+import Diversity3RoundedIcon from '@mui/icons-material/Diversity3Rounded';
+import SchoolRoundedIcon from '@mui/icons-material/SchoolRounded';
+import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import PageContainer from '../layout/PageContainer';
 import EntityStatCard from '../../components/EntityStatCard';
 import { compareAlphabetical, toTitleLabel } from '../../utils/text';
-import { clickableEntitySx, clickableSecondaryEntitySx } from '../../utils/clickableEntity';
 import { deleteCourse, getCourseActivities, getCourseById, updateCourse } from '../../api/courses';
 import type { CourseActivity } from '../../api/courses';
 import { getInstitutionGroups, getInstitutionUsers } from '../../api/institutions';
@@ -34,18 +38,18 @@ import type { InstitutionGroup, InstitutionUser } from '../../api/institutions';
 import type { Course } from '../../types/course';
 import { activityRoute, groupRoute, institutionRoute, memberRoute, INSTITUTIONS_ROUTE } from '../../config/routes';
 import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionAdmin';
+import { useTheme } from '@mui/material/styles';
+import { alpha } from '@mui/material/styles';
 
 const activityTypePriority: Record<string, number> = { course: 0, seminar: 1, laboratory: 2 };
 const compareActivityTypes = (a: string, b: string) => {
-  const aKey = a.trim().toLowerCase();
-  const bKey = b.trim().toLowerCase();
-  const aRank = activityTypePriority[aKey] ?? Number.MAX_SAFE_INTEGER;
-  const bRank = activityTypePriority[bKey] ?? Number.MAX_SAFE_INTEGER;
-  if (aRank !== bRank) return aRank - bRank;
-  return compareAlphabetical(a, b);
+  const aRank = activityTypePriority[a.trim().toLowerCase()] ?? Number.MAX_SAFE_INTEGER;
+  const bRank = activityTypePriority[b.trim().toLowerCase()] ?? Number.MAX_SAFE_INTEGER;
+  return aRank !== bRank ? aRank - bRank : compareAlphabetical(a, b);
 };
 
 export default function CourseMainPage() {
+  const theme = useTheme();
   const { courseId } = useParams();
   const navigate = useNavigate();
 
@@ -72,15 +76,7 @@ export default function CourseMainPage() {
 
   useEffect(() => {
     let mounted = true;
-
-    if (!courseId) {
-      setLoading(false);
-      setError('Missing course id in route.');
-      return () => {
-        mounted = false;
-      };
-    }
-
+    if (!courseId) { setLoading(false); setError('Missing course id in route.'); return () => { mounted = false; }; }
     (async () => {
       setLoading(true);
       setError(null);
@@ -96,21 +92,12 @@ export default function CourseMainPage() {
         if (mounted) setLoading(false);
       }
     })();
-
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [courseId]);
 
   useEffect(() => {
     let mounted = true;
-
-    if (!course?.id || !course.institution_id) {
-      return () => {
-        mounted = false;
-      };
-    }
-
+    if (!course?.id || !course.institution_id) return () => { mounted = false; };
     (async () => {
       setRelatedLoading(true);
       setRelatedError(null);
@@ -131,10 +118,7 @@ export default function CourseMainPage() {
         if (mounted) setRelatedLoading(false);
       }
     })();
-
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [course?.id, course?.institution_id]);
 
   useEffect(() => {
@@ -151,64 +135,48 @@ export default function CourseMainPage() {
         if (mounted) setCurrentUserLoading(false);
       }
     })();
-
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, []);
 
   const canManageCourse = useMemo(() => isInstitutionAdmin(currentUser, course?.institution_id), [currentUser, course?.institution_id]);
 
   const groupsById = useMemo(() => {
     const map = new Map<string, InstitutionGroup>();
-    groups.forEach((group) => map.set(String(group.id ?? group._id ?? ''), group));
+    groups.forEach((g) => map.set(String(g.id ?? g._id ?? ''), g));
     return map;
   }, [groups]);
 
   const usersById = useMemo(() => {
     const map = new Map<string, { name?: string; email?: string }>();
-    users.forEach((user) => map.set(String(user.id ?? user._id ?? ''), { name: user.name, email: user.email }));
+    users.forEach((u) => map.set(String(u.id ?? u._id ?? ''), { name: u.name, email: u.email }));
     return map;
   }, [users]);
 
   const relatedGroups = useMemo(() => Array.from(new Set(activities.map((a) => String(a.group_id))))
-    .map((groupId) => ({
-      id: groupId,
-      name: groupsById.get(groupId)?.name ?? 'Unknown group',
-    }))
+    .map((gId) => ({ id: gId, name: groupsById.get(gId)?.name ?? 'Unknown group' }))
     .sort((a, b) => compareAlphabetical(a.name, b.name)), [activities, groupsById]);
 
   const relatedProfessors = useMemo(() => Array.from(new Set(activities.map((a) => String(a.professor_id ?? '')).filter(Boolean)))
     .map((profId) => {
-      const user = usersById.get(profId);
-      return {
-        id: profId,
-        name: user?.name ?? 'Unknown professor',
-        email: user?.email,
-      };
+      const u = usersById.get(profId);
+      return { id: profId, name: u?.name ?? 'Unknown professor', email: u?.email };
     })
     .sort((a, b) => compareAlphabetical(a.name, b.name)), [activities, usersById]);
 
   const professorsByActivityType = useMemo(() => {
     const map = new Map<string, Map<string, { professorName: string; professorEmail?: string; groupIds: Set<string> }>>();
-
     activities.forEach((activity) => {
       const type = activity.activity_type;
       const profId = String(activity.professor_id ?? 'unassigned');
-      const user = activity.professor_id ? usersById.get(String(activity.professor_id)) : undefined;
-      const professorName = user?.name ?? (activity.professor_id ? String(activity.professor_id) : 'Unassigned');
-      const professorEmail = user?.email;
-
+      const u = activity.professor_id ? usersById.get(String(activity.professor_id)) : undefined;
+      const professorName = u?.name ?? (activity.professor_id ? String(activity.professor_id) : 'Unassigned');
       if (!map.has(type)) map.set(type, new Map());
       const byProfessor = map.get(type)!;
-      if (!byProfessor.has(profId)) {
-        byProfessor.set(profId, { professorName, professorEmail, groupIds: new Set() });
-      }
+      if (!byProfessor.has(profId)) byProfessor.set(profId, { professorName, professorEmail: u?.email, groupIds: new Set() });
       byProfessor.get(profId)!.groupIds.add(String(activity.group_id));
     });
-
     return Array.from(map.entries())
-      .sort(([aType], [bType]) => compareActivityTypes(aType, bType))
+      .sort(([a], [b]) => compareActivityTypes(a, b))
       .map(([activityType, byProfessor]) => ({
         activityType,
         professors: Array.from(byProfessor.entries())
@@ -229,45 +197,30 @@ export default function CourseMainPage() {
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(activity);
     });
-    map.forEach((groupRows) => {
-      groupRows.sort((a, b) => {
-        const typeCompare = compareActivityTypes(a.activity_type, b.activity_type);
-        if (typeCompare !== 0) return typeCompare;
-        const frequencyCompare = compareAlphabetical(a.frequency, b.frequency);
-        if (frequencyCompare !== 0) return frequencyCompare;
-        return compareAlphabetical(String(a.id ?? a._id ?? ''), String(b.id ?? b._id ?? ''));
-      });
-    });
+    map.forEach((rows) => rows.sort((a, b) => {
+      const t = compareActivityTypes(a.activity_type, b.activity_type);
+      return t !== 0 ? t : compareAlphabetical(a.frequency, b.frequency);
+    }));
     return map;
   }, [activities]);
 
   const groupChildrenByParent = useMemo(() => {
     const map = new Map<string | null, string[]>();
-    groups.forEach((group) => {
-      const groupId = String(group.id ?? group._id ?? '');
-      if (!groupId) return;
-      const parent = group.parent_group_id ? String(group.parent_group_id) : null;
+    groups.forEach((g) => {
+      const gId = String(g.id ?? g._id ?? '');
+      if (!gId) return;
+      const parent = g.parent_group_id ? String(g.parent_group_id) : null;
       if (!map.has(parent)) map.set(parent, []);
-      map.get(parent)!.push(groupId);
+      map.get(parent)!.push(gId);
     });
-
-    map.forEach((ids) => {
-      ids.sort((a, b) => {
-        const aName = groupsById.get(a)?.name ?? a;
-        const bName = groupsById.get(b)?.name ?? b;
-        return aName.localeCompare(bName);
-      });
-    });
-
+    map.forEach((ids) => ids.sort((a, b) => compareAlphabetical(groupsById.get(a)?.name ?? a, groupsById.get(b)?.name ?? b)));
     return map;
   }, [groups, groupsById]);
 
   const relatedGroupTreeIds = useMemo(() => {
-    const included = new Set<string>(relatedGroups.map((group) => group.id));
-
-    // Include ancestors so related groups can be displayed in a proper hierarchy.
-    relatedGroups.forEach((group) => {
-      let current = groupsById.get(group.id);
+    const included = new Set<string>(relatedGroups.map((g) => g.id));
+    relatedGroups.forEach((g) => {
+      let current = groupsById.get(g.id);
       while (current?.parent_group_id) {
         const parentId = String(current.parent_group_id);
         if (included.has(parentId)) break;
@@ -275,14 +228,10 @@ export default function CourseMainPage() {
         current = groupsById.get(parentId);
       }
     });
-
     return included;
   }, [relatedGroups, groupsById]);
 
-  const rootGroupIds = useMemo(() => {
-    const roots = groupChildrenByParent.get(null) ?? [];
-    return roots.filter((groupId) => relatedGroupTreeIds.has(groupId));
-  }, [groupChildrenByParent, relatedGroupTreeIds]);
+  const rootGroupIds = useMemo(() => (groupChildrenByParent.get(null) ?? []).filter((gId) => relatedGroupTreeIds.has(gId)), [groupChildrenByParent, relatedGroupTreeIds]);
 
   const renderGroupNode = (groupId: string): React.ReactNode => {
     if (!relatedGroupTreeIds.has(groupId)) return null;
@@ -290,92 +239,98 @@ export default function CourseMainPage() {
     const children = (groupChildrenByParent.get(groupId) ?? []).filter((childId) => relatedGroupTreeIds.has(childId));
     const groupRows = groupActivities.get(groupId) ?? [];
 
-    return (
-      <Accordion key={groupId} disableGutters>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 1 }}>
-            <Typography variant="body2" sx={{ fontWeight: 700 }}>
-              {group?.name ?? 'Unknown group'}
-            </Typography>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={(event) => {
-                event.stopPropagation();
-                navigate(groupRoute(groupId));
+    const label = (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Diversity3RoundedIcon sx={{ fontSize: '0.85rem', color: 'primary.main' }} />
+        <Typography variant="body2" sx={{ fontWeight: 600 }}>{group?.name ?? 'Unknown group'}</Typography>
+      </Box>
+    );
+
+    const viewBtn = (
+      <Button
+        size="small"
+        startIcon={<OpenInNewRoundedIcon sx={{ fontSize: '0.8rem !important' }} />}
+        onClick={(e) => { e.stopPropagation(); navigate(groupRoute(groupId)); }}
+        sx={{ borderRadius: 1.5, fontSize: '0.75rem', flexShrink: 0 }}
+      >
+        Open
+      </Button>
+    );
+
+    const activityRows = groupRows.length === 0 ? (
+      <Typography variant="body2" color="text.secondary">No activities for this group.</Typography>
+    ) : (
+      <Stack spacing={1}>
+        {groupRows.map((activity) => {
+          const activityId = String(activity.id ?? activity._id ?? `${activity.group_id}-${activity.activity_type}`);
+          const prof = activity.professor_id ? usersById.get(String(activity.professor_id)) : undefined;
+          const professorName = prof?.name ?? 'Unassigned';
+          const professorId = activity.professor_id ? String(activity.professor_id) : '';
+          return (
+            <Box
+              key={activityId}
+              onClick={() => navigate(activityRoute(activityId))}
+              sx={{
+                p: 1.25, borderRadius: 2, border: '1px solid', borderColor: 'divider', cursor: 'pointer',
+                transition: 'border-color 150ms ease, background 150ms ease',
+                '&:hover': { borderColor: 'primary.main', bgcolor: alpha(theme.palette.primary.main, 0.04) },
               }}
             >
-              View
-            </Button>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {`${toTitleLabel(activity.activity_type)} · ${toTitleLabel(activity.frequency)}`}
+              </Typography>
+              <Typography
+                variant="caption"
+                color={professorId ? 'primary.main' : 'text.secondary'}
+                sx={{ cursor: professorId ? 'pointer' : 'default' }}
+                onClick={(e) => { if (professorId) { e.stopPropagation(); navigate(memberRoute(professorId)); } }}
+              >
+                {professorName}{prof?.email ? ` (${prof.email})` : ''}
+              </Typography>
+            </Box>
+          );
+        })}
+      </Stack>
+    );
+
+    return (
+      <Accordion
+        key={groupId}
+        disableGutters
+        elevation={0}
+        sx={{
+          border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden',
+          '&:before': { display: 'none' },
+          '&.Mui-expanded': { borderColor: alpha(theme.palette.primary.main, 0.3) },
+        }}
+      >
+        <AccordionSummary
+          expandIcon={<ExpandMoreIcon sx={{ fontSize: '1rem' }} />}
+          sx={{ px: 1.5, py: 0.5, minHeight: 40, '& .MuiAccordionSummary-content': { my: 0.5 } }}
+        >
+          <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, pr: 1 }}>
+            {label}
+            {viewBtn}
           </Box>
         </AccordionSummary>
-        <AccordionDetails>
-          {groupRows.length === 0 ? (
-            <Typography color="text.secondary" variant="body2">No activities for this group.</Typography>
-          ) : (
-            <Stack spacing={1} sx={{ mb: children.length > 0 ? 1.5 : 0 }}>
-              {groupRows.map((activity) => {
-                const activityId = String(activity.id ?? activity._id ?? `${activity.group_id}-${activity.activity_type}`);
-                const prof = activity.professor_id ? usersById.get(String(activity.professor_id)) : undefined;
-                const professorName = prof?.name ?? 'Unassigned';
-                const professorEmail = prof?.email;
-                const professorId = activity.professor_id ? String(activity.professor_id) : '';
-                return (
-                  <Box key={activityId} sx={{ p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        ...clickableEntitySx,
-                        display: 'flex',
-                        fontWeight: 700,
-                      }}
-                      onClick={() => navigate(activityRoute(activityId))}
-                    >
-                      {`${toTitleLabel(activity.activity_type)} (${toTitleLabel(activity.frequency)})`}
-                    </Typography>
-                    {professorEmail ? (
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          ...(professorId ? clickableSecondaryEntitySx : {}),
-                          display: 'flex',
-                          mt: 0.4,
-                          cursor: professorId ? 'pointer' : 'default',
-                        }}
-                        onClick={() => professorId && navigate(memberRoute(professorId))}
-                      >
-                        {`Professor: ${professorName} (${professorEmail})`}
-                      </Typography>
-                    ) : (
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                        {`Professor: ${professorName}`}
-                      </Typography>
-                    )}
-                  </Box>
-                );
-              })}
-            </Stack>
-          )}
-
-          {children.length > 0 && (
-            <Stack spacing={1}>
-              {children.map((childId) => renderGroupNode(childId))}
-            </Stack>
-          )}
+        <AccordionDetails sx={{ px: 1.5, pb: 1.5, pt: 0 }}>
+          <Stack spacing={1.5}>
+            {activityRows}
+            {children.length > 0 && (
+              <Stack spacing={1}>
+                {children.map((childId) => renderGroupNode(childId))}
+              </Stack>
+            )}
+          </Stack>
         </AccordionDetails>
       </Accordion>
     );
   };
 
   const handleUpdate = async () => {
-    if (!canManageCourse) return;
-    if (!course) return;
+    if (!canManageCourse || !course) return;
     const name = editName.trim();
-    if (!name) {
-      setEditError('Course name is required.');
-      return;
-    }
-
+    if (!name) { setEditError('Course name is required.'); return; }
     setEditLoading(true);
     setEditError(null);
     try {
@@ -390,8 +345,7 @@ export default function CourseMainPage() {
   };
 
   const handleDelete = async () => {
-    if (!canManageCourse) return;
-    if (!course) return;
+    if (!canManageCourse || !course) return;
     setDeleteLoading(true);
     setDeleteError(null);
     try {
@@ -404,12 +358,14 @@ export default function CourseMainPage() {
     }
   };
 
+  const backRoute = course?.institution_id ? `${institutionRoute(course.institution_id)}/courses` : INSTITUTIONS_ROUTE;
+
   if (loading || currentUserLoading) {
     return (
       <PageContainer alignItems="center">
         <Stack direction="row" spacing={1.5} alignItems="center">
-          <CircularProgress size={24} />
-          <Typography>Loading course...</Typography>
+          <CircularProgress size={22} />
+          <Typography color="text.secondary">Loading course...</Typography>
         </Stack>
       </PageContainer>
     );
@@ -418,7 +374,7 @@ export default function CourseMainPage() {
   if (error) {
     return (
       <PageContainer alignItems="flex-start">
-        <Alert severity="error" sx={{ width: '100%' }}>{error}</Alert>
+        <Alert severity="error" sx={{ width: '100%', borderRadius: 2 }}>{error}</Alert>
       </PageContainer>
     );
   }
@@ -426,173 +382,207 @@ export default function CourseMainPage() {
   if (!course) {
     return (
       <PageContainer alignItems="flex-start">
-        <Alert severity="warning" sx={{ width: '100%' }}>Course data is unavailable.</Alert>
+        <Alert severity="warning" sx={{ width: '100%', borderRadius: 2 }}>Course data is unavailable.</Alert>
       </PageContainer>
     );
   }
 
   return (
     <PageContainer alignItems="flex-start">
-      <Stack spacing={2.5} sx={{ width: '100%' }}>
-        <Paper
-          elevation={0}
-          sx={{
-            p: { xs: 2.5, md: 3 },
-            borderRadius: 4,
-            border: '1px solid',
-            borderColor: 'divider',
-            background: 'linear-gradient(120deg, rgba(33,150,243,0.16) 0%, rgba(33,203,243,0.08) 45%, rgba(0,0,0,0) 100%)',
-          }}
+      <Box sx={{ width: '100%', maxWidth: 960, mx: 'auto' }}>
+
+        {/* Back link */}
+        <Button
+          startIcon={<ArrowBackRoundedIcon />}
+          onClick={() => navigate(backRoute)}
+          sx={{ mb: 2.5, color: 'text.secondary', borderRadius: 2, '&:hover': { color: 'text.primary' } }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', mb: 1 }}>
-            <Typography variant="h4" sx={{ fontWeight: 800 }}>{course.name}</Typography>
-            {canManageCourse && (
-              <Stack direction="row" spacing={1}>
-                <Button variant="outlined" onClick={() => { setEditError(null); setEditName(course.name); setEditOpen(true); }}>Edit</Button>
-                <Button variant="outlined" color="error" onClick={() => { setDeleteError(null); setDeleteOpen(true); }}>
-                  Delete
-                </Button>
-              </Stack>
-            )}
+          Courses
+        </Button>
+
+        <Stack spacing={3}>
+          {/* Header card */}
+          <Paper
+            variant="outlined"
+            sx={{
+              borderRadius: 4, overflow: 'hidden',
+              boxShadow: `0 4px 24px ${alpha(theme.palette.common.black, theme.palette.mode === 'dark' ? 0.3 : 0.06)}`,
+            }}
+          >
+            <Box sx={{ height: 3, background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})` }} />
+            <Box sx={{ p: { xs: 3, md: 4 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Box sx={{
+                    width: 48, height: 48, borderRadius: 3, flexShrink: 0,
+                    bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <MenuBookRoundedIcon />
+                  </Box>
+                  <Box>
+                    <Typography variant="h5" sx={{ fontWeight: 800, lineHeight: 1.2 }}>{course.name}</Typography>
+                    {course.institution_id && (
+                      <Typography
+                        variant="body2" color="primary.main"
+                        sx={{ cursor: 'pointer', fontWeight: 500, mt: 0.25 }}
+                        onClick={() => navigate(institutionRoute(course.institution_id))}
+                      >
+                        View institution
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
+                {canManageCourse && (
+                  <Stack direction="row" spacing={1}>
+                    <Button variant="outlined" startIcon={<EditRoundedIcon />} onClick={() => { setEditError(null); setEditName(course.name); setEditOpen(true); }} sx={{ borderRadius: 2 }}>
+                      Edit
+                    </Button>
+                    <Button variant="outlined" color="error" startIcon={<DeleteOutlineRoundedIcon />} onClick={() => { setDeleteError(null); setDeleteOpen(true); }} sx={{ borderRadius: 2 }}>
+                      Delete
+                    </Button>
+                  </Stack>
+                )}
+              </Box>
+            </Box>
+          </Paper>
+
+          {/* Stat cards */}
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <EntityStatCard icon={<EventNoteRoundedIcon fontSize="small" />} label="Activities" value={activities.length} />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <EntityStatCard icon={<Diversity3RoundedIcon fontSize="small" />} label="Groups" value={relatedGroups.length} />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <EntityStatCard icon={<SchoolRoundedIcon fontSize="small" />} label="Professors" value={relatedProfessors.length} />
+            </Grid>
+          </Grid>
+
+          {/* Section divider */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Typography variant="overline" color="text.disabled" sx={{ fontWeight: 700, letterSpacing: '0.1em', whiteSpace: 'nowrap' }}>Details</Typography>
+            <Divider sx={{ flex: 1 }} />
           </Box>
-        </Paper>
 
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <EntityStatCard icon={<EventNoteIcon fontSize="small" />} label="Activities" value={activities.length} />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <EntityStatCard icon={<Diversity3Icon fontSize="small" />} label="Groups" value={relatedGroups.length} />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <EntityStatCard icon={<SchoolIcon fontSize="small" />} label="Professors" value={relatedProfessors.length} />
-          </Grid>
-        </Grid>
-
-        {relatedLoading && (
-          <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
+          {relatedLoading && (
             <Stack direction="row" spacing={1.5} alignItems="center">
               <CircularProgress size={18} />
-              <Typography>Loading course dashboard data...</Typography>
+              <Typography variant="body2" color="text.secondary">Loading details...</Typography>
             </Stack>
-          </Paper>
-        )}
-        {relatedError && <Alert severity="error">{relatedError}</Alert>}
+          )}
+          {relatedError && <Alert severity="error" sx={{ borderRadius: 2 }}>{relatedError}</Alert>}
 
-        {!relatedLoading && !relatedError && (
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3, height: '100%' }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.5 }}>
-                  Professors by activity type
-                </Typography>
-                <Divider sx={{ mb: 1.5 }} />
-                {professorsByActivityType.length === 0 ? (
-                  <Typography color="text.secondary" variant="body2">No professor activity assignments found.</Typography>
-                ) : (
-                  <Stack spacing={1.5}>
-                    {professorsByActivityType.map((entry) => (
-                      <Box key={entry.activityType} sx={{ p: 1.2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.8 }}>{toTitleLabel(entry.activityType)}</Typography>
-                        <Stack spacing={0.8}>
-                          {entry.professors.map((professor) => (
-                            <Box key={`${entry.activityType}-${professor.professorId}`}>
-                              {professor.professorEmail ? (
-                                <Typography
-                                  variant="body2"
-                                  onClick={() => professor.professorId !== 'unassigned' && navigate(memberRoute(professor.professorId))}
-                                  sx={{
-                                    ...(professor.professorId !== 'unassigned' ? clickableEntitySx : {}),
-                                    cursor: professor.professorId !== 'unassigned' ? 'pointer' : 'default',
-                                  }}
-                                >
-                                  {`${professor.professorName} (${professor.professorEmail})`}
-                                </Typography>
-                              ) : (
-                                <Typography
-                                  variant="body2"
-                                  onClick={() => professor.professorId !== 'unassigned' && navigate(memberRoute(professor.professorId))}
-                                  sx={{
-                                    ...(professor.professorId !== 'unassigned' ? clickableEntitySx : {}),
-                                    cursor: professor.professorId !== 'unassigned' ? 'pointer' : 'default',
-                                  }}
-                                >
-                                  {professor.professorName}
-                                </Typography>
-                              )}
-                              <Stack direction="row" spacing={0.8} useFlexGap flexWrap="wrap" sx={{ mt: 0.3 }}>
-                                {professor.groupIds.map((groupId) => (
-                                  <Chip
-                                    key={`${entry.activityType}-${professor.professorId}-${groupId}`}
-                                    label={groupsById.get(groupId)?.name ?? 'Unknown group'}
-                                    size="small"
-                                    clickable
-                                    onClick={() => navigate(groupRoute(groupId))}
-                                  />
-                                ))}
-                              </Stack>
-                            </Box>
-                          ))}
-                        </Stack>
+          {!relatedLoading && !relatedError && (
+            <Grid container spacing={2.5}>
+              {/* Professors by activity type */}
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden', height: '100%' }}>
+                  <Box sx={{ height: 3, background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})` }} />
+                  <Box sx={{ p: 2.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Professors by type</Typography>
+                      <Typography variant="caption" color="text.secondary">{relatedProfessors.length} total</Typography>
+                    </Box>
+                    {professorsByActivityType.length === 0 ? (
+                      <Box sx={{ textAlign: 'center', py: 3 }}>
+                        <SchoolRoundedIcon sx={{ fontSize: '2rem', color: 'text.disabled', mb: 1 }} />
+                        <Typography variant="body2" color="text.secondary">No professor assignments found.</Typography>
                       </Box>
-                    ))}
-                  </Stack>
-                )}
-              </Paper>
-            </Grid>
+                    ) : (
+                      <Stack spacing={1.5}>
+                        {professorsByActivityType.map((entry) => (
+                          <Box key={entry.activityType} sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                            <Chip label={toTitleLabel(entry.activityType)} size="small" color="primary" variant="outlined" sx={{ mb: 1, fontSize: '0.72rem', height: 22 }} />
+                            <Stack spacing={0.75}>
+                              {entry.professors.map((professor) => (
+                                <Box key={`${entry.activityType}-${professor.professorId}`}>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{ fontWeight: 500, cursor: professor.professorId !== 'unassigned' ? 'pointer' : 'default', color: professor.professorId !== 'unassigned' ? 'primary.main' : 'text.primary' }}
+                                    onClick={() => professor.professorId !== 'unassigned' && navigate(memberRoute(professor.professorId))}
+                                  >
+                                    {professor.professorName}{professor.professorEmail ? ` (${professor.professorEmail})` : ''}
+                                  </Typography>
+                                  <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap" sx={{ mt: 0.5 }}>
+                                    {professor.groupIds.map((groupId) => (
+                                      <Chip
+                                        key={`${entry.activityType}-${professor.professorId}-${groupId}`}
+                                        label={groupsById.get(groupId)?.name ?? 'Unknown'}
+                                        size="small"
+                                        variant="outlined"
+                                        clickable
+                                        onClick={() => navigate(groupRoute(groupId))}
+                                        sx={{ fontSize: '0.68rem', height: 20 }}
+                                      />
+                                    ))}
+                                  </Stack>
+                                </Box>
+                              ))}
+                            </Stack>
+                          </Box>
+                        ))}
+                      </Stack>
+                    )}
+                  </Box>
+                </Paper>
+              </Grid>
 
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3, height: '100%' }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.5 }}>
-                  Groups
-                </Typography>
-                <Divider sx={{ mb: 1.5 }} />
-                {relatedGroups.length === 0 ? (
-                  <Typography color="text.secondary" variant="body2">No groups linked to this course.</Typography>
-                ) : (
-                  <Stack spacing={1}>
-                    {rootGroupIds.map((groupId) => renderGroupNode(groupId))}
-                  </Stack>
-                )}
-              </Paper>
+              {/* Groups tree */}
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden', height: '100%' }}>
+                  <Box sx={{ height: 3, background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})` }} />
+                  <Box sx={{ p: 2.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Groups</Typography>
+                      <Typography variant="caption" color="text.secondary">{relatedGroups.length} total</Typography>
+                    </Box>
+                    {relatedGroups.length === 0 ? (
+                      <Box sx={{ textAlign: 'center', py: 3 }}>
+                        <Diversity3RoundedIcon sx={{ fontSize: '2rem', color: 'text.disabled', mb: 1 }} />
+                        <Typography variant="body2" color="text.secondary">No groups linked to this course.</Typography>
+                      </Box>
+                    ) : (
+                      <Stack spacing={1}>
+                        {rootGroupIds.map((groupId) => renderGroupNode(groupId))}
+                      </Stack>
+                    )}
+                  </Box>
+                </Paper>
+              </Grid>
             </Grid>
-          </Grid>
-        )}
-      </Stack>
+          )}
+        </Stack>
+      </Box>
 
+      {/* Delete dialog */}
       <Dialog open={deleteOpen && canManageCourse} onClose={() => !deleteLoading && setDeleteOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Delete course?</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>Delete course?</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete <strong>{course.name}</strong>? This action cannot be undone.
-          </DialogContentText>
-          {deleteError && <Alert severity="error" sx={{ mt: 2 }}>{deleteError}</Alert>}
+          <DialogContentText>Are you sure you want to delete <strong>{course.name}</strong>? This action cannot be undone.</DialogContentText>
+          {deleteError && <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>{deleteError}</Alert>}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteOpen(false)} disabled={deleteLoading}>Cancel</Button>
-          <Button onClick={handleDelete} color="error" variant="contained" disabled={deleteLoading}>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDeleteOpen(false)} disabled={deleteLoading} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleDelete} color="error" variant="contained" disabled={deleteLoading} sx={{ borderRadius: 2 }}>
             {deleteLoading ? <CircularProgress size={18} color="inherit" /> : 'Delete'}
           </Button>
         </DialogActions>
       </Dialog>
 
+      {/* Edit dialog */}
       <Dialog open={editOpen && canManageCourse} onClose={() => !editLoading && setEditOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Update course</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>Edit course</DialogTitle>
         <DialogContent>
-          <Stack spacing={2} sx={{ mt: 0.5 }}>
-            <TextField
-              label="Course name"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              fullWidth
-              disabled={editLoading}
-            />
+          <Stack spacing={2.5} sx={{ mt: 0.5 }}>
+            <TextField label="Course name" value={editName} onChange={(e) => setEditName(e.target.value)} fullWidth autoFocus disabled={editLoading} />
+            {editError && <Alert severity="error" sx={{ borderRadius: 2 }}>{editError}</Alert>}
           </Stack>
-          {editError && <Alert severity="error" sx={{ mt: 2 }}>{editError}</Alert>}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditOpen(false)} disabled={editLoading}>Cancel</Button>
-          <Button onClick={handleUpdate} variant="contained" disabled={editLoading}>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setEditOpen(false)} disabled={editLoading} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleUpdate} variant="contained" disabled={editLoading} sx={{ borderRadius: 2 }}>
             {editLoading ? <CircularProgress size={18} color="inherit" /> : 'Save'}
           </Button>
         </DialogActions>

@@ -1,10 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
-import Paper from '@mui/material/Paper';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import CardActions from '@mui/material/CardActions';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
@@ -18,7 +14,15 @@ import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 import Chip from '@mui/material/Chip';
 import MenuItem from '@mui/material/MenuItem';
-import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
+import Paper from '@mui/material/Paper';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
+import MeetingRoomRoundedIcon from '@mui/icons-material/MeetingRoomRounded';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import SearchIcon from '@mui/icons-material/Search';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import PeopleAltRoundedIcon from '@mui/icons-material/PeopleAltRounded';
 import PageContainer from '../layout/PageContainer';
 import { compareAlphabetical } from '../../utils/text';
 import { parseFeatures, featuresToInput } from '../../utils/roomFeatures';
@@ -27,9 +31,11 @@ import { getInstitutionActivities, getInstitutionRooms } from '../../api/institu
 import type { InstitutionActivity, InstitutionRoom, InstitutionUser } from '../../api/institutions';
 import { roomRoute } from '../../config/routes';
 import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionAdmin';
-
+import { useTheme } from '@mui/material/styles';
+import { alpha } from '@mui/material/styles';
 
 export default function InstitutionRooms() {
+  const theme = useTheme();
   const { institutionId } = useParams();
   const navigate = useNavigate();
 
@@ -63,12 +69,7 @@ export default function InstitutionRooms() {
   const [selectedRequiredFeatures, setSelectedRequiredFeatures] = useState<string[]>([]);
 
   const loadRooms = async () => {
-    if (!institutionId) {
-      setError('Missing institution id in route.');
-      setLoading(false);
-      return;
-    }
-
+    if (!institutionId) { setError('Missing institution id in route.'); setLoading(false); return; }
     setLoading(true);
     setError(null);
     try {
@@ -85,9 +86,7 @@ export default function InstitutionRooms() {
     }
   };
 
-  useEffect(() => {
-    loadRooms();
-  }, [institutionId]);
+  useEffect(() => { loadRooms(); }, [institutionId]);
 
   useEffect(() => {
     let mounted = true;
@@ -103,19 +102,16 @@ export default function InstitutionRooms() {
         if (mounted) setCurrentUserLoading(false);
       }
     })();
-
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, []);
 
   const canManageInstitution = useMemo(() => isInstitutionAdmin(currentUser, institutionId), [currentUser, institutionId]);
+  const isDeleting = useMemo(() => deletingId !== null, [deletingId]);
 
   const handleDelete = async () => {
     if (!canManageInstitution) return;
     const roomId = String(roomToDelete?.id ?? roomToDelete?._id ?? '');
     if (!roomId) return;
-
     setDeletingId(roomId);
     setDeleteError(null);
     try {
@@ -130,31 +126,18 @@ export default function InstitutionRooms() {
   };
 
   const handleCreateRoom = async () => {
-    if (!canManageInstitution) return;
-    if (!institutionId) return;
-
+    if (!canManageInstitution || !institutionId) return;
     const name = createName.trim();
     const capacity = Number(createCapacity);
     const features = parseFeatures(createFeatures);
-
-    if (!name) {
-      setCreateError('Room name is required.');
-      return;
-    }
-
-    if (!Number.isFinite(capacity) || capacity < 1) {
-      setCreateError('Capacity must be a positive number.');
-      return;
-    }
-
+    if (!name) { setCreateError('Room name is required.'); return; }
+    if (!Number.isFinite(capacity) || capacity < 1) { setCreateError('Capacity must be a positive number.'); return; }
     setCreateLoading(true);
     setCreateError(null);
     try {
       await createRoom({ institution_id: institutionId, name, capacity, features });
       setIsCreateOpen(false);
-      setCreateName('');
-      setCreateCapacity('30');
-      setCreateFeatures('');
+      setCreateName(''); setCreateCapacity('30'); setCreateFeatures('');
       await loadRooms();
     } catch (err) {
       setCreateError((err as Error).message || 'Failed to create room.');
@@ -167,29 +150,17 @@ export default function InstitutionRooms() {
     if (!canManageInstitution) return;
     const roomId = String(roomToEdit?.id ?? roomToEdit?._id ?? '');
     if (!roomId) return;
-
     const name = editName.trim();
     const capacity = Number(editCapacity);
     const features = parseFeatures(editFeatures);
-
-    if (!name) {
-      setEditError('Room name is required.');
-      return;
-    }
-
-    if (!Number.isFinite(capacity) || capacity < 1) {
-      setEditError('Capacity must be a positive number.');
-      return;
-    }
-
+    if (!name) { setEditError('Room name is required.'); return; }
+    if (!Number.isFinite(capacity) || capacity < 1) { setEditError('Capacity must be a positive number.'); return; }
     setEditLoading(true);
     setEditError(null);
     try {
       await updateRoom(roomId, { name, capacity, features });
       setRoomToEdit(null);
-      setEditName('');
-      setEditCapacity('30');
-      setEditFeatures('');
+      setEditName(''); setEditCapacity('30'); setEditFeatures('');
       await loadRooms();
     } catch (err) {
       setEditError((err as Error).message || 'Failed to update room.');
@@ -198,58 +169,45 @@ export default function InstitutionRooms() {
     }
   };
 
-  const isDeleting = useMemo(() => deletingId !== null, [deletingId]);
-
   const availableRequiredFeatures = useMemo(() => {
     const features = new Set<string>();
-
-    // Prefer course/activity-required features, but also include existing room features
-    // so the filter is still usable even when requirement metadata is missing.
     activities.forEach((activity) => {
-      ((activity as { required_room_features?: string[] }).required_room_features ?? []).forEach((feature) => {
-        const trimmed = String(feature).trim();
-        if (trimmed) features.add(trimmed);
+      ((activity as { required_room_features?: string[] }).required_room_features ?? []).forEach((f) => {
+        const t = String(f).trim();
+        if (t) features.add(t);
       });
     });
-
     rooms.forEach((room) => {
-      (room.features ?? []).forEach((feature) => {
-        const trimmed = String(feature).trim();
-        if (trimmed) features.add(trimmed);
-      });
+      (room.features ?? []).forEach((f) => { const t = String(f).trim(); if (t) features.add(t); });
     });
-
     return Array.from(features).sort(compareAlphabetical);
   }, [activities, rooms]);
 
   const filteredRooms = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    const parsedMinCapacity = Number(minCapacityFilter);
-    const minCapacity = Number.isFinite(parsedMinCapacity) && parsedMinCapacity > 0 ? parsedMinCapacity : null;
-    const required = new Set(selectedRequiredFeatures.map((feature) => feature.toLowerCase()));
+    const parsedMin = Number(minCapacityFilter);
+    const minCapacity = Number.isFinite(parsedMin) && parsedMin > 0 ? parsedMin : null;
+    const required = new Set(selectedRequiredFeatures.map((f) => f.toLowerCase()));
 
     return rooms.filter((room) => {
       if (query && !(room.name ?? '').toLowerCase().includes(query)) return false;
-
       if (minCapacity !== null && room.capacity < minCapacity) return false;
-
       if (required.size > 0) {
-        const roomFeatures = new Set((room.features ?? []).map((feature) => feature.toLowerCase()));
-        for (const feature of required) {
-          if (!roomFeatures.has(feature)) return false;
-        }
+        const roomFeatures = new Set((room.features ?? []).map((f) => f.toLowerCase()));
+        for (const f of required) { if (!roomFeatures.has(f)) return false; }
       }
-
       return true;
     });
   }, [rooms, searchQuery, minCapacityFilter, selectedRequiredFeatures]);
+
+  const hasActiveFilters = searchQuery || minCapacityFilter || selectedRequiredFeatures.length > 0;
 
   if (loading || currentUserLoading) {
     return (
       <PageContainer alignItems="center">
         <Stack direction="row" spacing={1.5} alignItems="center">
-          <CircularProgress size={24} />
-          <Typography>Loading rooms...</Typography>
+          <CircularProgress size={22} />
+          <Typography color="text.secondary">Loading rooms...</Typography>
         </Stack>
       </PageContainer>
     );
@@ -257,254 +215,250 @@ export default function InstitutionRooms() {
 
   return (
     <PageContainer alignItems="flex-start">
-      <Box sx={{ width: '100%' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, gap: 2, flexWrap: 'wrap' }}>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <MeetingRoomIcon color="primary" />
-            <Typography variant="h4" sx={{ fontWeight: 700 }}>Rooms</Typography>
-          </Stack>
-          {canManageInstitution && (
-            <Button
-              variant="contained"
-              onClick={() => {
-                setCreateError(null);
-                setCreateName('');
-                setCreateCapacity('30');
-                setCreateFeatures('');
-                setIsCreateOpen(true);
-              }}
-              disabled={!institutionId}
-            >
-              Create room
-            </Button>
-          )}
-        </Box>
+      <Box sx={{ width: '100%', maxWidth: 900, mx: 'auto' }}>
+        <Stack spacing={3}>
 
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {/* Page header */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+            <Box>
+              <Typography variant="h5" sx={{ fontWeight: 700 }}>Rooms</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+                {rooms.length} room{rooms.length !== 1 ? 's' : ''} in this institution
+              </Typography>
+            </Box>
+            {canManageInstitution && (
+              <Button
+                variant="contained"
+                startIcon={<AddRoundedIcon />}
+                onClick={() => { setCreateError(null); setCreateName(''); setCreateCapacity('30'); setCreateFeatures(''); setIsCreateOpen(true); }}
+                disabled={!institutionId}
+                sx={{ borderRadius: 2 }}
+              >
+                New room
+              </Button>
+            )}
+          </Box>
 
-        {!error && (
-          <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', md: 'center' }}>
+          {error && <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>}
+
+          {/* Filters */}
+          {!error && (
+            <Stack spacing={1.5}>
               <TextField
                 size="small"
                 fullWidth
-                label="Search rooms"
-                placeholder="Type room name..."
+                placeholder="Search rooms..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                slotProps={{ input: { startAdornment: <SearchIcon sx={{ fontSize: '1rem', mr: 0.75, color: 'text.disabled' }} /> } }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
-              <TextField
-                size="small"
-                type="number"
-                label="Min capacity"
-                value={minCapacityFilter}
-                onChange={(e) => setMinCapacityFilter(e.target.value)}
-                sx={{ minWidth: { xs: '100%', md: 160 } }}
-                slotProps={{ htmlInput: { min: 1 } }}
-              />
-              <TextField
-                select
-                size="small"
-                label="Features"
-                value={selectedRequiredFeatures}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setSelectedRequiredFeatures(Array.isArray(value) ? value : String(value).split(','));
-                }}
-                sx={{ minWidth: { xs: '100%', md: 160 } }}
-                SelectProps={{
-                  multiple: true,
-                  renderValue: (selected) => (selected as string[]).join(', '),
-                }}
-              >
-                {availableRequiredFeatures.length === 0 && (
-                  <MenuItem disabled>No features available</MenuItem>
+              <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Min capacity"
+                  value={minCapacityFilter}
+                  onChange={(e) => setMinCapacityFilter(e.target.value)}
+                  slotProps={{ htmlInput: { min: 1 } }}
+                  sx={{ width: 140, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+                <TextField
+                  select
+                  size="small"
+                  label="Required features"
+                  value={selectedRequiredFeatures}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSelectedRequiredFeatures(Array.isArray(value) ? value : String(value).split(','));
+                  }}
+                  sx={{ width: 220, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  SelectProps={{ multiple: true, renderValue: (selected) => (selected as string[]).join(', ') }}
+                >
+                  {availableRequiredFeatures.length === 0 && <MenuItem disabled>No features available</MenuItem>}
+                  {availableRequiredFeatures.map((feature) => (
+                    <MenuItem key={feature} value={feature}>{feature}</MenuItem>
+                  ))}
+                </TextField>
+                {hasActiveFilters && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => { setSearchQuery(''); setMinCapacityFilter(''); setSelectedRequiredFeatures([]); }}
+                    sx={{ borderRadius: 2, whiteSpace: 'nowrap' }}
+                  >
+                    Clear filters
+                  </Button>
                 )}
-                {availableRequiredFeatures.map((feature) => (
-                  <MenuItem key={feature} value={feature}>{feature}</MenuItem>
-                ))}
-              </TextField>
-              <Button
-                variant="outlined"
-                onClick={() => {
-                  setSearchQuery('');
-                  setMinCapacityFilter('');
-                  setSelectedRequiredFeatures([]);
-                }}
-              >
-                Reset
-              </Button>
+              </Stack>
             </Stack>
-          </Paper>
-        )}
+          )}
 
-        {!error && rooms.length === 0 && (
-          <Typography color="text.secondary">No rooms found for this institution.</Typography>
-        )}
+          {/* Empty states */}
+          {!error && rooms.length === 0 && (
+            <Box sx={{ textAlign: 'center', py: 8 }}>
+              <Box sx={{ display: 'inline-flex', p: 2, borderRadius: 4, bgcolor: alpha(theme.palette.primary.main, 0.08), color: 'primary.main', mb: 2 }}>
+                <MeetingRoomRoundedIcon sx={{ fontSize: '2.5rem' }} />
+              </Box>
+              <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>No rooms yet</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Add rooms to start scheduling activities in specific locations.
+              </Typography>
+              {canManageInstitution && (
+                <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={() => { setCreateError(null); setCreateName(''); setCreateCapacity('30'); setCreateFeatures(''); setIsCreateOpen(true); }} sx={{ borderRadius: 2 }}>
+                  New room
+                </Button>
+              )}
+            </Box>
+          )}
 
-        {!error && rooms.length > 0 && filteredRooms.length === 0 && (
-          <Typography color="text.secondary">No rooms match the current search/filter.</Typography>
-        )}
+          {!error && rooms.length > 0 && filteredRooms.length === 0 && (
+            <Typography variant="body2" color="text.secondary">No rooms match the current filters.</Typography>
+          )}
 
-        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' } }}>
-          {filteredRooms.map((room) => {
-            const roomId = String(room.id ?? room._id ?? '');
-            return (
-              <Card key={roomId || room.name} variant="outlined" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <CardContent sx={{ flex: '1 1 auto' }}>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <MeetingRoomIcon fontSize="small" color="action" />
-                    <Typography variant="h6" sx={{ fontWeight: 700 }}>{room.name}</Typography>
-                  </Stack>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    Capacity: {room.capacity}
-                  </Typography>
-                  <Stack direction="row" spacing={0.6} useFlexGap flexWrap="wrap" sx={{ mt: 1 }}>
-                    {(room.features ?? []).length === 0 ? (
-                      <Typography variant="caption" color="text.secondary">No features</Typography>
-                    ) : (
-                      (room.features ?? []).sort(compareAlphabetical).map((feature) => (
-                        <Chip key={`${roomId}-${feature}`} label={feature} size="small" variant="outlined" />
-                      ))
-                    )}
-                  </Stack>
-                </CardContent>
-                <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
-                  <Stack direction="row" spacing={1}>
-                    <Button size="small" onClick={() => roomId && navigate(roomRoute(roomId))}>Open</Button>
-                    {canManageInstitution && (
-                      <Button
-                        size="small"
-                        onClick={() => {
-                          setEditError(null);
-                          setRoomToEdit(room);
-                          setEditName(room.name);
-                          setEditCapacity(String(room.capacity));
-                          setEditFeatures(featuresToInput(room.features));
-                        }}
-                      >
-                        Edit
-                      </Button>
-                    )}
-                  </Stack>
-                  {canManageInstitution && (
-                    <Button
-                      size="small"
-                      color="error"
-                      onClick={() => {
-                        setDeleteError(null);
-                        setRoomToDelete(room);
-                      }}
-                    >
-                      Delete
-                    </Button>
-                  )}
-                </CardActions>
-              </Card>
-            );
-          })}
-        </Box>
+          {/* Room list */}
+          {!error && filteredRooms.length > 0 && (
+            <Stack spacing={1}>
+              {filteredRooms.map((room) => {
+                const roomId = String(room.id ?? room._id ?? '');
+                return (
+                  <Paper
+                    key={roomId || room.name}
+                    variant="outlined"
+                    onClick={() => roomId && navigate(roomRoute(roomId))}
+                    sx={{
+                      borderRadius: 2.5, cursor: 'pointer',
+                      transition: 'border-color 150ms ease, box-shadow 150ms ease',
+                      '&:hover': {
+                        borderColor: 'primary.light',
+                        boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.08)}`,
+                      },
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 2, py: 1.5 }}>
+                      <Box sx={{
+                        width: 36, height: 36, borderRadius: 2, flexShrink: 0,
+                        bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <MeetingRoomRoundedIcon sx={{ fontSize: '1.1rem' }} />
+                      </Box>
 
-        <Dialog open={Boolean(roomToDelete) && canManageInstitution} onClose={() => !isDeleting && setRoomToDelete(null)} maxWidth="xs" fullWidth>
-          <DialogTitle>Delete room?</DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              Are you sure you want to delete <strong>{roomToDelete?.name ?? 'this room'}</strong>? This action cannot be undone.
-            </DialogContentText>
-            {deleteError && <Alert severity="error" sx={{ mt: 2 }}>{deleteError}</Alert>}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setRoomToDelete(null)} disabled={isDeleting}>Cancel</Button>
-            <Button onClick={handleDelete} color="error" variant="contained" disabled={isDeleting}>
-              {isDeleting ? <CircularProgress size={18} color="inherit" /> : 'Delete'}
-            </Button>
-          </DialogActions>
-        </Dialog>
+                      {/* Name + capacity */}
+                      <Box sx={{ minWidth: 0, flex: '0 1 200px' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {room.name}
+                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
+                          <PeopleAltRoundedIcon sx={{ fontSize: '0.75rem', color: 'text.disabled' }} />
+                          <Typography variant="caption" color="text.secondary">{room.capacity}</Typography>
+                        </Box>
+                      </Box>
 
-        <Dialog open={isCreateOpen && canManageInstitution} onClose={() => !createLoading && setIsCreateOpen(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Create room</DialogTitle>
-          <DialogContent>
-            <Stack spacing={2} sx={{ mt: 0.5 }}>
-              <TextField
-                label="Room name"
-                value={createName}
-                onChange={(e) => setCreateName(e.target.value)}
-                fullWidth
-                disabled={createLoading}
-              />
-              <TextField
-                label="Capacity"
-                type="number"
-                value={createCapacity}
-                onChange={(e) => setCreateCapacity(e.target.value)}
-                fullWidth
-                disabled={createLoading}
-                slotProps={{ htmlInput: { min: 1 } }}
-              />
-              <TextField
-                label="Features"
-                placeholder="projector, whiteboard"
-                value={createFeatures}
-                onChange={(e) => setCreateFeatures(e.target.value)}
-                fullWidth
-                disabled={createLoading}
-              />
+                      {/* Feature chips */}
+                      <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap" sx={{ flex: 1 }}>
+                        {(room.features ?? []).length === 0 ? (
+                          <Typography variant="caption" color="text.disabled">No features</Typography>
+                        ) : (
+                          (room.features ?? []).sort(compareAlphabetical).map((feature) => (
+                            <Chip key={`${roomId}-${feature}`} label={feature} size="small" variant="outlined" sx={{ fontSize: '0.68rem', height: 20 }} />
+                          ))
+                        )}
+                      </Stack>
+
+                      {/* Admin actions */}
+                      {canManageInstitution && (
+                        <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                          <Tooltip title="Edit">
+                            <IconButton
+                              size="small"
+                              sx={{ borderRadius: 1.5 }}
+                              onClick={() => {
+                                setEditError(null);
+                                setRoomToEdit(room);
+                                setEditName(room.name);
+                                setEditCapacity(String(room.capacity));
+                                setEditFeatures(featuresToInput(room.features));
+                              }}
+                            >
+                              <EditRoundedIcon sx={{ fontSize: '0.9rem' }} />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Delete">
+                            <IconButton
+                              size="small"
+                              color="error"
+                              sx={{ borderRadius: 1.5 }}
+                              onClick={() => { setDeleteError(null); setRoomToDelete(room); }}
+                            >
+                              <DeleteOutlineRoundedIcon sx={{ fontSize: '0.9rem' }} />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
+                      )}
+                    </Box>
+                  </Paper>
+                );
+              })}
             </Stack>
-            {createError && <Alert severity="error" sx={{ mt: 2 }}>{createError}</Alert>}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setIsCreateOpen(false)} disabled={createLoading}>Cancel</Button>
-            <Button onClick={handleCreateRoom} variant="contained" disabled={createLoading}>
-              {createLoading ? <CircularProgress size={18} color="inherit" /> : 'Create'}
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        <Dialog open={Boolean(roomToEdit) && canManageInstitution} onClose={() => !editLoading && setRoomToEdit(null)} maxWidth="sm" fullWidth>
-          <DialogTitle>Update room</DialogTitle>
-          <DialogContent>
-            <Stack spacing={2} sx={{ mt: 0.5 }}>
-              <TextField
-                label="Room name"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                fullWidth
-                disabled={editLoading}
-              />
-              <TextField
-                label="Capacity"
-                type="number"
-                value={editCapacity}
-                onChange={(e) => setEditCapacity(e.target.value)}
-                fullWidth
-                disabled={editLoading}
-                slotProps={{ htmlInput: { min: 1 } }}
-              />
-              <TextField
-                label="Features"
-                placeholder="projector, whiteboard"
-                value={editFeatures}
-                onChange={(e) => setEditFeatures(e.target.value)}
-                fullWidth
-                disabled={editLoading}
-              />
-            </Stack>
-            {editError && <Alert severity="error" sx={{ mt: 2 }}>{editError}</Alert>}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setRoomToEdit(null)} disabled={editLoading}>Cancel</Button>
-            <Button onClick={handleUpdateRoom} variant="contained" disabled={editLoading}>
-              {editLoading ? <CircularProgress size={18} color="inherit" /> : 'Save'}
-            </Button>
-          </DialogActions>
-        </Dialog>
+          )}
+        </Stack>
       </Box>
+
+      {/* Delete dialog */}
+      <Dialog open={Boolean(roomToDelete) && canManageInstitution} onClose={() => !isDeleting && setRoomToDelete(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Delete room?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete <strong>{roomToDelete?.name ?? 'this room'}</strong>? This action cannot be undone.
+          </DialogContentText>
+          {deleteError && <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>{deleteError}</Alert>}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setRoomToDelete(null)} disabled={isDeleting} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleDelete} color="error" variant="contained" disabled={isDeleting} sx={{ borderRadius: 2 }}>
+            {isDeleting ? <CircularProgress size={18} color="inherit" /> : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Create dialog */}
+      <Dialog open={isCreateOpen && canManageInstitution} onClose={() => !createLoading && setIsCreateOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>New room</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2.5} sx={{ mt: 0.5 }}>
+            <TextField label="Room name" value={createName} onChange={(e) => setCreateName(e.target.value)} fullWidth autoFocus disabled={createLoading} />
+            <TextField label="Capacity" type="number" value={createCapacity} onChange={(e) => setCreateCapacity(e.target.value)} fullWidth disabled={createLoading} slotProps={{ htmlInput: { min: 1 } }} />
+            <TextField label="Features" placeholder="projector, whiteboard" value={createFeatures} onChange={(e) => setCreateFeatures(e.target.value)} fullWidth disabled={createLoading} helperText="Comma-separated list of features" />
+            {createError && <Alert severity="error" sx={{ borderRadius: 2 }}>{createError}</Alert>}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setIsCreateOpen(false)} disabled={createLoading} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleCreateRoom} variant="contained" disabled={createLoading} sx={{ borderRadius: 2 }}>
+            {createLoading ? <CircularProgress size={18} color="inherit" /> : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit dialog */}
+      <Dialog open={Boolean(roomToEdit) && canManageInstitution} onClose={() => !editLoading && setRoomToEdit(null)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Edit room</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2.5} sx={{ mt: 0.5 }}>
+            <TextField label="Room name" value={editName} onChange={(e) => setEditName(e.target.value)} fullWidth autoFocus disabled={editLoading} />
+            <TextField label="Capacity" type="number" value={editCapacity} onChange={(e) => setEditCapacity(e.target.value)} fullWidth disabled={editLoading} slotProps={{ htmlInput: { min: 1 } }} />
+            <TextField label="Features" placeholder="projector, whiteboard" value={editFeatures} onChange={(e) => setEditFeatures(e.target.value)} fullWidth disabled={editLoading} helperText="Comma-separated list of features" />
+            {editError && <Alert severity="error" sx={{ borderRadius: 2 }}>{editError}</Alert>}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setRoomToEdit(null)} disabled={editLoading} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleUpdateRoom} variant="contained" disabled={editLoading} sx={{ borderRadius: 2 }}>
+            {editLoading ? <CircularProgress size={18} color="inherit" /> : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </PageContainer>
   );
 }
-
-
-
-
-
-

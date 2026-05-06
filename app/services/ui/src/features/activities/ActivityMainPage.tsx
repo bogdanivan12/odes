@@ -15,16 +15,14 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
 import MenuItem from '@mui/material/MenuItem';
-import Grid from '@mui/material/Grid';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import TimerIcon from '@mui/icons-material/Timer';
 import ChecklistIcon from '@mui/icons-material/Checklist';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import Diversity3Icon from '@mui/icons-material/Diversity3';
 import SchoolIcon from '@mui/icons-material/School';
+import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import PageContainer from '../layout/PageContainer';
-import EntityStatCard from '../../components/EntityStatCard';
-import { clickableEntitySx } from '../../utils/clickableEntity';
 import { compareAlphabetical, toTitleLabel } from '../../utils/text';
 import { parseFeatures, featuresToInput } from '../../utils/roomFeatures';
 import { deleteActivity, getActivityById, updateActivity } from '../../api/activities';
@@ -33,11 +31,14 @@ import { getInstitutionCourses, getInstitutionGroups, getInstitutionUsers } from
 import type { InstitutionCourse, InstitutionGroup, InstitutionUser } from '../../api/institutions';
 import { courseRoute, groupRoute, institutionRoute, memberRoute, INSTITUTIONS_ROUTE } from '../../config/routes';
 import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionAdmin';
+import { useTheme } from '@mui/material/styles';
+import { alpha } from '@mui/material/styles';
 
 const ACTIVITY_TYPE_OPTIONS = ['course', 'seminar', 'laboratory', 'other'];
 const FREQUENCY_OPTIONS = ['weekly', 'biweekly', 'biweekly_odd', 'biweekly_even'];
 
 export default function ActivityMainPage() {
+  const theme = useTheme();
   const { activityId } = useParams();
   const navigate = useNavigate();
 
@@ -81,13 +82,7 @@ export default function ActivityMainPage() {
 
   useEffect(() => {
     let mounted = true;
-
-    if (!activityId) {
-      setLoading(false);
-      setError('Missing activity id in route.');
-      return () => { mounted = false; };
-    }
-
+    if (!activityId) { setLoading(false); setError('Missing activity id in route.'); return () => { mounted = false; }; }
     (async () => {
       setLoading(true);
       setError(null);
@@ -103,21 +98,12 @@ export default function ActivityMainPage() {
         if (mounted) setLoading(false);
       }
     })();
-
     return () => { mounted = false; };
   }, [activityId]);
 
   useEffect(() => {
     let mounted = true;
-
-    if (!activity?.institution_id) {
-      if (mounted) {
-        setRelatedLoading(true);
-        setRelatedError(null);
-      }
-      return () => { mounted = false; };
-    }
-
+    if (!activity?.institution_id) { setRelatedLoading(true); setRelatedError(null); return () => { mounted = false; }; }
     (async () => {
       setRelatedLoading(true);
       setRelatedError(null);
@@ -127,19 +113,17 @@ export default function ActivityMainPage() {
           getInstitutionGroups(activity.institution_id),
           getInstitutionUsers(activity.institution_id),
         ]);
-
         if (!mounted) return;
         setCourses([...institutionCourses].sort((a, b) => compareAlphabetical(a.name, b.name)));
         setGroups([...institutionGroups].sort((a, b) => compareAlphabetical(a.name, b.name)));
         setUsers([...institutionUsers].sort((a, b) => compareAlphabetical(a.name ?? '', b.name ?? '')));
       } catch (err) {
         if (!mounted) return;
-        setRelatedError((err as Error).message || 'Failed to load related activity entities.');
+        setRelatedError((err as Error).message || 'Failed to load related entities.');
       } finally {
         if (mounted) setRelatedLoading(false);
       }
     })();
-
     return () => { mounted = false; };
   }, [activity?.institution_id]);
 
@@ -157,7 +141,6 @@ export default function ActivityMainPage() {
         if (mounted) setCurrentUserLoading(false);
       }
     })();
-
     return () => { mounted = false; };
   }, []);
 
@@ -165,37 +148,29 @@ export default function ActivityMainPage() {
 
   const coursesById = useMemo(() => {
     const map = new Map<string, InstitutionCourse>();
-    courses.forEach((course) => {
-      const id = String(course.id ?? course._id ?? '');
-      if (id) map.set(id, course);
-    });
+    courses.forEach((c) => { const id = String(c.id ?? c._id ?? ''); if (id) map.set(id, c); });
     return map;
   }, [courses]);
 
   const groupsById = useMemo(() => {
     const map = new Map<string, InstitutionGroup>();
-    groups.forEach((group) => {
-      const id = String(group.id ?? group._id ?? '');
-      if (id) map.set(id, group);
-    });
+    groups.forEach((g) => { const id = String(g.id ?? g._id ?? ''); if (id) map.set(id, g); });
     return map;
   }, [groups]);
 
   const usersById = useMemo(() => {
     const map = new Map<string, InstitutionUser>();
-    users.forEach((user) => {
-      const id = String(user.id ?? user._id ?? '');
-      if (id) map.set(id, user);
-    });
+    users.forEach((u) => { const id = String(u.id ?? u._id ?? ''); if (id) map.set(id, u); });
     return map;
   }, [users]);
 
   const hasResolvedRelations = useMemo(() => {
     if (!activity) return false;
-    const hasCourse = Boolean(coursesById.get(String(activity.course_id)));
-    const hasGroup = Boolean(groupsById.get(String(activity.group_id)));
-    const hasProfessor = !activity.professor_id || Boolean(usersById.get(String(activity.professor_id)));
-    return hasCourse && hasGroup && hasProfessor;
+    return (
+      Boolean(coursesById.get(String(activity.course_id))) &&
+      Boolean(groupsById.get(String(activity.group_id))) &&
+      (!activity.professor_id || Boolean(usersById.get(String(activity.professor_id))))
+    );
   }, [activity, coursesById, groupsById, usersById]);
 
   const validateForm = () => {
@@ -208,13 +183,8 @@ export default function ActivityMainPage() {
 
   const handleUpdate = async () => {
     if (!canManageActivity || !activity) return;
-
     const validationError = validateForm();
-    if (validationError) {
-      setEditError(validationError);
-      return;
-    }
-
+    if (validationError) { setEditError(validationError); return; }
     setEditLoading(true);
     setEditError(null);
     try {
@@ -238,7 +208,6 @@ export default function ActivityMainPage() {
 
   const handleDelete = async () => {
     if (!canManageActivity || !activity) return;
-
     setDeleteLoading(true);
     setDeleteError(null);
     try {
@@ -255,25 +224,17 @@ export default function ActivityMainPage() {
     return (
       <PageContainer alignItems="center">
         <Stack direction="row" spacing={1.5} alignItems="center">
-          <CircularProgress size={24} />
-          <Typography>Loading activity...</Typography>
+          <CircularProgress size={22} />
+          <Typography color="text.secondary">Loading activity...</Typography>
         </Stack>
       </PageContainer>
     );
   }
 
-  if (error) {
+  if (error || !activity) {
     return (
       <PageContainer alignItems="flex-start">
-        <Alert severity="error" sx={{ width: '100%' }}>{error}</Alert>
-      </PageContainer>
-    );
-  }
-
-  if (!activity) {
-    return (
-      <PageContainer alignItems="flex-start">
-        <Alert severity="warning" sx={{ width: '100%' }}>Activity data is unavailable.</Alert>
+        <Alert severity="error" sx={{ width: '100%', borderRadius: 2 }}>{error ?? 'Activity data is unavailable.'}</Alert>
       </PageContainer>
     );
   }
@@ -281,10 +242,14 @@ export default function ActivityMainPage() {
   if (relatedError) {
     return (
       <PageContainer alignItems="flex-start">
-        <Alert severity="error" sx={{ width: '100%' }}>{relatedError}</Alert>
+        <Alert severity="error" sx={{ width: '100%', borderRadius: 2 }}>{relatedError}</Alert>
       </PageContainer>
     );
   }
+
+  const backRoute = activity.institution_id
+    ? `${institutionRoute(activity.institution_id)}/activities`
+    : INSTITUTIONS_ROUTE;
 
   const courseName = coursesById.get(String(activity.course_id))?.name ?? 'Unknown course';
   const groupName = groupsById.get(String(activity.group_id))?.name ?? 'Unknown group';
@@ -292,211 +257,200 @@ export default function ActivityMainPage() {
   const professorName = professor?.name ?? (activity.professor_id ? 'Unknown professor' : 'Unassigned');
   const professorEmail = professor?.email;
 
+  const entityCard = (
+    icon: React.ReactNode,
+    label: string,
+    name: string,
+    subtitle: string | undefined,
+    onClick?: () => void,
+  ) => (
+    <Paper
+      variant="outlined"
+      onClick={onClick}
+      sx={{
+        p: 2, borderRadius: 2.5, flex: 1, display: 'flex', alignItems: 'center', gap: 1.5,
+        cursor: onClick ? 'pointer' : 'default',
+        transition: 'border-color 150ms ease',
+        '&:hover': onClick ? { borderColor: 'primary.light' } : {},
+      }}
+    >
+      <Box sx={{ color: 'primary.main', display: 'flex' }}>{icon}</Box>
+      <Box>
+        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</Typography>
+        <Typography variant="body2" sx={{ fontWeight: 700 }}>{name}</Typography>
+        {subtitle && <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>{subtitle}</Typography>}
+      </Box>
+    </Paper>
+  );
+
+  const formFields = (disabled: boolean) => (
+    <Stack spacing={2.5} sx={{ mt: 0.5 }}>
+      <TextField select label="Course" value={formCourseId} onChange={(e) => setFormCourseId(e.target.value)} fullWidth disabled={disabled}>
+        {courses.map((c) => { const id = String(c.id ?? c._id ?? ''); return <MenuItem key={id} value={id}>{c.name}</MenuItem>; })}
+      </TextField>
+      <TextField select label="Group" value={formGroupId} onChange={(e) => setFormGroupId(e.target.value)} fullWidth disabled={disabled}>
+        {groups.map((g) => { const id = String(g.id ?? g._id ?? ''); return <MenuItem key={id} value={id}>{g.name}</MenuItem>; })}
+      </TextField>
+      <TextField select label="Professor" value={formProfessorId} onChange={(e) => setFormProfessorId(e.target.value)} fullWidth disabled={disabled}>
+        <MenuItem value="">Unassigned</MenuItem>
+        {users.map((u) => { const id = String(u.id ?? u._id ?? ''); return <MenuItem key={id} value={id}>{u.name ?? 'Unknown'}{u.email ? ` (${u.email})` : ''}</MenuItem>; })}
+      </TextField>
+      <TextField select label="Activity type" value={formActivityType} onChange={(e) => setFormActivityType(e.target.value)} fullWidth disabled={disabled}>
+        {ACTIVITY_TYPE_OPTIONS.map((v) => <MenuItem key={v} value={v}>{toTitleLabel(v)}</MenuItem>)}
+      </TextField>
+      <TextField select label="Frequency" value={formFrequency} onChange={(e) => setFormFrequency(e.target.value)} fullWidth disabled={disabled}>
+        {FREQUENCY_OPTIONS.map((v) => <MenuItem key={v} value={v}>{toTitleLabel(v)}</MenuItem>)}
+      </TextField>
+      <TextField label="Duration slots" type="number" value={formDurationSlots} onChange={(e) => setFormDurationSlots(e.target.value)} fullWidth disabled={disabled} slotProps={{ htmlInput: { min: 1 } }} />
+      <TextField label="Required room features" placeholder="projector, whiteboard" value={formRequiredFeatures} onChange={(e) => setFormRequiredFeatures(e.target.value)} fullWidth disabled={disabled} helperText="Comma-separated list" />
+    </Stack>
+  );
+
   return (
     <PageContainer alignItems="flex-start">
-      <Stack spacing={2.5} sx={{ width: '100%' }}>
-        <Paper
-          elevation={0}
-          sx={{
-            p: { xs: 2.5, md: 3 },
-            borderRadius: 4,
-            border: '1px solid',
-            borderColor: 'divider',
-            background: 'linear-gradient(120deg, rgba(33,150,243,0.16) 0%, rgba(33,203,243,0.08) 45%, rgba(0,0,0,0) 100%)',
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', mb: 1 }}>
-            <Typography variant="h4" sx={{ fontWeight: 800 }}>
-              {`${courseName} ${toTitleLabel(activity.activity_type)} (${toTitleLabel(activity.frequency)})`}
-            </Typography>
-            {canManageActivity && (
-              <Stack direction="row" spacing={1}>
-                <Button
-                  variant="outlined"
-                  onClick={() => {
-                    setEditError(null);
-                    populateForm(activity);
-                    setEditOpen(true);
-                  }}
-                >
-                  Edit
-                </Button>
-                <Button variant="outlined" color="error" onClick={() => { setDeleteError(null); setDeleteOpen(true); }}>
-                  Delete
-                </Button>
-              </Stack>
-            )}
+      <Box sx={{ width: '100%', maxWidth: 960, mx: 'auto' }}>
+        <Stack spacing={3}>
+
+          {/* Back */}
+          <Box>
+            <Button
+              startIcon={<ArrowBackRoundedIcon />}
+              onClick={() => navigate(backRoute)}
+              sx={{ borderRadius: 2, color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
+            >
+              Activities
+            </Button>
           </Box>
 
-          <Stack direction="row" spacing={0.8} useFlexGap flexWrap="wrap">
-            {(activity.required_room_features ?? []).length === 0
-              ? <Chip label="No required room features" size="small" variant="outlined" />
-              : (activity.required_room_features ?? []).sort(compareAlphabetical).map((feature) => (
-                <Chip key={feature} label={feature} size="small" variant="outlined" />
-              ))}
-          </Stack>
-        </Paper>
-
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <EntityStatCard icon={<EventNoteIcon fontSize="small" />} label="Frequency" value={toTitleLabel(activity.frequency)} />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <EntityStatCard icon={<TimerIcon fontSize="small" />} label="Duration slots" value={activity.duration_slots} />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <EntityStatCard icon={<ChecklistIcon fontSize="small" />} label="Required features" value={(activity.required_room_features ?? []).length} />
-          </Grid>
-        </Grid>
-
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <EntityStatCard
-              icon={<MenuBookIcon fontSize="small" />}
-              label="Course"
-              centerContent
-              value={(
-                <Typography
-                  variant="h6"
-                  sx={{ ...clickableEntitySx, display: 'inline-flex', fontWeight: 700, lineHeight: 1.1, px: 0, py: 0 }}
-                  onClick={() => navigate(courseRoute(String(activity.course_id)))}
-                >
-                  {courseName}
-                </Typography>
-              )}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <EntityStatCard
-              icon={<Diversity3Icon fontSize="small" />}
-              label="Group"
-              centerContent
-              value={(
-                <Typography
-                  variant="h6"
-                  sx={{ ...clickableEntitySx, display: 'inline-flex', fontWeight: 700, lineHeight: 1.1, px: 0, py: 0 }}
-                  onClick={() => navigate(groupRoute(String(activity.group_id)))}
-                >
-                  {groupName}
-                </Typography>
-              )}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <EntityStatCard
-              icon={<SchoolIcon fontSize="small" />}
-              label="Professor"
-              centerContent
-              value={(
-                <Box sx={{ display: 'flex', flexDirection: 'column', mt: 0.25 }}>
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      ...(activity.professor_id ? clickableEntitySx : {}),
-                      display: 'inline-flex',
-                      fontWeight: 700,
-                      lineHeight: 1.1,
-                      cursor: activity.professor_id ? 'pointer' : 'default',
-                      px: 0,
-                      py: 0,
-                    }}
-                    onClick={() => activity.professor_id && navigate(memberRoute(String(activity.professor_id)))}
-                  >
-                    {professorName}
-                  </Typography>
-                  {professorEmail && (
-                    <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.2, mt: 0.25 }}>
-                      {professorEmail}
+          {/* Header card */}
+          <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+            <Box sx={{ height: 3, background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})` }} />
+            <Box sx={{ p: 2.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
+                  <Box sx={{
+                    width: 48, height: 48, borderRadius: 2.5, flexShrink: 0,
+                    bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <EventNoteIcon sx={{ fontSize: '1.5rem' }} />
+                  </Box>
+                  <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
+                      {courseName} — {toTitleLabel(activity.activity_type)}
                     </Typography>
-                  )}
+                    <Stack direction="row" spacing={0.75} sx={{ mt: 0.75 }} useFlexGap flexWrap="wrap">
+                      <Chip size="small" label={toTitleLabel(activity.frequency)} color="primary" variant="outlined" sx={{ fontSize: '0.7rem', height: 22 }} />
+                      <Chip size="small" label={`${activity.duration_slots} slot${activity.duration_slots !== 1 ? 's' : ''}`} variant="outlined" sx={{ fontSize: '0.7rem', height: 22 }} />
+                      {(activity.required_room_features ?? []).sort(compareAlphabetical).map((f) => (
+                        <Chip key={f} size="small" label={f} variant="outlined" sx={{ fontSize: '0.7rem', height: 22 }} />
+                      ))}
+                    </Stack>
+                  </Box>
                 </Box>
-              )}
-            />
-          </Grid>
-        </Grid>
-
-        {activity.selected_timeslot && (
-          <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>Selected Timeslot</Typography>
-            <Typography variant="body2" color="text.secondary">
-              {`Start slot: ${activity.selected_timeslot.start_timeslot}`}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {`Weeks: ${activity.selected_timeslot.active_weeks.join(', ') || 'none'}`}
-            </Typography>
+                {canManageActivity && (
+                  <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
+                    <Button variant="outlined" size="small" sx={{ borderRadius: 2 }} onClick={() => { setEditError(null); populateForm(activity); setEditOpen(true); }}>Edit</Button>
+                    <Button variant="outlined" color="error" size="small" sx={{ borderRadius: 2 }} onClick={() => { setDeleteError(null); setDeleteOpen(true); }}>Delete</Button>
+                  </Stack>
+                )}
+              </Box>
+            </Box>
           </Paper>
-        )}
-      </Stack>
 
+          {/* Stats row */}
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2.5, flex: 1, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Box sx={{ color: 'primary.main', display: 'flex' }}><EventNoteIcon /></Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Frequency</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>{toTitleLabel(activity.frequency)}</Typography>
+              </Box>
+            </Paper>
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2.5, flex: 1, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Box sx={{ color: 'primary.main', display: 'flex' }}><TimerIcon /></Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Duration</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>{activity.duration_slots} slot{activity.duration_slots !== 1 ? 's' : ''}</Typography>
+              </Box>
+            </Paper>
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2.5, flex: 1, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Box sx={{ color: 'primary.main', display: 'flex' }}><ChecklistIcon /></Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Required features</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>{(activity.required_room_features ?? []).length}</Typography>
+              </Box>
+            </Paper>
+          </Stack>
+
+          {/* Linked entities */}
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            {entityCard(
+              <MenuBookIcon sx={{ fontSize: '1rem' }} />,
+              'Course', courseName, undefined,
+              () => navigate(courseRoute(String(activity.course_id))),
+            )}
+            {entityCard(
+              <Diversity3Icon sx={{ fontSize: '1rem' }} />,
+              'Group', groupName, undefined,
+              () => navigate(groupRoute(String(activity.group_id))),
+            )}
+            {entityCard(
+              <SchoolIcon sx={{ fontSize: '1rem' }} />,
+              'Professor', professorName, professorEmail,
+              activity.professor_id ? () => navigate(memberRoute(String(activity.professor_id))) : undefined,
+            )}
+          </Stack>
+
+          {/* Timeslot */}
+          {activity.selected_timeslot && (
+            <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Selected Timeslot</Typography>
+              <Stack spacing={0.5}>
+                <Typography variant="body2" color="text.secondary">
+                  Start slot:{' '}
+                  <Typography component="span" variant="body2" sx={{ fontWeight: 600 }}>
+                    {activity.selected_timeslot.start_timeslot}
+                  </Typography>
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Weeks:{' '}
+                  <Typography component="span" variant="body2" sx={{ fontWeight: 600 }}>
+                    {activity.selected_timeslot.active_weeks.join(', ') || 'none'}
+                  </Typography>
+                </Typography>
+              </Stack>
+            </Paper>
+          )}
+
+        </Stack>
+      </Box>
+
+      {/* Delete dialog */}
       <Dialog open={deleteOpen && canManageActivity} onClose={() => !deleteLoading && setDeleteOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Delete activity?</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>Delete activity?</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete this activity? This action cannot be undone.
-          </DialogContentText>
-          {deleteError && <Alert severity="error" sx={{ mt: 2 }}>{deleteError}</Alert>}
+          <DialogContentText>Are you sure you want to delete this activity? This action cannot be undone.</DialogContentText>
+          {deleteError && <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>{deleteError}</Alert>}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteOpen(false)} disabled={deleteLoading}>Cancel</Button>
-          <Button onClick={handleDelete} color="error" variant="contained" disabled={deleteLoading}>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDeleteOpen(false)} disabled={deleteLoading} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleDelete} color="error" variant="contained" disabled={deleteLoading} sx={{ borderRadius: 2 }}>
             {deleteLoading ? <CircularProgress size={18} color="inherit" /> : 'Delete'}
           </Button>
         </DialogActions>
       </Dialog>
 
+      {/* Edit dialog */}
       <Dialog open={editOpen && canManageActivity} onClose={() => !editLoading && setEditOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Update activity</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>Edit activity</DialogTitle>
         <DialogContent>
-          <Stack spacing={2} sx={{ mt: 0.5 }}>
-            <TextField select label="Course" value={formCourseId} onChange={(e) => setFormCourseId(e.target.value)} fullWidth disabled={editLoading}>
-              {courses.map((course) => {
-                const id = String(course.id ?? course._id ?? '');
-                return <MenuItem key={id} value={id}>{course.name}</MenuItem>;
-              })}
-            </TextField>
-            <TextField select label="Group" value={formGroupId} onChange={(e) => setFormGroupId(e.target.value)} fullWidth disabled={editLoading}>
-              {groups.map((group) => {
-                const id = String(group.id ?? group._id ?? '');
-                return <MenuItem key={id} value={id}>{group.name}</MenuItem>;
-              })}
-            </TextField>
-            <TextField select label="Professor" value={formProfessorId} onChange={(e) => setFormProfessorId(e.target.value)} fullWidth disabled={editLoading}>
-              <MenuItem value="">Unassigned</MenuItem>
-              {users.map((user) => {
-                const id = String(user.id ?? user._id ?? '');
-                const label = `${user.name ?? 'Unknown'}${user.email ? ` (${user.email})` : ''}`;
-                return <MenuItem key={id} value={id}>{label}</MenuItem>;
-              })}
-            </TextField>
-            <TextField select label="Activity type" value={formActivityType} onChange={(e) => setFormActivityType(e.target.value)} fullWidth disabled={editLoading}>
-              {ACTIVITY_TYPE_OPTIONS.map((value) => <MenuItem key={value} value={value}>{toTitleLabel(value)}</MenuItem>)}
-            </TextField>
-            <TextField select label="Frequency" value={formFrequency} onChange={(e) => setFormFrequency(e.target.value)} fullWidth disabled={editLoading}>
-              {FREQUENCY_OPTIONS.map((value) => <MenuItem key={value} value={value}>{toTitleLabel(value)}</MenuItem>)}
-            </TextField>
-            <TextField
-              label="Duration slots"
-              type="number"
-              value={formDurationSlots}
-              onChange={(e) => setFormDurationSlots(e.target.value)}
-              fullWidth
-              disabled={editLoading}
-              slotProps={{ htmlInput: { min: 1 } }}
-            />
-            <TextField
-              label="Required room features"
-              placeholder="projector, whiteboard"
-              value={formRequiredFeatures}
-              onChange={(e) => setFormRequiredFeatures(e.target.value)}
-              fullWidth
-              disabled={editLoading}
-            />
-          </Stack>
-          {editError && <Alert severity="error" sx={{ mt: 2 }}>{editError}</Alert>}
+          {formFields(editLoading)}
+          {editError && <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>{editError}</Alert>}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditOpen(false)} disabled={editLoading}>Cancel</Button>
-          <Button onClick={handleUpdate} variant="contained" disabled={editLoading}>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setEditOpen(false)} disabled={editLoading} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleUpdate} variant="contained" disabled={editLoading} sx={{ borderRadius: 2 }}>
             {editLoading ? <CircularProgress size={18} color="inherit" /> : 'Save'}
           </Button>
         </DialogActions>
@@ -504,9 +458,3 @@ export default function ActivityMainPage() {
     </PageContainer>
   );
 }
-
-
-
-
-
-

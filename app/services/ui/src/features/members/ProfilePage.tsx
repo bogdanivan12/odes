@@ -7,15 +7,21 @@ import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
-import PersonIcon from '@mui/icons-material/Person';
-import MailIcon from '@mui/icons-material/Mail';
-import LockIcon from '@mui/icons-material/Lock';
-import Grid from '@mui/material/Grid';
+import Avatar from '@mui/material/Avatar';
+import Divider from '@mui/material/Divider';
+import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import PageContainer from '../layout/PageContainer';
-import EntityStatCard from '../../components/EntityStatCard';
 import { getCurrentUserProfile, updateCurrentUserProfile } from '../../api/users';
+import { useTheme } from '@mui/material/styles';
+import { alpha } from '@mui/material/styles';
+
+function getInitials(name?: string): string {
+  if (!name) return '?';
+  return name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+}
 
 export default function ProfilePage() {
+  const theme = useTheme();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +33,6 @@ export default function ProfilePage() {
 
   useEffect(() => {
     let mounted = true;
-
     (async () => {
       setLoading(true);
       setError(null);
@@ -43,24 +48,15 @@ export default function ProfilePage() {
         if (mounted) setLoading(false);
       }
     })();
-
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, []);
 
   const handleSave = async () => {
     const trimmedName = name.trim();
     const trimmedEmail = email.trim();
 
-    if (!trimmedName) {
-      setError('Name is required.');
-      return;
-    }
-    if (!trimmedEmail) {
-      setError('Email is required.');
-      return;
-    }
+    if (!trimmedName) { setError('Name is required.'); return; }
+    if (!trimmedEmail) { setError('Email is required.'); return; }
 
     setSaving(true);
     setError(null);
@@ -86,8 +82,8 @@ export default function ProfilePage() {
     return (
       <PageContainer alignItems="center">
         <Stack direction="row" spacing={1.5} alignItems="center">
-          <CircularProgress size={24} />
-          <Typography>Loading profile...</Typography>
+          <CircularProgress size={22} />
+          <Typography color="text.secondary">Loading profile...</Typography>
         </Stack>
       </PageContainer>
     );
@@ -95,75 +91,130 @@ export default function ProfilePage() {
 
   return (
     <PageContainer alignItems="flex-start">
-      <Stack spacing={2.5} sx={{ width: '100%' }}>
-        <Paper
-          elevation={0}
-          sx={{
-            p: { xs: 2.5, md: 3 },
-            borderRadius: 4,
-            border: '1px solid',
-            borderColor: 'divider',
-            background: 'linear-gradient(120deg, rgba(33,150,243,0.16) 0%, rgba(33,203,243,0.08) 45%, rgba(0,0,0,0) 100%)',
-          }}
-        >
-          <Typography variant="h4" sx={{ fontWeight: 800 }}>My profile</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.6 }}>
-            Manage your account details.
-          </Typography>
-        </Paper>
+      <Box sx={{ width: '100%', maxWidth: 680, mx: 'auto' }}>
+        <Stack spacing={3}>
 
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <EntityStatCard icon={<PersonIcon fontSize="small" />} label="Name" value={name || 'Not set'} />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <EntityStatCard icon={<MailIcon fontSize="small" />} label="Email" value={email || 'Not set'} />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <EntityStatCard icon={<LockIcon fontSize="small" />} label="Password" value="Set" />
-          </Grid>
-        </Grid>
-
-        <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
-          <Stack spacing={2}>
-            {error && <Alert severity="error">{error}</Alert>}
-            {success && <Alert severity="success">{success}</Alert>}
-
-            <TextField
-              label="Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              fullWidth
-              disabled={saving}
-            />
-
-            <TextField
-              label="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              fullWidth
-              disabled={saving}
-            />
-
-            <TextField
-              label="New password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              fullWidth
-              disabled={saving}
-              placeholder="Leave empty to keep current password"
-            />
-
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <Button variant="contained" onClick={handleSave} disabled={saving}>
-                {saving ? <CircularProgress size={18} color="inherit" /> : 'Save changes'}
-              </Button>
+          {/* Header card */}
+          <Paper
+            variant="outlined"
+            sx={{
+              borderRadius: 4,
+              overflow: 'hidden',
+              boxShadow: `0 4px 24px ${alpha(theme.palette.common.black, theme.palette.mode === 'dark' ? 0.3 : 0.06)}`,
+            }}
+          >
+            <Box sx={{ height: 3, background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})` }} />
+            <Box sx={{ p: { xs: 3, md: 4 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+                <Avatar
+                  sx={{
+                    width: 64, height: 64, borderRadius: 3,
+                    bgcolor: alpha(theme.palette.primary.main, 0.12),
+                    color: 'primary.main',
+                    fontSize: '1.4rem',
+                    fontWeight: 700,
+                    flexShrink: 0,
+                  }}
+                >
+                  {getInitials(name)}
+                </Avatar>
+                <Box>
+                  <Typography variant="h5" sx={{ fontWeight: 800, lineHeight: 1.2 }}>
+                    {name || 'Your profile'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {email || 'No email set'}
+                  </Typography>
+                </Box>
+              </Box>
             </Box>
-          </Stack>
-        </Paper>
-      </Stack>
+          </Paper>
+
+          {/* Edit form card */}
+          <Paper
+            variant="outlined"
+            sx={{
+              borderRadius: 4,
+              overflow: 'hidden',
+              boxShadow: `0 4px 24px ${alpha(theme.palette.common.black, theme.palette.mode === 'dark' ? 0.3 : 0.06)}`,
+            }}
+          >
+            <Box sx={{ p: { xs: 3, md: 4 } }}>
+              {/* Section header */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.75 }}>
+                <Box
+                  sx={{
+                    width: 40, height: 40, borderRadius: 2.5,
+                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                    color: 'primary.main',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  <PersonRoundedIcon />
+                </Box>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>Account details</Typography>
+              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Update your name, email address, or password.
+              </Typography>
+
+              <Divider sx={{ mb: 3 }} />
+
+              <Stack spacing={2.5}>
+                <TextField
+                  label="Full name"
+                  value={name}
+                  onChange={(e) => { setName(e.target.value); setSuccess(null); }}
+                  fullWidth
+                  disabled={saving}
+                  autoComplete="name"
+                />
+
+                <TextField
+                  label="Email address"
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); setSuccess(null); }}
+                  fullWidth
+                  disabled={saving}
+                  autoComplete="email"
+                />
+
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', mb: 1.5 }}>
+                    Change password
+                  </Typography>
+                  <TextField
+                    label="New password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); setSuccess(null); }}
+                    fullWidth
+                    disabled={saving}
+                    placeholder="Leave empty to keep current password"
+                    autoComplete="new-password"
+                    helperText="Only fill in if you want to change your password"
+                  />
+                </Box>
+
+                {error && <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>}
+                {success && <Alert severity="success" sx={{ borderRadius: 2 }}>{success}</Alert>}
+
+                <Stack direction="row" justifyContent="flex-end" sx={{ pt: 0.5 }}>
+                  <Button
+                    variant="contained"
+                    onClick={handleSave}
+                    disabled={saving}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    {saving ? <CircularProgress size={20} color="inherit" /> : 'Save changes'}
+                  </Button>
+                </Stack>
+              </Stack>
+            </Box>
+          </Paper>
+
+        </Stack>
+      </Box>
     </PageContainer>
   );
 }
-
