@@ -72,6 +72,7 @@ import {
   getInstitutionUsers,
   removeUserFromInstitution,
   triggerScheduleGeneration,
+  deleteSchedule,
 } from '../../api/institutions';
 import { createCourse, updateCourse, deleteCourse } from '../../api/courses';
 import { createRoom, updateRoom, deleteRoom } from '../../api/rooms';
@@ -541,6 +542,10 @@ export default function InstitutionMainPage() {
   const [actDeleteLoading, setActDeleteLoading] = useState(false);
   const [actDeleteError, setActDeleteError] = useState<string | null>(null);
 
+  const [scheduleToDelete, setScheduleToDelete] = useState<InstitutionSchedule | null>(null);
+  const [scheduleDeleteLoading, setScheduleDeleteLoading] = useState(false);
+  const [scheduleDeleteError, setScheduleDeleteError] = useState<string | null>(null);
+
   const [groupSearchQuery, setGroupSearchQuery] = useState('');
 
   const institutionBase = institutionId ? `/institutions/${institutionId}` : '';
@@ -833,6 +838,19 @@ export default function InstitutionMainPage() {
     finally { setActDeleteLoading(false); }
   };
 
+  const handleScheduleDelete = async () => {
+    if (!scheduleToDelete) return;
+    const id = String(scheduleToDelete.id ?? scheduleToDelete._id ?? '');
+    setScheduleDeleteLoading(true); setScheduleDeleteError(null);
+    try {
+      await deleteSchedule(id);
+      const updated = await getInstitutionSchedules(institutionId!);
+      setSchedulesState({ data: updated, loading: false, error: null });
+      setScheduleToDelete(null);
+    } catch (err) { setScheduleDeleteError((err as Error).message || 'Failed to delete schedule.'); }
+    finally { setScheduleDeleteLoading(false); }
+  };
+
   const handleRemoveMember = async (userId: string) => {
     if (!institutionId || !canManageInstitution) return;
     setRemovingMemberId(userId);
@@ -1038,14 +1056,25 @@ export default function InstitutionMainPage() {
         primary: `Schedule #${num}`,
         secondary: formatCreatedAt(schedule.timestamp),
         to: scheduleRoute(scheduleId),
-        rowAction: schedule.status ? (
-          <Chip
-            label={schedule.status}
-            size="small"
-            color={scheduleStatusColor(schedule.status)}
-            sx={{ borderRadius: 1.5, fontSize: '0.7rem', height: 20 }}
-          />
-        ) : undefined,
+        rowAction: (
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            {schedule.status && (
+              <Chip
+                label={schedule.status}
+                size="small"
+                color={scheduleStatusColor(schedule.status)}
+                sx={{ borderRadius: 1.5, fontSize: '0.7rem', height: 20 }}
+              />
+            )}
+            {canManageInstitution && (
+              <Tooltip title="Delete">
+                <IconButton size="small" color="error" sx={{ borderRadius: 1.5 }} onClick={(e) => { e.stopPropagation(); setScheduleDeleteError(null); setScheduleToDelete(schedule); }}>
+                  <DeleteOutlineRoundedIcon sx={{ fontSize: '0.85rem' }} />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Stack>
+        ),
       };
     });
   }, [schedulesState.data]);
@@ -2251,6 +2280,22 @@ export default function InstitutionMainPage() {
           <Button onClick={() => { if (!actDeleteLoading) { setActivityToDelete(null); setActDeleteError(null); } }} disabled={actDeleteLoading} sx={{ borderRadius: 2 }}>Cancel</Button>
           <Button onClick={handleActivityDelete} color="error" variant="contained" disabled={actDeleteLoading} sx={{ borderRadius: 2 }}>
             {actDeleteLoading ? <CircularProgress size={18} color="inherit" /> : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={!!scheduleToDelete} onClose={() => { if (!scheduleDeleteLoading) { setScheduleToDelete(null); setScheduleDeleteError(null); } }} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Delete schedule?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this schedule? This action cannot be undone.
+          </DialogContentText>
+          {scheduleDeleteError && <Alert severity="error" sx={{ mt: 2 }}>{scheduleDeleteError}</Alert>}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => { if (!scheduleDeleteLoading) { setScheduleToDelete(null); setScheduleDeleteError(null); } }} disabled={scheduleDeleteLoading} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleScheduleDelete} color="error" variant="contained" disabled={scheduleDeleteLoading} sx={{ borderRadius: 2 }}>
+            {scheduleDeleteLoading ? <CircularProgress size={18} color="inherit" /> : 'Delete'}
           </Button>
         </DialogActions>
       </Dialog>
