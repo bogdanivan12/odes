@@ -166,6 +166,12 @@ export async function triggerScheduleGeneration(institutionId: string): Promise<
   return (res?.schedule ?? res) as InstitutionSchedule;
 }
 
+export async function deleteSchedule(scheduleId: string): Promise<void> {
+  const url = `${API_URL}/api/v1/schedules/${scheduleId}`;
+  const headers = buildAuthHeaders();
+  await apiDelete<void>(url, headers);
+}
+
 export async function getScheduleById(scheduleId: string): Promise<InstitutionSchedule> {
   const url = `${API_URL}/api/v1/schedules/${scheduleId}`;
   const headers = buildAuthHeaders();

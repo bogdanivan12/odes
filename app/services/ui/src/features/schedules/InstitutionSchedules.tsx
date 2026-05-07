@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -8,13 +8,22 @@ import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import Chip from '@mui/material/Chip';
 import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import PageContainer from '../layout/PageContainer';
-import { getInstitutionSchedules, triggerScheduleGeneration } from '../../api/institutions';
-import type { InstitutionSchedule } from '../../api/institutions';
+import { getInstitutionSchedules, triggerScheduleGeneration, deleteSchedule } from '../../api/institutions';
+import type { InstitutionSchedule, InstitutionUser } from '../../api/institutions';
 import { scheduleRoute } from '../../config/routes';
+import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionAdmin';
 import { useTheme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
 
@@ -56,6 +65,10 @@ export default function InstitutionSchedules() {
   const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
+  const [scheduleToDelete, setScheduleToDelete] = useState<InstitutionSchedule | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<InstitutionUser | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -68,8 +81,12 @@ export default function InstitutionSchedules() {
       setLoading(true);
       setError(null);
       try {
-        const data = await getInstitutionSchedules(institutionId);
+        const [data, me] = await Promise.all([
+          getInstitutionSchedules(institutionId),
+          getCurrentUserData().catch(() => null),
+        ]);
         if (!mounted) return;
+        if (me) setCurrentUser(me);
         const sorted = [...data].sort((a, b) => {
           const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
           const tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
@@ -88,6 +105,8 @@ export default function InstitutionSchedules() {
     };
   }, [institutionId]);
 
+  const canManage = useMemo(() => isInstitutionAdmin(currentUser, institutionId), [currentUser, institutionId]);
+
   const loadSchedules = async () => {
     if (!institutionId) return;
     const data = await getInstitutionSchedules(institutionId);
@@ -97,6 +116,23 @@ export default function InstitutionSchedules() {
       return tb - ta;
     });
     setSchedules(sorted);
+  };
+
+  const handleDelete = async () => {
+    if (!scheduleToDelete) return;
+    const id = String(scheduleToDelete.id ?? scheduleToDelete._id ?? '');
+    if (!id) return;
+    setDeleteLoading(true);
+    setDeleteError(null);
+    try {
+      await deleteSchedule(id);
+      setScheduleToDelete(null);
+      await loadSchedules();
+    } catch (err) {
+      setDeleteError((err as Error).message || 'Failed to delete schedule.');
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   const handleGenerate = async () => {
@@ -136,15 +172,17 @@ export default function InstitutionSchedules() {
                 {schedules.length} schedule{schedules.length !== 1 ? 's' : ''} generated
               </Typography>
             </Box>
-            <Button
-              variant="contained"
-              startIcon={generating ? <CircularProgress size={16} color="inherit" /> : <AddRoundedIcon />}
-              onClick={handleGenerate}
-              disabled={generating}
-              sx={{ borderRadius: 2 }}
-            >
-              {generating ? 'Generating…' : 'Generate new schedule'}
-            </Button>
+            {canManage && (
+              <Button
+                variant="contained"
+                startIcon={generating ? <CircularProgress size={16} color="inherit" /> : <AddRoundedIcon />}
+                onClick={handleGenerate}
+                disabled={generating}
+                sx={{ borderRadius: 2 }}
+              >
+                {generating ? 'Generating…' : 'Generate new schedule'}
+              </Button>
+            )}
           </Box>
 
           {generateError && (
@@ -261,6 +299,19 @@ export default function InstitutionSchedules() {
                       />
                     )}
 
+                    {canManage && (
+                      <Tooltip title="Delete">
+                        <IconButton
+                          size="small"
+                          color="error"
+                          sx={{ borderRadius: 1.5, flexShrink: 0 }}
+                          onClick={(e) => { e.stopPropagation(); setDeleteError(null); setScheduleToDelete(schedule); }}
+                        >
+                          <DeleteOutlineRoundedIcon sx={{ fontSize: '0.9rem' }} />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+
                     <ChevronRightRoundedIcon
                       sx={{ fontSize: '1.1rem', color: 'text.disabled', flexShrink: 0 }}
                     />
@@ -271,6 +322,22 @@ export default function InstitutionSchedules() {
           )}
         </Stack>
       </Box>
+      {/* Delete dialog */}
+      <Dialog open={Boolean(scheduleToDelete)} onClose={() => !deleteLoading && setScheduleToDelete(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Delete schedule?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this schedule? This action cannot be undone.
+          </DialogContentText>
+          {deleteError && <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>{deleteError}</Alert>}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setScheduleToDelete(null)} disabled={deleteLoading} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleDelete} color="error" variant="contained" disabled={deleteLoading} sx={{ borderRadius: 2 }}>
+            {deleteLoading ? <CircularProgress size={18} color="inherit" /> : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </PageContainer>
   );
 }

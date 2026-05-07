@@ -10,12 +10,22 @@ import Chip from '@mui/material/Chip';
 import Button from '@mui/material/Button';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
-import Select from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
+import Autocomplete from '@mui/material/Autocomplete';
+import TextField from '@mui/material/TextField';
+import Radio from '@mui/material/Radio';
+import RadioGroup from '@mui/material/RadioGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
+import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import PageContainer from '../layout/PageContainer';
 import {
   getInstitutionById,
@@ -26,6 +36,7 @@ import {
   getInstitutionCourses,
   getScheduleById,
   getScheduleActivities,
+  deleteSchedule,
 } from '../../api/institutions';
 import type {
   InstitutionSchedule,
@@ -40,6 +51,7 @@ import type { Institution as InstitutionClass } from '../../types/institution';
 import type { TimeGridConfig } from '../../types/institution';
 import { institutionSchedulesRoute, activityRoute } from '../../config/routes';
 import { toTitleLabel, compareAlphabetical } from '../../utils/text';
+import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionAdmin';
 import { useTheme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
 
@@ -101,8 +113,10 @@ function TabPanel({ children, value, index }: { children: React.ReactNode; value
 
 // ─── Calendar grid ────────────────────────────────────────────────────────────
 
-const SLOT_H = 58; // px per timeslot row
-const HDR_H = 34;  // px for the day header row
+const SLOT_W = 80;       // px per timeslot column
+const DAY_H = 72;        // px per day row
+const DAY_LABEL_W = 56;  // px for the day-name column
+const HDR_H = 32;        // px for the slot-number header row
 
 interface CalendarGridProps {
   entries: ScheduledEntry[];
@@ -147,44 +161,42 @@ function CalendarGrid({
     );
   }
 
-  const gridH = timeslotsPerDay * SLOT_H;
-
   return (
     <Box sx={{ overflowX: 'auto', width: '100%' }}>
       <Box
         sx={{
           display: 'flex',
-          minWidth: days * 130 + 72,
+          flexDirection: 'column',
+          minWidth: DAY_LABEL_W + timeslotsPerDay * SLOT_W,
           border: '1px solid',
           borderColor: 'divider',
           borderRadius: 2,
           overflow: 'hidden',
         }}
       >
-        {/* Slot-label column */}
-        <Box sx={{ width: 72, flexShrink: 0, borderRight: '1px solid', borderColor: 'divider' }}>
-          <Box sx={{ height: HDR_H, bgcolor: alpha(theme.palette.primary.main, 0.05), borderBottom: '1px solid', borderColor: 'divider' }} />
+        {/* ── Header row: slot numbers ── */}
+        <Box sx={{ display: 'flex', flexShrink: 0, borderBottom: '1px solid', borderColor: 'divider' }}>
+          {/* Corner */}
+          <Box sx={{ width: DAY_LABEL_W, flexShrink: 0, height: HDR_H, bgcolor: alpha(theme.palette.primary.main, 0.05), borderRight: '1px solid', borderColor: 'divider' }} />
           {Array.from({ length: timeslotsPerDay }, (_, i) => (
             <Box
               key={i}
               sx={{
-                height: SLOT_H,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: alpha(theme.palette.primary.main, 0.02),
-                borderBottom: i < timeslotsPerDay - 1 ? '1px solid' : 'none',
+                width: SLOT_W, flexShrink: 0, height: HDR_H,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                bgcolor: alpha(theme.palette.primary.main, 0.05),
+                borderRight: i < timeslotsPerDay - 1 ? '1px solid' : 'none',
                 borderColor: 'divider',
               }}
             >
-              <Typography variant="caption" sx={{ fontSize: '0.63rem', color: 'text.disabled' }}>
-                Slot {i + 1}
+              <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.70rem' }}>
+                {i + 1}
               </Typography>
             </Box>
           ))}
         </Box>
 
-        {/* Day columns */}
+        {/* ── Day rows ── */}
         {Array.from({ length: days }, (_, dayIdx) => {
           const dayEntries = activeEntries.filter(
             (e) => Math.floor(e.startTimeslot / timeslotsPerDay) === dayIdx,
@@ -193,21 +205,18 @@ function CalendarGrid({
             <Box
               key={dayIdx}
               sx={{
-                flex: 1,
-                borderRight: dayIdx < days - 1 ? '1px solid' : 'none',
+                display: 'flex', flexShrink: 0,
+                borderBottom: dayIdx < days - 1 ? '1px solid' : 'none',
                 borderColor: 'divider',
               }}
             >
-              {/* Day header */}
+              {/* Day label */}
               <Box
                 sx={{
-                  height: HDR_H,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  bgcolor: alpha(theme.palette.primary.main, 0.05),
-                  borderBottom: '1px solid',
-                  borderColor: 'divider',
+                  width: DAY_LABEL_W, flexShrink: 0, height: DAY_H,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  bgcolor: alpha(theme.palette.primary.main, 0.02),
+                  borderRight: '1px solid', borderColor: 'divider',
                 }}
               >
                 <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.72rem' }}>
@@ -215,25 +224,22 @@ function CalendarGrid({
                 </Typography>
               </Box>
 
-              {/* Slot rows (background) + activity cards (absolute) */}
-              <Box sx={{ position: 'relative', height: gridH }}>
-                {/* Horizontal slot dividers */}
+              {/* Slots area — relative container for absolute activity cards */}
+              <Box sx={{ position: 'relative', width: timeslotsPerDay * SLOT_W, height: DAY_H, flexShrink: 0 }}>
+                {/* Vertical slot dividers */}
                 {Array.from({ length: timeslotsPerDay }, (_, i) => (
                   <Box
                     key={i}
                     sx={{
                       position: 'absolute',
-                      top: i * SLOT_H,
-                      left: 0,
-                      right: 0,
-                      height: SLOT_H,
-                      borderBottom: i < timeslotsPerDay - 1 ? '1px solid' : 'none',
+                      left: i * SLOT_W, top: 0, width: SLOT_W, height: DAY_H,
+                      borderRight: i < timeslotsPerDay - 1 ? '1px solid' : 'none',
                       borderColor: 'divider',
                     }}
                   />
                 ))}
 
-                {/* Activity cards */}
+                {/* Activity cards — span horizontally */}
                 {dayEntries.map((e) => {
                   const slotIdx = e.startTimeslot % timeslotsPerDay;
                   const typeColor = getTypeColor(e.activityType);
@@ -249,10 +255,9 @@ function CalendarGrid({
                       onClick={() => navigate(activityRoute(e.activityId))}
                       sx={{
                         position: 'absolute',
-                        top: slotIdx * SLOT_H + 2,
-                        left: 3,
-                        right: 3,
-                        height: e.durationSlots * SLOT_H - 4,
+                        top: 2, height: DAY_H - 4,
+                        left: slotIdx * SLOT_W + 2,
+                        width: e.durationSlots * SLOT_W - 4,
                         borderRadius: 1.5,
                         bgcolor: alpha(typeColor, 0.1),
                         borderLeft: '3px solid',
@@ -263,10 +268,7 @@ function CalendarGrid({
                         '&:hover': { bgcolor: alpha(typeColor, 0.2) },
                       }}
                     >
-                      <Typography
-                        variant="caption"
-                        sx={{ fontWeight: 700, display: 'block', lineHeight: 1.25, fontSize: '0.68rem', mb: 0.25 }}
-                      >
+                      <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', lineHeight: 1.25, fontSize: '0.68rem', mb: 0.25 }}>
                         {courseName}
                       </Typography>
                       <Typography variant="caption" sx={{ display: 'block', fontSize: '0.60rem', color: 'text.secondary', lineHeight: 1.3 }}>
@@ -314,6 +316,14 @@ export default function ScheduleViewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
+  const [pdfMode, setPdfMode] = useState<'groups' | 'professors' | 'rooms'>('groups');
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<InstitutionUser | null>(null);
+
   const [activeTab, setActiveTab] = useState(0);
   const [selectedGroupId, setSelectedGroupId] = useState('');
   const [selectedProfessorId, setSelectedProfessorId] = useState('');
@@ -344,16 +354,18 @@ export default function ScheduleViewPage() {
         const institutionId = sched.institution_id;
         if (!institutionId) throw new Error('Schedule has no institution_id.');
 
-        const [inst, acts, grps, usrs, rms, crs] = await Promise.all([
+        const [inst, acts, grps, usrs, rms, crs, me] = await Promise.all([
           getInstitutionById(institutionId),
           getInstitutionActivities(institutionId),
           getInstitutionGroups(institutionId),
           getInstitutionUsers(institutionId),
           getInstitutionRooms(institutionId),
           getInstitutionCourses(institutionId),
+          getCurrentUserData().catch(() => null),
         ]);
         if (!mounted) return;
 
+        if (me) setCurrentUser(me);
         setSchedule(sched);
         setSchedRecords(schedActs);
         setInstitution(inst);
@@ -371,6 +383,11 @@ export default function ScheduleViewPage() {
     })();
     return () => { mounted = false; };
   }, [scheduleId]);
+
+  const canManage = useMemo(
+    () => isInstitutionAdmin(currentUser, schedule?.institution_id),
+    [currentUser, schedule?.institution_id],
+  );
 
   // ── Build lookup maps ──────────────────────────────────────────────────────
 
@@ -523,30 +540,20 @@ export default function ScheduleViewPage() {
     [scheduledEntries, selectedRoomId],
   );
 
-  // ── Hierarchical group menu items ──────────────────────────────────────────
+  // ── Hierarchical group options (DFS order) ────────────────────────────────
 
-  const renderGroupMenuItems = (groupId: string, depth = 0): React.ReactNode[] => {
-    const group = groupsById.get(groupId);
-    if (!group) return [];
-    const id = String(group.id ?? group._id ?? '');
-    const children = childrenByParent.get(groupId) ?? [];
-    return [
-      <MenuItem key={id} value={id} sx={{ pl: 2 + depth * 2, fontSize: '0.875rem' }}>
-        {depth > 0 && (
-          <Box component="span" sx={{ mr: 0.75, color: 'text.disabled', fontSize: '0.75rem', fontFamily: 'monospace' }}>
-            {'└'}
-          </Box>
-        )}
-        {group.name}
-        {children.length > 0 && (
-          <Box component="span" sx={{ ml: 0.75, color: 'text.disabled', fontSize: '0.7rem' }}>
-            ({children.length})
-          </Box>
-        )}
-      </MenuItem>,
-      ...children.flatMap((cId) => renderGroupMenuItems(cId, depth + 1)),
-    ];
-  };
+  const groupOptions = useMemo(() => {
+    const result: { id: string; label: string; depth: number; childCount: number }[] = [];
+    const walk = (groupId: string, depth: number) => {
+      const g = groupsById.get(groupId);
+      if (!g) return;
+      const children = childrenByParent.get(groupId) ?? [];
+      result.push({ id: groupId, label: g.name, depth, childCount: children.length });
+      children.forEach((cId) => walk(cId, depth + 1));
+    };
+    rootGroupIds.forEach((id) => walk(id, 0));
+    return result;
+  }, [groupsById, childrenByParent, rootGroupIds]);
 
   // ── Week selector ──────────────────────────────────────────────────────────
 
@@ -564,6 +571,207 @@ export default function ScheduleViewPage() {
       ))}
     </Stack>
   );
+
+  // ── Schedule deletion ──────────────────────────────────────────────────────
+
+  const handleDeleteSchedule = async () => {
+    if (!scheduleId) return;
+    setDeleteLoading(true);
+    setDeleteError(null);
+    try {
+      await deleteSchedule(scheduleId);
+      setDeleteDialogOpen(false);
+      navigate(schedule?.institution_id ? institutionSchedulesRoute(schedule.institution_id) : '/institutions');
+    } catch (err) {
+      setDeleteError((err as Error).message || 'Failed to delete schedule.');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  // ── PDF download ───────────────────────────────────────────────────────────
+
+  const handleDownloadPdf = async () => {
+    setPdfGenerating(true);
+    try {
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const pageH = doc.internal.pageSize.getHeight();
+      const headerColor: [number, number, number] = [99, 102, 241]; // indigo header
+
+      // Activity type → [fill, text] colors matching the web calendar
+      const activityColors: Record<string, { fill: [number,number,number]; text: [number,number,number] }> = {
+        course:     { fill: [220, 221, 255], text: [72,  73,  174] }, // indigo
+        seminar:    { fill: [200, 240, 252], text: [5,   138, 162] }, // cyan
+        laboratory: { fill: [255, 237, 213], text: [180, 108,  10] }, // amber/orange
+      };
+      const defaultActivityColor = { fill: [235, 235, 235] as [number,number,number], text: [90, 90, 90] as [number,number,number] };
+
+      const getActivityColor = (type: string) =>
+        activityColors[type.toLowerCase()] ?? defaultActivityColor;
+
+      // ── Build entity list ──────────────────────────────────────────────────
+      type PdfEntity = { id: string; name: string; depth: number };
+      let entities: PdfEntity[] = [];
+
+      if (pdfMode === 'groups') {
+        const orderedGroups: PdfEntity[] = [];
+        const walkGroups = (gId: string, depth: number) => {
+          const g = groupsById.get(gId);
+          if (!g) return;
+          orderedGroups.push({ id: gId, name: g.name, depth });
+          (childrenByParent.get(gId) ?? []).forEach((cId) => walkGroups(cId, depth + 1));
+        };
+        rootGroupIds.forEach((id) => walkGroups(id, 0));
+        entities = orderedGroups;
+      } else if (pdfMode === 'professors') {
+        entities = professors.map((u) => ({ id: String(u.id ?? u._id ?? ''), name: u.name ?? u.email ?? 'Unknown', depth: 0 }));
+      } else {
+        entities = rooms.map((r) => ({ id: String(r.id ?? r._id ?? ''), name: r.name, depth: 0 }));
+      }
+
+      // ── Build one table's data (days = rows, slots = columns) ────────────────
+      const buildTable = (entityEntries: ScheduledEntry[], week: number) => {
+        const weekEntries = entityEntries.filter((e) => e.activeWeeks.includes(week));
+
+        // Header: empty corner + one column per slot
+        const head = [[
+          { content: '', styles: { fillColor: headerColor } },
+          ...Array.from({ length: timeslotsPerDay }, (_, i) => ({
+            content: String(i + 1),
+            styles: { halign: 'center' as const, fillColor: headerColor, textColor: [255,255,255] as [number,number,number], fontStyle: 'bold' as const, fontSize: 8 },
+          })),
+        ]];
+
+        // Body: one row per day, one cell per slot (with colSpan for multi-slot activities)
+        const body: any[][] = [];
+        for (let day = 0; day < days; day++) {
+          const row: any[] = [{
+            content: getDayName(day),
+            styles: { halign: 'center', fontStyle: 'bold', textColor: [120,120,120], fontSize: 7, fillColor: [245,245,250] },
+          }];
+          const occupied = new Set<number>(); // occupied slot indices in this day row
+          for (let slot = 0; slot < timeslotsPerDay; slot++) {
+            if (occupied.has(slot)) continue;
+            const absSlot = day * timeslotsPerDay + slot;
+            const entry = weekEntries.find((e) => e.startTimeslot === absSlot);
+            if (entry) {
+              const span = Math.max(1, entry.durationSlots);
+              for (let s = 1; s < span; s++) occupied.add(slot + s);
+              const { fill, text } = getActivityColor(entry.activityType);
+              const courseName = coursesById.get(entry.courseId)?.name ?? '';
+              const typeName = toTitleLabel(entry.activityType);
+              const extraLines: string[] = [];
+              if (pdfMode === 'groups') {
+                if (entry.professorId) extraLines.push(usersById.get(entry.professorId)?.name ?? '');
+                extraLines.push(roomsById.get(entry.roomId)?.name ?? '');
+              } else if (pdfMode === 'professors') {
+                extraLines.push(groupsById.get(entry.groupId)?.name ?? '');
+                extraLines.push(roomsById.get(entry.roomId)?.name ?? '');
+              } else {
+                extraLines.push(groupsById.get(entry.groupId)?.name ?? '');
+                if (entry.professorId) extraLines.push(usersById.get(entry.professorId)?.name ?? '');
+              }
+              const lines = [courseName, typeName, ...extraLines.filter(Boolean)].join('\n');
+              row.push({
+                content: lines,
+                colSpan: span,
+                styles: { fontSize: 6.5, cellPadding: 1.5, overflow: 'linebreak', valign: 'top', fillColor: fill, textColor: text },
+              });
+            } else {
+              row.push({ content: '', styles: { fillColor: [255,255,255] } });
+            }
+          }
+          body.push(row);
+        }
+        return { head, body };
+      };
+
+      // Estimated height (mm) of one table: header row + day rows
+      const estTableH = 8 + days * 9;
+
+      // ── Render entities ────────────────────────────────────────────────────
+      entities.forEach((entity, entityIndex) => {
+        if (entityIndex > 0) doc.addPage();
+
+        let entityEntries: ScheduledEntry[];
+        if (pdfMode === 'groups') {
+          const groupIds = getGroupAndAncestorIds(entity.id);
+          entityEntries = scheduledEntries.filter((e) => groupIds.has(e.groupId));
+        } else if (pdfMode === 'professors') {
+          entityEntries = scheduledEntries.filter((e) => e.professorId === entity.id);
+        } else {
+          entityEntries = scheduledEntries.filter((e) => e.roomId === entity.id);
+        }
+
+        const drawEntityHeader = (y: number) => {
+          const prefix = '  '.repeat(entity.depth);
+          doc.setFontSize(13);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(40, 40, 40);
+          doc.text(`${prefix}${entity.name}`, 14, y);
+          return y + 9;
+        };
+
+        // Decide layout: can all weeks fit on one page?
+        const totalNeeded = 15 + 9 + weekNumbers.length * (estTableH + (weekNumbers.length > 1 ? 12 : 4));
+        const allFitOnOnePage = totalNeeded <= pageH - 10;
+
+        if (allFitOnOnePage) {
+          // All weeks on one page
+          let currentY = drawEntityHeader(15);
+          weekNumbers.forEach((week) => {
+            if (weekNumbers.length > 1) {
+              doc.setFontSize(9);
+              doc.setFont('helvetica', 'normal');
+              doc.setTextColor(100, 100, 100);
+              doc.text(`Week ${week}`, 14, currentY);
+              currentY += 5;
+            }
+            const { head, body } = buildTable(entityEntries, week);
+            autoTable(doc, {
+              head, body,
+              startY: currentY,
+              theme: 'grid',
+              headStyles: { fillColor: headerColor, textColor: [255,255,255], fontSize: 8, fontStyle: 'bold', halign: 'center' },
+              bodyStyles: { fontSize: 6.5, minCellHeight: 7 },
+              columnStyles: { 0: { cellWidth: 18, halign: 'center', fontStyle: 'bold' } },
+              margin: { left: 14, right: 14 },
+            });
+            currentY = (doc as any).lastAutoTable.finalY + 8;
+          });
+        } else {
+          // Each week on its own page
+          weekNumbers.forEach((week, weekIndex) => {
+            if (weekIndex > 0) doc.addPage();
+            let currentY = drawEntityHeader(15);
+            if (weekNumbers.length > 1) {
+              doc.setFontSize(9);
+              doc.setFont('helvetica', 'normal');
+              doc.setTextColor(100, 100, 100);
+              doc.text(`Week ${week}`, 14, currentY);
+              currentY += 5;
+            }
+            const { head, body } = buildTable(entityEntries, week);
+            autoTable(doc, {
+              head, body,
+              startY: currentY,
+              theme: 'grid',
+              headStyles: { fillColor: headerColor, textColor: [255,255,255], fontSize: 8, fontStyle: 'bold', halign: 'center' },
+              bodyStyles: { fontSize: 6.5, minCellHeight: 7 },
+              columnStyles: { 0: { cellWidth: 18, halign: 'center', fontStyle: 'bold' } },
+              margin: { left: 14, right: 14 },
+            });
+          });
+        }
+      });
+
+      const modeLabel = pdfMode === 'groups' ? 'groups' : pdfMode === 'professors' ? 'professors' : 'rooms';
+      doc.save(`schedule-by-${modeLabel}.pdf`);
+      setPdfDialogOpen(false);
+    } finally {
+      setPdfGenerating(false);
+    }
+  };
 
   // ── Loading / error ────────────────────────────────────────────────────────
 
@@ -631,9 +839,33 @@ export default function ScheduleViewPage() {
                   {scheduledEntries.length} scheduled activit{scheduledEntries.length !== 1 ? 'ies' : 'y'}
                 </Typography>
               </Box>
-              {schedule?.status && (
-                <Chip label={schedule.status} color={scheduleStatusColor(schedule.status)} sx={{ borderRadius: 1.5 }} />
-              )}
+              {/* Right side of header */}
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<DownloadRoundedIcon />}
+                  onClick={() => setPdfDialogOpen(true)}
+                  sx={{ borderRadius: 2 }}
+                >
+                  Download PDF
+                </Button>
+                {canManage && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    color="error"
+                    startIcon={<DeleteOutlineRoundedIcon />}
+                    onClick={() => { setDeleteError(null); setDeleteDialogOpen(true); }}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    Delete
+                  </Button>
+                )}
+                {schedule?.status && (
+                  <Chip label={schedule.status} color={scheduleStatusColor(schedule.status)} sx={{ borderRadius: 1.5 }} />
+                )}
+              </Stack>
             </Box>
           </Paper>
 
@@ -656,18 +888,29 @@ export default function ScheduleViewPage() {
               {/* ── By Group ── */}
               <TabPanel value={activeTab} index={0}>
                 <Stack spacing={2}>
-                  <FormControl size="small" sx={{ minWidth: 220 }}>
-                    <InputLabel>Select a group</InputLabel>
-                    <Select
-                      value={selectedGroupId}
-                      label="Select a group"
-                      onChange={(e) => { setSelectedGroupId(e.target.value); setSelectedWeekByGroup(1); }}
-                      sx={{ borderRadius: 2 }}
-                    >
-                      <MenuItem value=""><em>Select a group</em></MenuItem>
-                      {rootGroupIds.flatMap((id) => renderGroupMenuItems(id))}
-                    </Select>
-                  </FormControl>
+                  <Autocomplete
+                    size="small"
+                    sx={{ minWidth: 260 }}
+                    options={groupOptions}
+                    getOptionLabel={(opt) => opt.label}
+                    value={groupOptions.find((o) => o.id === selectedGroupId) ?? null}
+                    onChange={(_, newVal) => { setSelectedGroupId(newVal?.id ?? ''); setSelectedWeekByGroup(1); }}
+                    isOptionEqualToValue={(opt, val) => opt.id === val.id}
+                    renderInput={(params) => (
+                      <TextField {...params} label="Select a group" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                    )}
+                    renderOption={(props, option) => (
+                      <li {...props} key={option.id} style={{ paddingLeft: 12 + option.depth * 16, fontSize: '0.875rem' }}>
+                        {option.depth > 0 && (
+                          <Box component="span" sx={{ mr: 0.75, color: 'text.disabled', fontSize: '0.75rem', fontFamily: 'monospace' }}>{'└'}</Box>
+                        )}
+                        {option.label}
+                        {option.childCount > 0 && (
+                          <Box component="span" sx={{ ml: 0.75, color: 'text.disabled', fontSize: '0.7rem' }}>({option.childCount})</Box>
+                        )}
+                      </li>
+                    )}
+                  />
 
                   {selectedGroupId ? (
                     <>
@@ -696,21 +939,18 @@ export default function ScheduleViewPage() {
               {/* ── By Professor ── */}
               <TabPanel value={activeTab} index={1}>
                 <Stack spacing={2}>
-                  <FormControl size="small" sx={{ minWidth: 220 }}>
-                    <InputLabel>Select a professor</InputLabel>
-                    <Select
-                      value={selectedProfessorId}
-                      label="Select a professor"
-                      onChange={(e) => { setSelectedProfessorId(e.target.value); setSelectedWeekByProfessor(1); }}
-                      sx={{ borderRadius: 2 }}
-                    >
-                      <MenuItem value=""><em>Select a professor</em></MenuItem>
-                      {professors.map((u) => {
-                        const id = String(u.id ?? u._id ?? '');
-                        return <MenuItem key={id} value={id}>{u.name ?? u.email ?? id}</MenuItem>;
-                      })}
-                    </Select>
-                  </FormControl>
+                  <Autocomplete
+                    size="small"
+                    sx={{ minWidth: 260 }}
+                    options={professors}
+                    getOptionLabel={(u) => u.name ?? u.email ?? String(u.id ?? u._id ?? '')}
+                    value={professors.find((u) => String(u.id ?? u._id ?? '') === selectedProfessorId) ?? null}
+                    onChange={(_, newVal) => { setSelectedProfessorId(newVal ? String(newVal.id ?? newVal._id ?? '') : ''); setSelectedWeekByProfessor(1); }}
+                    isOptionEqualToValue={(opt, val) => String(opt.id ?? opt._id) === String(val.id ?? val._id)}
+                    renderInput={(params) => (
+                      <TextField {...params} label="Select a professor" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                    )}
+                  />
 
                   {selectedProfessorId ? (
                     <>
@@ -739,21 +979,18 @@ export default function ScheduleViewPage() {
               {/* ── By Room ── */}
               <TabPanel value={activeTab} index={2}>
                 <Stack spacing={2}>
-                  <FormControl size="small" sx={{ minWidth: 220 }}>
-                    <InputLabel>Select a room</InputLabel>
-                    <Select
-                      value={selectedRoomId}
-                      label="Select a room"
-                      onChange={(e) => { setSelectedRoomId(e.target.value); setSelectedWeekByRoom(1); }}
-                      sx={{ borderRadius: 2 }}
-                    >
-                      <MenuItem value=""><em>Select a room</em></MenuItem>
-                      {rooms.map((r) => {
-                        const id = String(r.id ?? r._id ?? '');
-                        return <MenuItem key={id} value={id}>{r.name}</MenuItem>;
-                      })}
-                    </Select>
-                  </FormControl>
+                  <Autocomplete
+                    size="small"
+                    sx={{ minWidth: 260 }}
+                    options={rooms}
+                    getOptionLabel={(r) => r.name}
+                    value={rooms.find((r) => String(r.id ?? r._id ?? '') === selectedRoomId) ?? null}
+                    onChange={(_, newVal) => { setSelectedRoomId(newVal ? String(newVal.id ?? newVal._id ?? '') : ''); setSelectedWeekByRoom(1); }}
+                    isOptionEqualToValue={(opt, val) => String(opt.id ?? opt._id) === String(val.id ?? val._id)}
+                    renderInput={(params) => (
+                      <TextField {...params} label="Select a room" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                    )}
+                  />
 
                   {selectedRoomId ? (
                     <>
@@ -782,6 +1019,40 @@ export default function ScheduleViewPage() {
           )}
         </Stack>
       </Box>
+
+      {/* ── Delete schedule dialog ── */}
+      <Dialog open={deleteDialogOpen} onClose={() => !deleteLoading && setDeleteDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Delete schedule?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this schedule? This action cannot be undone.
+          </DialogContentText>
+          {deleteError && <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>{deleteError}</Alert>}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDeleteDialogOpen(false)} disabled={deleteLoading} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleDeleteSchedule} color="error" variant="contained" disabled={deleteLoading} sx={{ borderRadius: 2 }}>
+            {deleteLoading ? <CircularProgress size={18} color="inherit" /> : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={pdfDialogOpen} onClose={() => !pdfGenerating && setPdfDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Download schedule as PDF</DialogTitle>
+        <DialogContent>
+          <RadioGroup value={pdfMode} onChange={(e) => setPdfMode(e.target.value as 'groups' | 'professors' | 'rooms')}>
+            <FormControlLabel value="groups" control={<Radio />} label="By Groups" disabled={pdfGenerating} />
+            <FormControlLabel value="professors" control={<Radio />} label="By Professors" disabled={pdfGenerating} />
+            <FormControlLabel value="rooms" control={<Radio />} label="By Rooms" disabled={pdfGenerating} />
+          </RadioGroup>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setPdfDialogOpen(false)} disabled={pdfGenerating} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleDownloadPdf} variant="contained" disabled={pdfGenerating} sx={{ borderRadius: 2 }}>
+            {pdfGenerating ? <CircularProgress size={18} color="inherit" /> : 'Generate & Download'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </PageContainer>
   );
 }
