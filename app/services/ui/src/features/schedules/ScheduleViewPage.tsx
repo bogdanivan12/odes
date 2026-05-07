@@ -14,8 +14,18 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
+import Radio from '@mui/material/Radio';
+import RadioGroup from '@mui/material/RadioGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
+import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import PageContainer from '../layout/PageContainer';
 import {
   getInstitutionById,
@@ -314,6 +324,10 @@ export default function ScheduleViewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
+  const [pdfMode, setPdfMode] = useState<'groups' | 'professors' | 'rooms'>('groups');
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+
   const [activeTab, setActiveTab] = useState(0);
   const [selectedGroupId, setSelectedGroupId] = useState('');
   const [selectedProfessorId, setSelectedProfessorId] = useState('');
@@ -565,6 +579,190 @@ export default function ScheduleViewPage() {
     </Stack>
   );
 
+  // ── PDF download ───────────────────────────────────────────────────────────
+
+  const handleDownloadPdf = async () => {
+    setPdfGenerating(true);
+    try {
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const pageH = doc.internal.pageSize.getHeight();
+      const headerColor: [number, number, number] = [99, 102, 241]; // indigo header
+
+      // Activity type → [fill, text] colors matching the web calendar
+      const activityColors: Record<string, { fill: [number,number,number]; text: [number,number,number] }> = {
+        course:     { fill: [220, 221, 255], text: [72,  73,  174] }, // indigo
+        seminar:    { fill: [200, 240, 252], text: [5,   138, 162] }, // cyan
+        laboratory: { fill: [255, 237, 213], text: [180, 108,  10] }, // amber/orange
+      };
+      const defaultActivityColor = { fill: [235, 235, 235] as [number,number,number], text: [90, 90, 90] as [number,number,number] };
+
+      const getActivityColor = (type: string) =>
+        activityColors[type.toLowerCase()] ?? defaultActivityColor;
+
+      // ── Build entity list ──────────────────────────────────────────────────
+      type PdfEntity = { id: string; name: string; depth: number };
+      let entities: PdfEntity[] = [];
+
+      if (pdfMode === 'groups') {
+        const orderedGroups: PdfEntity[] = [];
+        const walkGroups = (gId: string, depth: number) => {
+          const g = groupsById.get(gId);
+          if (!g) return;
+          orderedGroups.push({ id: gId, name: g.name, depth });
+          (childrenByParent.get(gId) ?? []).forEach((cId) => walkGroups(cId, depth + 1));
+        };
+        rootGroupIds.forEach((id) => walkGroups(id, 0));
+        entities = orderedGroups;
+      } else if (pdfMode === 'professors') {
+        entities = professors.map((u) => ({ id: String(u.id ?? u._id ?? ''), name: u.name ?? u.email ?? 'Unknown', depth: 0 }));
+      } else {
+        entities = rooms.map((r) => ({ id: String(r.id ?? r._id ?? ''), name: r.name, depth: 0 }));
+      }
+
+      // ── Build one table's data ─────────────────────────────────────────────
+      const buildTable = (entityEntries: ScheduledEntry[], week: number) => {
+        const dayHeaders = Array.from({ length: days }, (_, i) => getDayName(i));
+        const head = [[
+          { content: '', styles: { fillColor: headerColor } },
+          ...dayHeaders.map((d) => ({
+            content: d,
+            styles: { halign: 'center' as const, fillColor: headerColor, textColor: [255,255,255] as [number,number,number], fontStyle: 'bold' as const, fontSize: 8 },
+          })),
+        ]];
+
+        const weekEntries = entityEntries.filter((e) => e.activeWeeks.includes(week));
+        const occupied = new Set<string>();
+        const body: any[][] = [];
+
+        for (let slot = 0; slot < timeslotsPerDay; slot++) {
+          const row: any[] = [{
+            content: String(slot + 1),
+            styles: { halign: 'center', fontStyle: 'bold', textColor: [120,120,120], fontSize: 7, fillColor: [245,245,250] },
+          }];
+          for (let day = 0; day < days; day++) {
+            const key = `${day}-${slot}`;
+            if (occupied.has(key)) continue;
+            const absSlot = day * timeslotsPerDay + slot;
+            const entry = weekEntries.find((e) => e.startTimeslot === absSlot);
+            if (entry) {
+              const span = Math.max(1, entry.durationSlots);
+              for (let s = 1; s < span; s++) occupied.add(`${day}-${slot + s}`);
+              const { fill, text } = getActivityColor(entry.activityType);
+              const courseName = coursesById.get(entry.courseId)?.name ?? '';
+              const typeName = toTitleLabel(entry.activityType);
+              const extraLines: string[] = [];
+              if (pdfMode === 'groups') {
+                if (entry.professorId) extraLines.push(usersById.get(entry.professorId)?.name ?? '');
+                extraLines.push(roomsById.get(entry.roomId)?.name ?? '');
+              } else if (pdfMode === 'professors') {
+                extraLines.push(groupsById.get(entry.groupId)?.name ?? '');
+                extraLines.push(roomsById.get(entry.roomId)?.name ?? '');
+              } else {
+                extraLines.push(groupsById.get(entry.groupId)?.name ?? '');
+                if (entry.professorId) extraLines.push(usersById.get(entry.professorId)?.name ?? '');
+              }
+              const lines = [courseName, typeName, ...extraLines.filter(Boolean)].join('\n');
+              row.push({
+                content: lines,
+                rowSpan: span,
+                styles: { fontSize: 6.5, cellPadding: 1.5, overflow: 'linebreak', valign: 'top', fillColor: fill, textColor: text },
+              });
+            } else {
+              row.push({ content: '', styles: { fillColor: [255,255,255] } });
+            }
+          }
+          body.push(row);
+        }
+        return { head, body };
+      };
+
+      // Estimated height (mm) of one table: header row + timeslot rows
+      const estTableH = 8 + timeslotsPerDay * 7;
+
+      // ── Render entities ────────────────────────────────────────────────────
+      entities.forEach((entity, entityIndex) => {
+        if (entityIndex > 0) doc.addPage();
+
+        let entityEntries: ScheduledEntry[];
+        if (pdfMode === 'groups') {
+          const groupIds = getGroupAndAncestorIds(entity.id);
+          entityEntries = scheduledEntries.filter((e) => groupIds.has(e.groupId));
+        } else if (pdfMode === 'professors') {
+          entityEntries = scheduledEntries.filter((e) => e.professorId === entity.id);
+        } else {
+          entityEntries = scheduledEntries.filter((e) => e.roomId === entity.id);
+        }
+
+        const drawEntityHeader = (y: number) => {
+          const prefix = '  '.repeat(entity.depth);
+          doc.setFontSize(13);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(40, 40, 40);
+          doc.text(`${prefix}${entity.name}`, 14, y);
+          return y + 9;
+        };
+
+        // Decide layout: can all weeks fit on one page?
+        const totalNeeded = 15 + 9 + weekNumbers.length * (estTableH + (weekNumbers.length > 1 ? 12 : 4));
+        const allFitOnOnePage = totalNeeded <= pageH - 10;
+
+        if (allFitOnOnePage) {
+          // All weeks on one page
+          let currentY = drawEntityHeader(15);
+          weekNumbers.forEach((week) => {
+            if (weekNumbers.length > 1) {
+              doc.setFontSize(9);
+              doc.setFont('helvetica', 'normal');
+              doc.setTextColor(100, 100, 100);
+              doc.text(`Week ${week}`, 14, currentY);
+              currentY += 5;
+            }
+            const { head, body } = buildTable(entityEntries, week);
+            autoTable(doc, {
+              head, body,
+              startY: currentY,
+              theme: 'grid',
+              headStyles: { fillColor: headerColor, textColor: [255,255,255], fontSize: 8, fontStyle: 'bold', halign: 'center' },
+              bodyStyles: { fontSize: 6.5, minCellHeight: 7 },
+              columnStyles: { 0: { cellWidth: 12, halign: 'center' } },
+              margin: { left: 14, right: 14 },
+            });
+            currentY = (doc as any).lastAutoTable.finalY + 8;
+          });
+        } else {
+          // Each week on its own page
+          weekNumbers.forEach((week, weekIndex) => {
+            if (weekIndex > 0) doc.addPage();
+            let currentY = drawEntityHeader(15);
+            if (weekNumbers.length > 1) {
+              doc.setFontSize(9);
+              doc.setFont('helvetica', 'normal');
+              doc.setTextColor(100, 100, 100);
+              doc.text(`Week ${week}`, 14, currentY);
+              currentY += 5;
+            }
+            const { head, body } = buildTable(entityEntries, week);
+            autoTable(doc, {
+              head, body,
+              startY: currentY,
+              theme: 'grid',
+              headStyles: { fillColor: headerColor, textColor: [255,255,255], fontSize: 8, fontStyle: 'bold', halign: 'center' },
+              bodyStyles: { fontSize: 6.5, minCellHeight: 7 },
+              columnStyles: { 0: { cellWidth: 12, halign: 'center' } },
+              margin: { left: 14, right: 14 },
+            });
+          });
+        }
+      });
+
+      const modeLabel = pdfMode === 'groups' ? 'groups' : pdfMode === 'professors' ? 'professors' : 'rooms';
+      doc.save(`schedule-by-${modeLabel}.pdf`);
+      setPdfDialogOpen(false);
+    } finally {
+      setPdfGenerating(false);
+    }
+  };
+
   // ── Loading / error ────────────────────────────────────────────────────────
 
   if (loading) {
@@ -631,9 +829,21 @@ export default function ScheduleViewPage() {
                   {scheduledEntries.length} scheduled activit{scheduledEntries.length !== 1 ? 'ies' : 'y'}
                 </Typography>
               </Box>
-              {schedule?.status && (
-                <Chip label={schedule.status} color={scheduleStatusColor(schedule.status)} sx={{ borderRadius: 1.5 }} />
-              )}
+              {/* Right side of header */}
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<DownloadRoundedIcon />}
+                  onClick={() => setPdfDialogOpen(true)}
+                  sx={{ borderRadius: 2 }}
+                >
+                  Download PDF
+                </Button>
+                {schedule?.status && (
+                  <Chip label={schedule.status} color={scheduleStatusColor(schedule.status)} sx={{ borderRadius: 1.5 }} />
+                )}
+              </Stack>
             </Box>
           </Paper>
 
@@ -782,6 +992,23 @@ export default function ScheduleViewPage() {
           )}
         </Stack>
       </Box>
+
+      <Dialog open={pdfDialogOpen} onClose={() => !pdfGenerating && setPdfDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Download schedule as PDF</DialogTitle>
+        <DialogContent>
+          <RadioGroup value={pdfMode} onChange={(e) => setPdfMode(e.target.value as 'groups' | 'professors' | 'rooms')}>
+            <FormControlLabel value="groups" control={<Radio />} label="By Groups" disabled={pdfGenerating} />
+            <FormControlLabel value="professors" control={<Radio />} label="By Professors" disabled={pdfGenerating} />
+            <FormControlLabel value="rooms" control={<Radio />} label="By Rooms" disabled={pdfGenerating} />
+          </RadioGroup>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setPdfDialogOpen(false)} disabled={pdfGenerating} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleDownloadPdf} variant="contained" disabled={pdfGenerating} sx={{ borderRadius: 2 }}>
+            {pdfGenerating ? <CircularProgress size={18} color="inherit" /> : 'Generate & Download'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </PageContainer>
   );
 }
