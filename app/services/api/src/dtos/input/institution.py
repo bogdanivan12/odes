@@ -19,3 +19,11 @@ class UpdateInstitution(BaseModel):
     """
     name: Optional[str] = None
     time_grid_config: Optional[models.TimeGridConfig] = None
+
+
+class SetActiveSchedule(BaseModel):
+    """
+    DTO for setting (or clearing) the active schedule of an institution.
+    Pass schedule_id=null to unset the active schedule.
+    """
+    schedule_id: Optional[str] = None

@@ -40,6 +40,7 @@ import type { InstitutionCourse, InstitutionGroup, InstitutionUser } from '../..
 import type { Group } from '../../types/group';
 import { activityRoute, groupRoute, institutionRoute, memberRoute, INSTITUTIONS_ROUTE } from '../../config/routes';
 import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionAdmin';
+import { useInstitutionSync } from '../../utils/useInstitutionSync';
 import { useTheme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
 
@@ -147,6 +148,7 @@ export default function GroupMainPage() {
   }, []);
 
   const isCurrentUserAdmin = useMemo(() => isInstitutionAdmin(currentUser, group?.institution_id), [currentUser, group?.institution_id]);
+  useInstitutionSync(group?.institution_id);
 
   const groupsById = useMemo(() => {
     const map = new Map<string, InstitutionGroup>();

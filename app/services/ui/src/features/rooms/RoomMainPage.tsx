@@ -34,6 +34,7 @@ import { getInstitutionActivities, getInstitutionCourses, getInstitutionGroups, 
 import type { InstitutionActivity, InstitutionCourse, InstitutionGroup, InstitutionUser } from '../../api/institutions';
 import { activityRoute, courseRoute, groupRoute, institutionRoute, memberRoute, INSTITUTIONS_ROUTE } from '../../config/routes';
 import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionAdmin';
+import { useInstitutionSync } from '../../utils/useInstitutionSync';
 import { useTheme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
 
@@ -142,6 +143,7 @@ export default function RoomMainPage() {
   }, []);
 
   const canManageRoom = useMemo(() => isInstitutionAdmin(currentUser, room?.institution_id), [currentUser, room?.institution_id]);
+  useInstitutionSync(room?.institution_id);
 
   const coursesById = useMemo(() => {
     const map = new Map<string, InstitutionCourse>();

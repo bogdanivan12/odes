@@ -18,6 +18,7 @@ class Institution(BaseModel):
     id: str = Field(default_factory=generate_id, alias="_id")
     name: str
     time_grid_config: TimeGridConfig
+    active_schedule_id: Optional[str] = None
 
     COLLECTION_NAME: ClassVar[str] = "institutions"
 

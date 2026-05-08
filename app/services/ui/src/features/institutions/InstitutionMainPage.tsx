@@ -60,6 +60,7 @@ import {
   memberRoute,
   roomRoute,
   scheduleRoute,
+  institutionMyScheduleRoute,
 } from '../../config/routes';
 import {
   deleteInstitution,
@@ -1374,31 +1375,33 @@ export default function InstitutionMainPage() {
           >
             <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', mb: 2 }}>
               <Typography variant="h5" sx={{ fontWeight: 700 }}>{institution.name}</Typography>
-              {canManageInstitution && (
-                <Stack direction="row" spacing={1}>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<EditOutlinedIcon />}
-                    onClick={openEditDialog}
-                    disabled={isDeleting || isAddingMember}
-                    sx={{ borderRadius: 2 }}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    size="small"
-                    startIcon={<DeleteOutlineIcon />}
-                    onClick={openDeleteDialog}
-                    disabled={isDeleting || isAddingMember}
-                    sx={{ borderRadius: 2 }}
-                  >
-                    Delete
-                  </Button>
-                </Stack>
-              )}
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                {canManageInstitution && (
+                  <>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<EditOutlinedIcon />}
+                      onClick={openEditDialog}
+                      disabled={isDeleting || isAddingMember}
+                      sx={{ borderRadius: 2 }}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      size="small"
+                      startIcon={<DeleteOutlineIcon />}
+                      onClick={openDeleteDialog}
+                      disabled={isDeleting || isAddingMember}
+                      sx={{ borderRadius: 2 }}
+                    >
+                      Delete
+                    </Button>
+                  </>
+                )}
+              </Stack>
             </Box>
             <Stack direction="row" useFlexGap flexWrap="wrap" gap={1}>
               {gridConfigItems.map((cfg) => (
@@ -1422,6 +1425,64 @@ export default function InstitutionMainPage() {
                 </Box>
               ))}
             </Stack>
+          </Box>
+        </Paper>
+
+        {/* ── My Schedule banner ── */}
+        <Paper
+          variant="outlined"
+          onClick={() => institutionId && navigate(institutionMyScheduleRoute(institutionId))}
+          sx={{
+            borderRadius: 3,
+            overflow: 'hidden',
+            cursor: 'pointer',
+            borderColor: institution.active_schedule_id
+              ? alpha(theme.palette.primary.main, 0.5)
+              : 'divider',
+            background: institution.active_schedule_id
+              ? `linear-gradient(135deg, ${alpha(theme.palette.primary.main, theme.palette.mode === 'dark' ? 0.18 : 0.07)} 0%, transparent 70%)`
+              : undefined,
+            transition: 'box-shadow 150ms ease, border-color 150ms ease',
+            '&:hover': {
+              boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.25)}`,
+              borderColor: 'primary.main',
+            },
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 2.5, py: 2 }}>
+            <Box
+              sx={{
+                width: 48, height: 48, borderRadius: 2, flexShrink: 0,
+                bgcolor: institution.active_schedule_id
+                  ? alpha(theme.palette.primary.main, 0.15)
+                  : alpha(theme.palette.text.secondary, 0.08),
+                color: institution.active_schedule_id ? 'primary.main' : 'text.secondary',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <ScheduleIcon sx={{ fontSize: '1.6rem' }} />
+            </Box>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
+                My Schedule
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+                {institution.active_schedule_id
+                  ? 'View your personal timetable for the active schedule'
+                  : 'No active schedule yet — an admin needs to activate one first'}
+              </Typography>
+            </Box>
+            <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 1 }}>
+              {institution.active_schedule_id && (
+                <Chip
+                  label="Active"
+                  size="small"
+                  color="primary"
+                  sx={{ borderRadius: 1.5, fontSize: '0.70rem', height: 20 }}
+                />
+              )}
+              <ArrowForwardRoundedIcon sx={{ fontSize: '1.1rem', color: 'text.disabled' }} />
+            </Box>
           </Box>
         </Paper>
 

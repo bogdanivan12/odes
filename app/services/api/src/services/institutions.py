@@ -528,3 +528,48 @@ def remove_user_from_institution(
         )
 
     logger.info(f"Removed user {user_id} from institution {institution_id}")
+
+
+def set_active_schedule(
+        db: Database,
+        institution_id: str,
+        schedule_id: str | None,
+        current_user_id: str
+) -> models.Institution:
+    """Set or clear the active schedule for an institution (admin only)."""
+    logger.info(f"Setting active schedule for institution {institution_id} to {schedule_id!r}")
+    access_verifiers.raise_institution_forbidden(db, current_user_id, institution_id, admin_only=True)
+
+    if schedule_id is not None:
+        schedule_data = schedules_repo.find_schedule_by_id(db, schedule_id)
+        if not schedule_data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Schedule with id {schedule_id} not found."
+            )
+        schedule = models.Schedule(**schedule_data)
+        if schedule.institution_id != institution_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Schedule {schedule_id} does not belong to institution {institution_id}."
+            )
+
+    try:
+        result = institutions_repo.update_institution_by_id(
+            db, institution_id, {"active_schedule_id": schedule_id}
+        )
+    except Exception as e:
+        logger.error(f"Failed to update active schedule for institution {institution_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error updating active schedule: {str(e)}"
+        )
+
+    if result.matched_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Institution with id {institution_id} not found."
+        )
+
+    logger.info(f"Active schedule for institution {institution_id} set to {schedule_id!r}")
+    return get_institution_by_id(db, institution_id, current_user_id)

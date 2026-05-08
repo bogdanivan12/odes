@@ -165,3 +165,18 @@ async def remove_user_from_institution(
     """Remove all roles from a user for a specific institution"""
     current_user = token_utils.get_user_id_from_token(token)
     service.remove_user_from_institution(db, user_id, institution_id, current_user)
+
+
+@router.put("/{institution_id}/active-schedule",
+            status_code=status.HTTP_200_OK,
+            response_model=dto_out.GetInstitution)
+async def set_active_schedule(
+        db: DB,
+        institution_id: str,
+        request: dto_in.SetActiveSchedule,
+        token: AUTH
+):
+    """Set or clear the active schedule for an institution (admin only)"""
+    current_user_id = token_utils.get_user_id_from_token(token)
+    institution = service.set_active_schedule(db, institution_id, request.schedule_id, current_user_id)
+    return dto_out.GetInstitution(institution=institution)

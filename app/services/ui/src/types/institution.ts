@@ -13,23 +13,27 @@ export interface InstitutionData {
   _id?: string;
   name: string;
   time_grid_config: TimeGridConfig;
+  active_schedule_id?: string | null;
 }
 
 export interface InstitutionShape {
   id: string;
   name: string;
   time_grid_config: TimeGridConfig;
+  active_schedule_id?: string | null;
 }
 
 export class Institution implements InstitutionShape {
   id: string;
   name: string;
   time_grid_config: TimeGridConfig;
+  active_schedule_id?: string | null;
 
   constructor(data: InstitutionData) {
     this.id = data.id ?? data._id ?? '';
     this.name = data.name;
     this.time_grid_config = data.time_grid_config;
+    this.active_schedule_id = data.active_schedule_id ?? null;
   }
 
   static from(data: InstitutionData): Institution {
@@ -41,6 +45,7 @@ export class Institution implements InstitutionShape {
       id: this.id,
       name: this.name,
       time_grid_config: this.time_grid_config,
+      active_schedule_id: this.active_schedule_id,
     };
   }
 }
