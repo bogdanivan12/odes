@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPost } from '../utils/apiClient';
+import { apiDelete, apiGet, apiPost, apiPut } from '../utils/apiClient';
 import { API_INSTITUTIONS_PATH, API_URL } from '../config/constants';
 import { Institution as InstitutionClass } from '../types/institution';
 import type { InstitutionData } from '../types/institution';
@@ -9,6 +9,7 @@ export interface InstitutionUser {
   name?: string;
   email?: string;
   user_roles?: Record<string, string[]>;
+  group_ids?: string[];
 }
 
 export type InstitutionRole = 'student' | 'professor' | 'admin';
@@ -223,6 +224,14 @@ export async function removeRoleFromUser(institutionId: string, userId: string, 
   const url = `${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/users/${userId}/roles/${role}`;
   const headers = buildAuthHeaders();
   await apiDelete<void>(url, headers);
+}
+
+export async function setActiveSchedule(institutionId: string, scheduleId: string | null): Promise<InstitutionClass> {
+  const url = `${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/active-schedule`;
+  const headers = buildAuthHeaders();
+  const res = await apiPut<any>(url, { schedule_id: scheduleId }, headers);
+  const institutionData: InstitutionData = res?.institution ?? res;
+  return InstitutionClass.from(institutionData);
 }
 
 

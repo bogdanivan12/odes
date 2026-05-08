@@ -12,6 +12,7 @@ import { useTheme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
 import Paper from '@mui/material/Paper';
 import PageContainer from '../layout/PageContainer';
+import { INSTITUTIONS_ROUTE, INSTITUTIONS_CREATE_ROUTE, USER_LOGIN_ROUTE, USER_REGISTER_ROUTE } from '../../config/routes';
 
 const FEATURES = [
   {
@@ -31,23 +32,15 @@ const FEATURES = [
   },
 ];
 
-export function Home() {
+export function LandingPage({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
   const navigate = useNavigate();
   const theme = useTheme();
 
   return (
     <PageContainer alignItems="center">
-      <Box
-        sx={{
-          width: '100%',
-          maxWidth: 720,
-          mx: 'auto',
-          textAlign: 'center',
-        }}
-      >
+      <Box sx={{ width: '100%', maxWidth: 720, mx: 'auto', textAlign: 'center' }}>
         {/* Hero */}
         <Box sx={{ mb: 6 }}>
-          {/* Logo mark + app name */}
           <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 2, mb: 3 }}>
             <Box
               sx={{
@@ -93,23 +86,47 @@ export function Home() {
           </Typography>
 
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} justifyContent="center">
-            <Button
-              variant="contained"
-              size="large"
-              endIcon={<ArrowForwardRoundedIcon />}
-              onClick={() => navigate('/institutions')}
-              sx={{ borderRadius: 2, px: 3, py: 1.25 }}
-            >
-              View institutions
-            </Button>
-            <Button
-              variant="outlined"
-              size="large"
-              onClick={() => navigate('/institutions/new')}
-              sx={{ borderRadius: 2, px: 3, py: 1.25 }}
-            >
-              Create institution
-            </Button>
+            {isLoggedIn ? (
+              <>
+                <Button
+                  variant="contained"
+                  size="large"
+                  endIcon={<ArrowForwardRoundedIcon />}
+                  onClick={() => navigate(INSTITUTIONS_ROUTE)}
+                  sx={{ borderRadius: 2, px: 3, py: 1.25 }}
+                >
+                  View institutions
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="large"
+                  onClick={() => navigate(INSTITUTIONS_CREATE_ROUTE)}
+                  sx={{ borderRadius: 2, px: 3, py: 1.25 }}
+                >
+                  Create institution
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="contained"
+                  size="large"
+                  endIcon={<ArrowForwardRoundedIcon />}
+                  onClick={() => navigate(USER_LOGIN_ROUTE)}
+                  sx={{ borderRadius: 2, px: 3, py: 1.25 }}
+                >
+                  Sign in
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="large"
+                  onClick={() => navigate(USER_REGISTER_ROUTE)}
+                  sx={{ borderRadius: 2, px: 3, py: 1.25 }}
+                >
+                  Create account
+                </Button>
+              </>
+            )}
           </Stack>
         </Box>
 
@@ -162,3 +179,7 @@ export function Home() {
     </PageContainer>
   );
 }
+
+// Keep default export alias so existing imports don't break
+export { LandingPage as Home };
+export default LandingPage;

@@ -20,10 +20,14 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
+import Tooltip from '@mui/material/Tooltip';
+import IconButton from '@mui/material/IconButton';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import StarRoundedIcon from '@mui/icons-material/StarRounded';
+import StarOutlineRoundedIcon from '@mui/icons-material/StarOutlineRounded';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import PageContainer from '../layout/PageContainer';
@@ -37,6 +41,7 @@ import {
   getScheduleById,
   getScheduleActivities,
   deleteSchedule,
+  setActiveSchedule,
 } from '../../api/institutions';
 import type {
   InstitutionSchedule,
@@ -49,39 +54,16 @@ import type {
 } from '../../api/institutions';
 import type { Institution as InstitutionClass } from '../../types/institution';
 import type { TimeGridConfig } from '../../types/institution';
-import { institutionSchedulesRoute, activityRoute } from '../../config/routes';
+import { institutionSchedulesRoute } from '../../config/routes';
 import { toTitleLabel, compareAlphabetical } from '../../utils/text';
 import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionAdmin';
+import { useInstitutionSync } from '../../utils/useInstitutionSync';
 import { useTheme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
-
-// ─── Combined view type ───────────────────────────────────────────────────────
-
-interface ScheduledEntry {
-  // from ScheduledActivityRecord
-  schedRecId: string;
-  scheduleId: string;
-  activityId: string;
-  roomId: string;
-  startTimeslot: number;
-  activeWeeks: number[];
-  // from InstitutionActivity
-  activityType: string;
-  courseId: string;
-  groupId: string;
-  professorId: string | null;
-  durationSlots: number;
-  requiredRoomFeatures: string[];
-  frequency: string;
-}
+import CalendarGrid, { getActivityTypeColor, getDayName } from './CalendarGrid';
+import type { ScheduledEntry } from './CalendarGrid';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-function getDayName(dayIndex: number): string {
-  return dayIndex < DAY_NAMES.length ? DAY_NAMES[dayIndex] : `Day ${dayIndex + 1}`;
-}
 
 function scheduleStatusColor(status?: string): 'success' | 'warning' | 'error' | 'default' {
   if (!status) return 'default';
@@ -111,192 +93,6 @@ function TabPanel({ children, value, index }: { children: React.ReactNode; value
   return <Box sx={{ pt: 2 }}>{children}</Box>;
 }
 
-// ─── Calendar grid ────────────────────────────────────────────────────────────
-
-const SLOT_W = 80;       // px per timeslot column
-const DAY_H = 72;        // px per day row
-const DAY_LABEL_W = 56;  // px for the day-name column
-const HDR_H = 32;        // px for the slot-number header row
-
-interface CalendarGridProps {
-  entries: ScheduledEntry[];
-  days: number;
-  timeslotsPerDay: number;
-  selectedWeek: number;
-  coursesById: Map<string, InstitutionCourse>;
-  groupsById: Map<string, InstitutionGroup>;
-  usersById: Map<string, InstitutionUser>;
-  roomsById: Map<string, InstitutionRoom>;
-  getTypeColor: (type: string) => string;
-  entityLabel: string;
-}
-
-function CalendarGrid({
-  entries,
-  days,
-  timeslotsPerDay,
-  selectedWeek,
-  coursesById,
-  groupsById,
-  usersById,
-  roomsById,
-  getTypeColor,
-  entityLabel,
-}: CalendarGridProps) {
-  const theme = useTheme();
-  const navigate = useNavigate();
-
-  const activeEntries = useMemo(
-    () => entries.filter((e) => e.activeWeeks.includes(selectedWeek)),
-    [entries, selectedWeek],
-  );
-
-  if (activeEntries.length === 0) {
-    return (
-      <Box sx={{ textAlign: 'center', py: 6, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-        <Typography variant="body2" color="text.secondary">
-          No activities scheduled for {entityLabel} in week {selectedWeek}.
-        </Typography>
-      </Box>
-    );
-  }
-
-  return (
-    <Box sx={{ overflowX: 'auto', width: '100%' }}>
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          minWidth: DAY_LABEL_W + timeslotsPerDay * SLOT_W,
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: 2,
-          overflow: 'hidden',
-        }}
-      >
-        {/* ── Header row: slot numbers ── */}
-        <Box sx={{ display: 'flex', flexShrink: 0, borderBottom: '1px solid', borderColor: 'divider' }}>
-          {/* Corner */}
-          <Box sx={{ width: DAY_LABEL_W, flexShrink: 0, height: HDR_H, bgcolor: alpha(theme.palette.primary.main, 0.05), borderRight: '1px solid', borderColor: 'divider' }} />
-          {Array.from({ length: timeslotsPerDay }, (_, i) => (
-            <Box
-              key={i}
-              sx={{
-                width: SLOT_W, flexShrink: 0, height: HDR_H,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                bgcolor: alpha(theme.palette.primary.main, 0.05),
-                borderRight: i < timeslotsPerDay - 1 ? '1px solid' : 'none',
-                borderColor: 'divider',
-              }}
-            >
-              <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.70rem' }}>
-                {i + 1}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-
-        {/* ── Day rows ── */}
-        {Array.from({ length: days }, (_, dayIdx) => {
-          const dayEntries = activeEntries.filter(
-            (e) => Math.floor(e.startTimeslot / timeslotsPerDay) === dayIdx,
-          );
-          return (
-            <Box
-              key={dayIdx}
-              sx={{
-                display: 'flex', flexShrink: 0,
-                borderBottom: dayIdx < days - 1 ? '1px solid' : 'none',
-                borderColor: 'divider',
-              }}
-            >
-              {/* Day label */}
-              <Box
-                sx={{
-                  width: DAY_LABEL_W, flexShrink: 0, height: DAY_H,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  bgcolor: alpha(theme.palette.primary.main, 0.02),
-                  borderRight: '1px solid', borderColor: 'divider',
-                }}
-              >
-                <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.72rem' }}>
-                  {getDayName(dayIdx)}
-                </Typography>
-              </Box>
-
-              {/* Slots area — relative container for absolute activity cards */}
-              <Box sx={{ position: 'relative', width: timeslotsPerDay * SLOT_W, height: DAY_H, flexShrink: 0 }}>
-                {/* Vertical slot dividers */}
-                {Array.from({ length: timeslotsPerDay }, (_, i) => (
-                  <Box
-                    key={i}
-                    sx={{
-                      position: 'absolute',
-                      left: i * SLOT_W, top: 0, width: SLOT_W, height: DAY_H,
-                      borderRight: i < timeslotsPerDay - 1 ? '1px solid' : 'none',
-                      borderColor: 'divider',
-                    }}
-                  />
-                ))}
-
-                {/* Activity cards — span horizontally */}
-                {dayEntries.map((e) => {
-                  const slotIdx = e.startTimeslot % timeslotsPerDay;
-                  const typeColor = getTypeColor(e.activityType);
-                  const courseName = coursesById.get(e.courseId)?.name ?? '—';
-                  const groupName = groupsById.get(e.groupId)?.name ?? '—';
-                  const profName = e.professorId
-                    ? (usersById.get(e.professorId)?.name ?? usersById.get(e.professorId)?.email ?? '—')
-                    : null;
-                  const roomName = roomsById.get(e.roomId)?.name ?? '—';
-                  return (
-                    <Box
-                      key={e.schedRecId}
-                      onClick={() => navigate(activityRoute(e.activityId))}
-                      sx={{
-                        position: 'absolute',
-                        top: 2, height: DAY_H - 4,
-                        left: slotIdx * SLOT_W + 2,
-                        width: e.durationSlots * SLOT_W - 4,
-                        borderRadius: 1.5,
-                        bgcolor: alpha(typeColor, 0.1),
-                        borderLeft: '3px solid',
-                        borderLeftColor: typeColor,
-                        p: '4px 6px',
-                        cursor: 'pointer',
-                        overflow: 'hidden',
-                        '&:hover': { bgcolor: alpha(typeColor, 0.2) },
-                      }}
-                    >
-                      <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', lineHeight: 1.25, fontSize: '0.68rem', mb: 0.25 }}>
-                        {courseName}
-                      </Typography>
-                      <Typography variant="caption" sx={{ display: 'block', fontSize: '0.60rem', color: 'text.secondary', lineHeight: 1.3 }}>
-                        {toTitleLabel(e.activityType)}
-                      </Typography>
-                      <Typography variant="caption" sx={{ display: 'block', fontSize: '0.60rem', color: 'text.secondary', lineHeight: 1.3 }}>
-                        {groupName}
-                      </Typography>
-                      {profName && (
-                        <Typography variant="caption" sx={{ display: 'block', fontSize: '0.60rem', color: 'text.secondary', lineHeight: 1.3 }}>
-                          {profName}
-                        </Typography>
-                      )}
-                      <Typography variant="caption" sx={{ display: 'block', fontSize: '0.60rem', color: 'text.secondary', lineHeight: 1.3 }}>
-                        {roomName}
-                      </Typography>
-                    </Box>
-                  );
-                })}
-              </Box>
-            </Box>
-          );
-        })}
-      </Box>
-    </Box>
-  );
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function ScheduleViewPage() {
@@ -322,6 +118,8 @@ export default function ScheduleViewPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [activeToggleLoading, setActiveToggleLoading] = useState(false);
+  const [activeToggleError, setActiveToggleError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<InstitutionUser | null>(null);
 
   const [activeTab, setActiveTab] = useState(0);
@@ -388,6 +186,7 @@ export default function ScheduleViewPage() {
     () => isInstitutionAdmin(currentUser, schedule?.institution_id),
     [currentUser, schedule?.institution_id],
   );
+  useInstitutionSync(schedule?.institution_id);
 
   // ── Build lookup maps ──────────────────────────────────────────────────────
 
@@ -455,17 +254,23 @@ export default function ScheduleViewPage() {
   // Backend stores active_weeks as 0-indexed; convert to 1-indexed to match the week selector.
 
   const scheduledEntries = useMemo<ScheduledEntry[]>(() => {
+    const totalWeeks = institution?.time_grid_config?.weeks ?? 1;
+    const allWeeks = Array.from({ length: totalWeeks }, (_, i) => i + 1);
     return schedRecords
       .map((rec) => {
         const act = activitiesById.get(String(rec.activity_id ?? ''));
         if (!act) return null;
+        const freq = (act.frequency ?? '').toLowerCase();
+        const activeWeeks = freq === 'weekly'
+          ? allWeeks
+          : (rec.active_weeks ?? []).map((w) => w + 1);
         return {
           schedRecId: String(rec.id ?? rec._id ?? ''),
           scheduleId: rec.schedule_id,
           activityId: String(rec.activity_id),
           roomId: String(rec.room_id),
           startTimeslot: rec.start_timeslot,
-          activeWeeks: (rec.active_weeks ?? []).map((w) => w + 1),
+          activeWeeks,
           activityType: act.activity_type,
           courseId: String(act.course_id),
           groupId: String(act.group_id),
@@ -476,7 +281,7 @@ export default function ScheduleViewPage() {
         } satisfies ScheduledEntry;
       })
       .filter((e): e is ScheduledEntry => e !== null);
-  }, [schedRecords, activitiesById]);
+  }, [schedRecords, activitiesById, institution]);
 
   // ── Time grid ──────────────────────────────────────────────────────────────
 
@@ -499,14 +304,7 @@ export default function ScheduleViewPage() {
 
   // ── Type colour ────────────────────────────────────────────────────────────
 
-  const getTypeColor = (type: string): string => {
-    switch (type.toLowerCase()) {
-      case 'course': return theme.palette.primary.main;
-      case 'seminar': return theme.palette.secondary.main;
-      case 'laboratory': return theme.palette.warning.main;
-      default: return theme.palette.text.secondary;
-    }
-  };
+  const getTypeColor = getActivityTypeColor;
 
   // ── Group ancestor lookup ──────────────────────────────────────────────────
   // Activities assigned to a parent group apply to all child groups.
@@ -586,6 +384,25 @@ export default function ScheduleViewPage() {
       setDeleteError((err as Error).message || 'Failed to delete schedule.');
     } finally {
       setDeleteLoading(false);
+    }
+  };
+
+  // ── Active schedule toggle ─────────────────────────────────────────────────
+
+  const isActive = institution?.active_schedule_id === scheduleId;
+  const isCompleted = schedule?.status?.toLowerCase() === 'completed';
+
+  const handleToggleActive = async () => {
+    if (!schedule?.institution_id || !scheduleId) return;
+    setActiveToggleLoading(true);
+    setActiveToggleError(null);
+    try {
+      const updated = await setActiveSchedule(schedule.institution_id, isActive ? null : scheduleId);
+      setInstitution(updated);
+    } catch (err) {
+      setActiveToggleError((err as Error).message || 'Failed to update active schedule.');
+    } finally {
+      setActiveToggleLoading(false);
     }
   };
 
@@ -841,6 +658,32 @@ export default function ScheduleViewPage() {
               </Box>
               {/* Right side of header */}
               <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
+                {schedule?.status && (
+                  <Chip label={schedule.status} color={scheduleStatusColor(schedule.status)} sx={{ borderRadius: 1.5 }} />
+                )}
+                {isActive && (
+                  <Chip label="Active" color="primary" size="small" sx={{ borderRadius: 1.5 }} />
+                )}
+                {canManage && isCompleted && (
+                  <Tooltip title={isActive ? 'Unset as active schedule' : 'Set as active schedule'}>
+                    <span>
+                      <IconButton
+                        size="small"
+                        color={isActive ? 'primary' : 'default'}
+                        disabled={activeToggleLoading}
+                        onClick={handleToggleActive}
+                        sx={{ borderRadius: 1.5 }}
+                      >
+                        {activeToggleLoading
+                          ? <CircularProgress size={16} />
+                          : isActive
+                            ? <StarRoundedIcon fontSize="small" />
+                            : <StarOutlineRoundedIcon fontSize="small" />
+                        }
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                )}
                 <Button
                   variant="outlined"
                   size="small"
@@ -862,12 +705,13 @@ export default function ScheduleViewPage() {
                     Delete
                   </Button>
                 )}
-                {schedule?.status && (
-                  <Chip label={schedule.status} color={scheduleStatusColor(schedule.status)} sx={{ borderRadius: 1.5 }} />
-                )}
               </Stack>
             </Box>
           </Paper>
+
+          {activeToggleError && (
+            <Alert severity="error" sx={{ borderRadius: 2 }}>{activeToggleError}</Alert>
+          )}
 
           {!schedule && (
             <Alert severity="error" sx={{ borderRadius: 2 }}>Schedule not found.</Alert>

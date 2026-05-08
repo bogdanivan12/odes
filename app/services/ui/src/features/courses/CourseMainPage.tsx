@@ -38,6 +38,7 @@ import type { InstitutionGroup, InstitutionUser } from '../../api/institutions';
 import type { Course } from '../../types/course';
 import { activityRoute, groupRoute, institutionRoute, memberRoute, INSTITUTIONS_ROUTE } from '../../config/routes';
 import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionAdmin';
+import { useInstitutionSync } from '../../utils/useInstitutionSync';
 import { useTheme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
 
@@ -139,6 +140,7 @@ export default function CourseMainPage() {
   }, []);
 
   const canManageCourse = useMemo(() => isInstitutionAdmin(currentUser, course?.institution_id), [currentUser, course?.institution_id]);
+  useInstitutionSync(course?.institution_id);
 
   const groupsById = useMemo(() => {
     const map = new Map<string, InstitutionGroup>();

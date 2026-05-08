@@ -18,7 +18,7 @@ import LightModeRoundedIcon from '@mui/icons-material/LightModeRounded';
 import AccountCircleRoundedIcon from '@mui/icons-material/AccountCircleRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
-import { institutionRoute, PROFILE_ROUTE, USER_LOGIN_ROUTE } from '../../config/routes';
+import { institutionRoute, MY_SCHEDULE_ROUTE, PROFILE_ROUTE, USER_LOGIN_ROUTE } from '../../config/routes';
 import { getInstitutions } from '../../api/institutions';
 import TextField from '@mui/material/TextField';
 import Divider from '@mui/material/Divider';
@@ -223,6 +223,20 @@ export default function ResponsiveAppBar() {
     syncSelectedInstitutionFromStorage(institutions);
   }, [institutions, syncSelectedInstitutionFromStorage]);
 
+  // Auto-sync selected institution from the URL for /institutions/:id/* routes.
+  // This fires synchronously on navigation — no API call needed.
+  React.useEffect(() => {
+    const match = location.pathname.match(/^\/institutions\/([^/]+)/);
+    if (!match) return;
+    const urlInstId = match[1];
+    if (!urlInstId || urlInstId === 'new') return;
+    if (String(selectedInstitution?.id) === urlInstId) return;
+    const inst = institutions.find((i) => String(i.id) === urlInstId);
+    if (!inst) return;
+    setSelectedInstitution(inst);
+    try { localStorage.setItem('selectedInstitutionId', String(inst.id)); } catch (_) { /* ignore */ }
+  }, [location.pathname, institutions, selectedInstitution]);
+
   React.useEffect(() => {
     if (anchorElNav) {
       const t = setTimeout(() => {
@@ -296,6 +310,35 @@ export default function ResponsiveAppBar() {
           </Box>
 
           {/* ── Desktop divider ── */}
+          <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 1.5, display: { xs: 'none', md: 'block' } }} />
+
+          {/* ── My Schedule link (desktop) ── */}
+          {(() => {
+            const isMyScheduleActive = location.pathname === MY_SCHEDULE_ROUTE;
+            return (
+              <Button
+                onClick={() => navigate(MY_SCHEDULE_ROUTE)}
+                startIcon={<CalendarMonthIcon sx={{ fontSize: '1rem !important' }} />}
+                sx={{
+                  display: { xs: 'none', md: 'inline-flex' },
+                  fontSize: '0.875rem',
+                  fontWeight: isMyScheduleActive ? 600 : 400,
+                  color: isMyScheduleActive ? 'primary.main' : 'text.secondary',
+                  borderRadius: 0,
+                  px: 1.5,
+                  py: 0,
+                  minHeight: 64,
+                  borderBottom: isMyScheduleActive ? '2px solid' : '2px solid transparent',
+                  borderColor: isMyScheduleActive ? 'primary.main' : 'transparent',
+                  whiteSpace: 'nowrap',
+                  '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
+                }}
+              >
+                My Schedule
+              </Button>
+            );
+          })()}
+
           <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 1.5, display: { xs: 'none', md: 'block' } }} />
 
           {/* ── Institution selector ── */}
@@ -569,6 +612,17 @@ export default function ResponsiveAppBar() {
             }}
           >
             <Box sx={{ px: 1.5, py: 1, minWidth: 220 }}>
+              {/* My Schedule */}
+              <MenuItem
+                onClick={() => { handleCloseNavMenu(); navigate(MY_SCHEDULE_ROUTE); }}
+                selected={location.pathname === MY_SCHEDULE_ROUTE}
+                sx={{ borderRadius: 1.5, fontSize: '0.875rem', py: 0.75, mb: 0.25 }}
+              >
+                <ListItemIcon><CalendarMonthIcon fontSize="small" /></ListItemIcon>
+                My Schedule
+              </MenuItem>
+              <Divider sx={{ my: 0.5 }} />
+
               {selectedInstitution && (
                 <>
                   <Box sx={{ px: 1, pb: 1 }}>
