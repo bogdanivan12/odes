@@ -28,6 +28,7 @@ import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import StarRoundedIcon from '@mui/icons-material/StarRounded';
 import StarOutlineRoundedIcon from '@mui/icons-material/StarOutlineRounded';
+import EditCalendarRoundedIcon from '@mui/icons-material/EditCalendarRounded';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import PageContainer from '../layout/PageContainer';
@@ -54,7 +55,7 @@ import type {
 } from '../../api/institutions';
 import type { Institution as InstitutionClass } from '../../types/institution';
 import type { TimeGridConfig } from '../../types/institution';
-import { institutionSchedulesRoute } from '../../config/routes';
+import { institutionSchedulesRoute, scheduleEditRoute } from '../../config/routes';
 import { toTitleLabel, compareAlphabetical } from '../../utils/text';
 import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionAdmin';
 import { useInstitutionSync } from '../../utils/useInstitutionSync';
@@ -683,6 +684,17 @@ export default function ScheduleViewPage() {
                       </IconButton>
                     </span>
                   </Tooltip>
+                )}
+                {canManage && isCompleted && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<EditCalendarRoundedIcon />}
+                    onClick={() => navigate(scheduleEditRoute(scheduleId!))}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    Edit
+                  </Button>
                 )}
                 <Button
                   variant="outlined"

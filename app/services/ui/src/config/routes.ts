@@ -14,6 +14,7 @@ export const INSTITUTION_ACTIVITIES_ROUTE = '/institutions/:institutionId/activi
 export const INSTITUTION_SCHEDULES_ROUTE = '/institutions/:institutionId/schedules';
 export const INSTITUTION_MY_SCHEDULE_ROUTE = '/institutions/:institutionId/my-schedule';
 export const SCHEDULE_VIEW_ROUTE = '/schedules/:scheduleId';
+export const SCHEDULE_EDIT_ROUTE = '/schedules/:scheduleId/edit';
 export const COURSE_ROUTE = '/courses/:courseId';
 export const GROUP_ROUTE = '/groups/:groupId';
 export const ROOM_ROUTE = '/rooms/:roomId';
@@ -33,5 +34,6 @@ export const courseRoute = (courseId: string) => `/courses/${courseId}`;
 export const roomRoute = (roomId: string) => `/rooms/${roomId}`;
 export const activityRoute = (activityId: string) => `/activities/${activityId}`;
 export const scheduleRoute = (scheduleId: string) => `/schedules/${scheduleId}`;
+export const scheduleEditRoute = (scheduleId: string) => `/schedules/${scheduleId}/edit`;
 export const institutionSchedulesRoute = (institutionId: string) => `/institutions/${institutionId}/schedules`;
 export const institutionMyScheduleRoute = (institutionId: string) => `/institutions/${institutionId}/my-schedule`;

@@ -64,3 +64,33 @@ async def get_scheduled_activities_by_schedule_id(db: DB, schedule_id: str, toke
         db, schedule_id, current_user_id
     )
     return dto_out.GetScheduledActivitiesBySchedule(scheduled_activities=scheduled_activities)
+
+
+@router.post("/{schedule_id}/check-conflicts",
+             status_code=status.HTTP_200_OK,
+             response_model=dto_out.CheckConflictsResponse)
+async def check_conflicts(
+    db: DB, schedule_id: str, request: dto_in.CheckConflictsRequest, token: AUTH
+):
+    """
+    Simulate a batch of timeslot/room changes and return any conflicts they introduce.
+    All pending changes are evaluated together so swapping two activities doesn't
+    falsely flag itself as a conflict.
+    """
+    current_user_id = token_utils.get_user_id_from_token(token)
+    return service.check_conflicts(db, schedule_id, request, current_user_id)
+
+
+@router.patch("/{schedule_id}/records",
+              status_code=status.HTTP_200_OK,
+              response_model=dto_out.GetScheduledActivitiesBySchedule)
+async def batch_update_records(
+    db: DB, schedule_id: str, request: dto_in.BatchUpdateRecordsRequest, token: AUTH
+):
+    """
+    Apply a batch of timeslot/room changes in-place.
+    Returns HTTP 409 with a conflict list when conflicts exist and force=false.
+    """
+    current_user_id = token_utils.get_user_id_from_token(token)
+    updated = service.batch_update_records(db, schedule_id, request, current_user_id)
+    return dto_out.GetScheduledActivitiesBySchedule(scheduled_activities=updated)
