@@ -12,6 +12,10 @@ class TimeGridConfig(BaseModel):
     days: int
     timeslots_per_day: int
     max_timeslots_per_day_per_group: int
+    start_hour: int = 8
+    start_minute: int = 0
+    timeslot_duration_minutes: int = 60
+    start_day: int = 0  # 0=Monday, 5=Saturday
 
 
 class Institution(BaseModel):
@@ -32,6 +36,17 @@ class UserRole(str, Enum):
     ADMIN = "admin"
 
 
+class TimeslotPreferenceValue(str, Enum):
+    DESIRED = "desired"
+    NOT_IDEAL = "not_ideal"
+    UNAVAILABLE = "unavailable"
+
+
+class TimeslotPreference(BaseModel):
+    slot: int  # 0-indexed absolute slot: week * days * tpd + day * tpd + slot_in_day
+    preference: TimeslotPreferenceValue
+
+
 class User(BaseModel):
     id: str = Field(default_factory=generate_id, alias="_id")
     name: str
@@ -41,6 +56,8 @@ class User(BaseModel):
     # mapping institution_ids to lists of roles
     user_roles: Dict[str, List[UserRole]] = Field(default_factory=dict)
     group_ids: List[str] = Field(default_factory=list)
+    # professor timeslot preferences per institution
+    timeslot_preferences: Dict[str, List[TimeslotPreference]] = Field(default_factory=dict)
 
     COLLECTION_NAME: ClassVar[str] = "users"
 

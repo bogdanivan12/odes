@@ -61,7 +61,7 @@ import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionA
 import { useInstitutionSync } from '../../utils/useInstitutionSync';
 import { useTheme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
-import CalendarGrid, { getActivityTypeColor, getDayName } from './CalendarGrid';
+import CalendarGrid, { getActivityTypeColor, getDayName, slotToTime } from './CalendarGrid';
 import type { ScheduledEntry } from './CalendarGrid';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -413,7 +413,6 @@ export default function ScheduleViewPage() {
     setPdfGenerating(true);
     try {
       const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-      const pageH = doc.internal.pageSize.getHeight();
       const headerColor: [number, number, number] = [99, 102, 241]; // indigo header
 
       // Activity type → [fill, text] colors matching the web calendar
@@ -448,14 +447,19 @@ export default function ScheduleViewPage() {
       }
 
       // ── Build one table's data (days = rows, slots = columns) ────────────────
+      const startHour = timeGrid?.start_hour ?? 8;
+      const startMinute = timeGrid?.start_minute ?? 0;
+      const slotDuration = timeGrid?.timeslot_duration_minutes ?? 60;
+      const startDay = timeGrid?.start_day ?? 0;
+
       const buildTable = (entityEntries: ScheduledEntry[], week: number) => {
         const weekEntries = entityEntries.filter((e) => e.activeWeeks.includes(week));
 
-        // Header: empty corner + one column per slot
+        // Header: empty corner + one column per slot (showing actual time)
         const head = [[
           { content: '', styles: { fillColor: headerColor } },
           ...Array.from({ length: timeslotsPerDay }, (_, i) => ({
-            content: String(i + 1),
+            content: slotToTime(i, startHour, slotDuration, startMinute),
             styles: { halign: 'center' as const, fillColor: headerColor, textColor: [255,255,255] as [number,number,number], fontStyle: 'bold' as const, fontSize: 8 },
           })),
         ]];
@@ -464,7 +468,7 @@ export default function ScheduleViewPage() {
         const body: any[][] = [];
         for (let day = 0; day < days; day++) {
           const row: any[] = [{
-            content: getDayName(day),
+            content: getDayName(startDay + day),
             styles: { halign: 'center', fontStyle: 'bold', textColor: [120,120,120], fontSize: 7, fillColor: [245,245,250] },
           }];
           const occupied = new Set<number>(); // occupied slot indices in this day row
@@ -504,9 +508,6 @@ export default function ScheduleViewPage() {
         return { head, body };
       };
 
-      // Estimated height (mm) of one table: header row + day rows
-      const estTableH = 8 + days * 9;
-
       // ── Render entities ────────────────────────────────────────────────────
       entities.forEach((entity, entityIndex) => {
         if (entityIndex > 0) doc.addPage();
@@ -530,57 +531,28 @@ export default function ScheduleViewPage() {
           return y + 9;
         };
 
-        // Decide layout: can all weeks fit on one page?
-        const totalNeeded = 15 + 9 + weekNumbers.length * (estTableH + (weekNumbers.length > 1 ? 12 : 4));
-        const allFitOnOnePage = totalNeeded <= pageH - 10;
-
-        if (allFitOnOnePage) {
-          // All weeks on one page
+        // Each week on its own page
+        weekNumbers.forEach((week, weekIndex) => {
+          if (weekIndex > 0) doc.addPage();
           let currentY = drawEntityHeader(15);
-          weekNumbers.forEach((week) => {
-            if (weekNumbers.length > 1) {
-              doc.setFontSize(9);
-              doc.setFont('helvetica', 'normal');
-              doc.setTextColor(100, 100, 100);
-              doc.text(`Week ${week}`, 14, currentY);
-              currentY += 5;
-            }
-            const { head, body } = buildTable(entityEntries, week);
-            autoTable(doc, {
-              head, body,
-              startY: currentY,
-              theme: 'grid',
-              headStyles: { fillColor: headerColor, textColor: [255,255,255], fontSize: 8, fontStyle: 'bold', halign: 'center' },
-              bodyStyles: { fontSize: 6.5, minCellHeight: 7 },
-              columnStyles: { 0: { cellWidth: 18, halign: 'center', fontStyle: 'bold' } },
-              margin: { left: 14, right: 14 },
-            });
-            currentY = (doc as any).lastAutoTable.finalY + 8;
+          if (weekNumbers.length > 1) {
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(100, 100, 100);
+            doc.text(`Week ${week}`, 14, currentY);
+            currentY += 5;
+          }
+          const { head, body } = buildTable(entityEntries, week);
+          autoTable(doc, {
+            head, body,
+            startY: currentY,
+            theme: 'grid',
+            headStyles: { fillColor: headerColor, textColor: [255,255,255], fontSize: 8, fontStyle: 'bold', halign: 'center' },
+            bodyStyles: { fontSize: 6.5, minCellHeight: 7 },
+            columnStyles: { 0: { cellWidth: 18, halign: 'center', fontStyle: 'bold' } },
+            margin: { left: 14, right: 14 },
           });
-        } else {
-          // Each week on its own page
-          weekNumbers.forEach((week, weekIndex) => {
-            if (weekIndex > 0) doc.addPage();
-            let currentY = drawEntityHeader(15);
-            if (weekNumbers.length > 1) {
-              doc.setFontSize(9);
-              doc.setFont('helvetica', 'normal');
-              doc.setTextColor(100, 100, 100);
-              doc.text(`Week ${week}`, 14, currentY);
-              currentY += 5;
-            }
-            const { head, body } = buildTable(entityEntries, week);
-            autoTable(doc, {
-              head, body,
-              startY: currentY,
-              theme: 'grid',
-              headStyles: { fillColor: headerColor, textColor: [255,255,255], fontSize: 8, fontStyle: 'bold', halign: 'center' },
-              bodyStyles: { fontSize: 6.5, minCellHeight: 7 },
-              columnStyles: { 0: { cellWidth: 18, halign: 'center', fontStyle: 'bold' } },
-              margin: { left: 14, right: 14 },
-            });
-          });
-        }
+        });
       });
 
       const modeLabel = pdfMode === 'groups' ? 'groups' : pdfMode === 'professors' ? 'professors' : 'rooms';
@@ -782,6 +754,10 @@ export default function ScheduleViewPage() {
                         roomsById={roomsById}
                         getTypeColor={getTypeColor}
                         entityLabel={groupsById.get(selectedGroupId)?.name ?? 'group'}
+                        startHour={timeGrid?.start_hour ?? 8}
+                        startMinute={timeGrid?.start_minute ?? 0}
+                        timeslotDurationMinutes={timeGrid?.timeslot_duration_minutes ?? 60}
+                        startDay={timeGrid?.start_day ?? 0}
                       />
                     </>
                   ) : (
@@ -822,6 +798,10 @@ export default function ScheduleViewPage() {
                         roomsById={roomsById}
                         getTypeColor={getTypeColor}
                         entityLabel={usersById.get(selectedProfessorId)?.name ?? 'professor'}
+                        startHour={timeGrid?.start_hour ?? 8}
+                        startMinute={timeGrid?.start_minute ?? 0}
+                        timeslotDurationMinutes={timeGrid?.timeslot_duration_minutes ?? 60}
+                        startDay={timeGrid?.start_day ?? 0}
                       />
                     </>
                   ) : (
@@ -862,6 +842,10 @@ export default function ScheduleViewPage() {
                         roomsById={roomsById}
                         getTypeColor={getTypeColor}
                         entityLabel={rooms.find((r) => String(r.id ?? r._id ?? '') === selectedRoomId)?.name ?? 'room'}
+                        startHour={timeGrid?.start_hour ?? 8}
+                        startMinute={timeGrid?.start_minute ?? 0}
+                        timeslotDurationMinutes={timeGrid?.timeslot_duration_minutes ?? 60}
+                        startDay={timeGrid?.start_day ?? 0}
                       />
                     </>
                   ) : (

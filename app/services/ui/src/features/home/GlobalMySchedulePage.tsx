@@ -98,6 +98,7 @@ export default function GlobalMySchedulePage() {
   const [error, setError] = useState<string | null>(null);
 
   const [filterInstitutionId, setFilterInstitutionId] = useState<string | null>(null);
+  const [filterGroupId, setFilterGroupId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(0);
   const [studentWeek, setStudentWeek] = useState(1);
   const [professorWeek, setProfessorWeek] = useState(1);
@@ -179,14 +180,63 @@ export default function GlobalMySchedulePage() {
     return [...dataMap.values()];
   }, [dataMap, filterInstitutionId]);
 
-  // Combined time grid — use max values across selected institutions
+  function gcd(a: number, b: number): number {
+    return b === 0 ? a : gcd(b, a % b);
+  }
+
+  // Global time range derived from all selected institutions
+  const globalStartMinutes = useMemo(
+    () => selectedData.length === 0 ? 8 * 60 : Math.min(
+      ...selectedData.map((d) => (d.institution.time_grid_config?.start_hour ?? 8) * 60 + (d.institution.time_grid_config?.start_minute ?? 0)),
+    ),
+    [selectedData],
+  );
+  const globalEndMinutes = useMemo(
+    () => selectedData.length === 0 ? 20 * 60 : Math.max(
+      ...selectedData.map((d) => {
+        const tgc = d.institution.time_grid_config;
+        return (tgc?.start_hour ?? 8) * 60 + (tgc?.timeslots_per_day ?? 8) * (tgc?.timeslot_duration_minutes ?? 60);
+      }),
+    ),
+    [selectedData],
+  );
+  const globalSlotDuration = useMemo(() => {
+    if (selectedData.length === 0) return 60;
+    // Start with GCD of all individual slot durations
+    let g = selectedData[0].institution.time_grid_config?.timeslot_duration_minutes ?? 60;
+    for (const d of selectedData) {
+      g = gcd(g, d.institution.time_grid_config?.timeslot_duration_minutes ?? 60);
+    }
+    // Also fold in every institution's start-time offset from globalStartMinutes.
+    // This guarantees each institution's first slot lands exactly on a grid boundary.
+    // e.g. inst A starts 6:00, inst B starts 8:30 → offset 150 min → gcd(60,150)=30
+    for (const d of selectedData) {
+      const tgc = d.institution.time_grid_config;
+      const instStart = (tgc?.start_hour ?? 8) * 60 + (tgc?.start_minute ?? 0);
+      const offset = instStart - globalStartMinutes;
+      if (offset > 0) g = gcd(g, offset);
+    }
+    return Math.max(1, g);
+  }, [selectedData, globalStartMinutes]);
   const currentTimeslotsPerDay = useMemo(
-    () => Math.max(1, ...selectedData.map((d) => d.institution.time_grid_config?.timeslots_per_day ?? 8)),
+    () => Math.max(1, Math.round((globalEndMinutes - globalStartMinutes) / globalSlotDuration)),
+    [globalStartMinutes, globalEndMinutes, globalSlotDuration],
+  );
+  // Global day range: from earliest start_day to latest end_day across institutions
+  const globalStartDay = useMemo(
+    () => selectedData.length === 0 ? 0 : Math.min(
+      ...selectedData.map((d) => d.institution.time_grid_config?.start_day ?? 0),
+    ),
     [selectedData],
   );
   const currentDays = useMemo(
-    () => Math.max(1, ...selectedData.map((d) => d.institution.time_grid_config?.days ?? 5)),
-    [selectedData],
+    () => selectedData.length === 0 ? 5 : Math.max(
+      ...selectedData.map((d) => {
+        const tgc = d.institution.time_grid_config;
+        return (tgc?.start_day ?? 0) + (tgc?.days ?? 5) - globalStartDay;
+      }),
+    ),
+    [selectedData, globalStartDay],
   );
   const currentWeeks = useMemo(
     () => Math.max(1, ...selectedData.map((d) => d.institution.time_grid_config?.weeks ?? 1)),
@@ -196,6 +246,9 @@ export default function GlobalMySchedulePage() {
     () => Array.from({ length: currentWeeks }, (_, i) => i + 1),
     [currentWeeks],
   );
+
+  // Reset group filter when institution filter changes
+  useEffect(() => { setFilterGroupId(null); }, [filterInstitutionId]);
 
   // Reset week when it's out of range for the newly selected institution
   useEffect(() => {
@@ -236,14 +289,16 @@ export default function GlobalMySchedulePage() {
     return map;
   }, [selectedData]);
 
-  // Build ScheduledEntry[] for all selected institutions, normalising
-  // startTimeslot to currentTimeslotsPerDay so entries from institutions
-  // with different grid configs display in the correct column.
+  // Build ScheduledEntry[] for all selected institutions using time-based normalisation.
+  // Each activity's absolute start time (minutes from midnight) is mapped to a global slot index.
   const scheduledEntries = useMemo((): ScheduledEntry[] => {
     return selectedData.flatMap((d) => {
       const instId = String(d.institution.id ?? (d.institution as any)._id ?? '');
-      const tpd = d.institution.time_grid_config?.timeslots_per_day ?? 8;
-      const instWeeks = d.institution.time_grid_config?.weeks ?? 1;
+      const tgc = d.institution.time_grid_config;
+      const tpd = tgc?.timeslots_per_day ?? 8;
+      const instStartMinutes = (tgc?.start_hour ?? 8) * 60 + (tgc?.start_minute ?? 0);
+      const instSlotDuration = tgc?.timeslot_duration_minutes ?? 60;
+      const instWeeks = tgc?.weeks ?? 1;
       const allInstWeeks = Array.from({ length: instWeeks }, (_, i) => i + 1);
 
       const activitiesById = new Map<string, InstitutionActivity>();
@@ -263,10 +318,14 @@ export default function GlobalMySchedulePage() {
             ? allInstWeeks
             : (rec.active_weeks ?? []).map((w) => w + 1);
 
-        // Normalise to common grid
-        const dayIdx = Math.floor(rec.start_timeslot / tpd);
+        // Convert institution-relative slot to global slot index
+        const localDayIdx = Math.floor(rec.start_timeslot / tpd);
         const slotIdx = rec.start_timeslot % tpd;
-        const normalizedStart = dayIdx * currentTimeslotsPerDay + slotIdx;
+        const absDay = (tgc?.start_day ?? 0) + localDayIdx - globalStartDay;
+        const absMinutes = instStartMinutes + slotIdx * instSlotDuration;
+        const globalSlotIdx = Math.round((absMinutes - globalStartMinutes) / globalSlotDuration);
+        const normalizedStart = absDay * currentTimeslotsPerDay + globalSlotIdx;
+        const normalizedDuration = Math.max(1, Math.round((activity.duration_slots * instSlotDuration) / globalSlotDuration));
 
         return [{
           schedRecId: `${instId}-${String(rec.id ?? rec._id ?? '')}`,
@@ -279,14 +338,14 @@ export default function GlobalMySchedulePage() {
           courseId: String(activity.course_id ?? ''),
           groupId: String(activity.group_id ?? ''),
           professorId: activity.professor_id ? String(activity.professor_id) : null,
-          durationSlots: activity.duration_slots,
+          durationSlots: normalizedDuration,
           requiredRoomFeatures: activity.required_room_features ?? [],
           frequency: activity.frequency,
           institutionId: instId,
         }] as ScheduledEntry[];
       });
     });
-  }, [selectedData, currentTimeslotsPerDay]);
+  }, [selectedData, globalStartMinutes, globalSlotDuration, globalStartDay, currentTimeslotsPerDay]);
 
   // User's groups (direct + ancestors) across all selected institutions
   const myGroupIds = useMemo((): Set<string> => {
@@ -342,6 +401,39 @@ export default function GlobalMySchedulePage() {
   const studentEntries = useMemo(
     () => scheduledEntries.filter((e) => myGroupIds.has(e.groupId)),
     [scheduledEntries, myGroupIds],
+  );
+
+  // Direct group IDs the user belongs to, limited to the selected institution (for the group filter chips)
+  const myDirectGroupIds = useMemo((): Set<string> => {
+    const userGroupIds = new Set(currentUser?.group_ids ?? []);
+    const sourceGroups = filterInstitutionId
+      ? (dataMap.get(filterInstitutionId)?.groups ?? [])
+      : selectedData.flatMap((d) => d.groups);
+    const direct = new Set<string>();
+    sourceGroups.forEach((g) => {
+      const gId = String(g.id ?? g._id ?? '');
+      if (gId && userGroupIds.has(gId)) direct.add(gId);
+    });
+    return direct;
+  }, [currentUser, filterInstitutionId, dataMap, selectedData]);
+
+  // Group filter: expand selected group to include all ancestor groups
+  const filterGroupIds = useMemo((): Set<string> | null => {
+    if (!filterGroupId) return null;
+    const ids = new Set<string>([filterGroupId]);
+    const walkUp = (gId: string) => {
+      const g = combinedGroupsById.get(gId);
+      if (!g || !g.parent_group_id) return;
+      const parentId = String(g.parent_group_id);
+      if (!ids.has(parentId)) { ids.add(parentId); walkUp(parentId); }
+    };
+    walkUp(filterGroupId);
+    return ids;
+  }, [filterGroupId, combinedGroupsById]);
+
+  const filteredStudentEntries = useMemo(
+    () => filterGroupIds ? studentEntries.filter((e) => filterGroupIds.has(e.groupId)) : studentEntries,
+    [studentEntries, filterGroupIds],
   );
 
   const professorEntries = useMemo(
@@ -433,6 +525,30 @@ export default function GlobalMySchedulePage() {
                 </Stack>
               )}
 
+              {/* Group filter chips — shown when an institution is selected and user has direct groups */}
+              {filterInstitutionId && myDirectGroupIds.size > 0 && isStudent && (
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
+                  <SchoolRoundedIcon sx={{ fontSize: '0.9rem', color: 'text.secondary' }} />
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                    Group:
+                  </Typography>
+                  {[...myDirectGroupIds].map((gId) => {
+                    const isSelected = filterGroupId === gId;
+                    return (
+                      <Chip
+                        key={gId}
+                        label={combinedGroupsById.get(gId)?.name ?? gId}
+                        size="small"
+                        color={isSelected ? 'secondary' : 'default'}
+                        variant={isSelected ? 'filled' : 'outlined'}
+                        onClick={() => setFilterGroupId(isSelected ? null : gId)}
+                        sx={{ borderRadius: 1.5, fontSize: '0.72rem', height: 24, cursor: 'pointer' }}
+                      />
+                    );
+                  })}
+                </Stack>
+              )}
+
               {/* Link to the selected institution's full schedule (when filtered) */}
               {filterInstitutionId && (() => {
                 const d = dataMap.get(filterInstitutionId);
@@ -504,7 +620,7 @@ export default function GlobalMySchedulePage() {
                       <Stack spacing={2}>
                         <WeekSelector weekNumbers={weekNumbers} selectedWeek={studentWeek} onSelect={setStudentWeek} />
                         <CalendarGrid
-                          entries={studentEntries}
+                          entries={filteredStudentEntries}
                           days={currentDays}
                           timeslotsPerDay={currentTimeslotsPerDay}
                           selectedWeek={studentWeek}
@@ -514,6 +630,10 @@ export default function GlobalMySchedulePage() {
                           roomsById={combinedRoomsById}
                           getTypeColor={getActivityTypeColor}
                           entityLabel="your groups"
+                          startHour={Math.floor(globalStartMinutes / 60)}
+                          startMinute={globalStartMinutes % 60}
+                          timeslotDurationMinutes={globalSlotDuration}
+                          startDay={globalStartDay}
                         />
                       </Stack>
                     </TabPanel>
@@ -533,6 +653,10 @@ export default function GlobalMySchedulePage() {
                           roomsById={combinedRoomsById}
                           getTypeColor={getActivityTypeColor}
                           entityLabel="you"
+                          startHour={Math.floor(globalStartMinutes / 60)}
+                          startMinute={globalStartMinutes % 60}
+                          timeslotDurationMinutes={globalSlotDuration}
+                          startDay={globalStartDay}
                         />
                       </Stack>
                     </TabPanel>

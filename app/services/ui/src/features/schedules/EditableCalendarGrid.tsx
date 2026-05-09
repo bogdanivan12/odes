@@ -28,7 +28,7 @@ import type {
   InstitutionRoom,
 } from '../../api/institutions';
 import type { ScheduledEntry } from './CalendarGrid';
-import { DAY_H, DAY_LABEL_W, HDR_H, SLOT_W, getDayName, getActivityTypeColor } from './CalendarGrid';
+import { DAY_H, DAY_LABEL_W, HDR_H, SLOT_W, getDayName, getActivityTypeColor, slotToTime } from './CalendarGrid';
 
 // ─── Droppable cell ────────────────────────────────────────────────────────
 
@@ -298,6 +298,10 @@ export interface EditableCalendarGridProps {
   activeDropId: string | null; // id of the cell being hovered during drag
   onRoomChange: (recordId: string, newRoomId: string) => void;
   isDragActive: boolean;
+  startHour?: number;
+  startMinute?: number;
+  timeslotDurationMinutes?: number;
+  startDay?: number;
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────
@@ -317,6 +321,10 @@ export default function EditableCalendarGrid({
   activeDropId,
   onRoomChange,
   isDragActive,
+  startHour = 8,
+  startMinute = 0,
+  timeslotDurationMinutes = 60,
+  startDay = 0,
 }: EditableCalendarGridProps) {
   const theme = useTheme();
 
@@ -350,7 +358,7 @@ export default function EditableCalendarGrid({
               }}
             >
               <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.70rem' }}>
-                {i + 1}
+                {slotToTime(i, startHour, timeslotDurationMinutes, startMinute)}
               </Typography>
             </Box>
           ))}
@@ -382,7 +390,7 @@ export default function EditableCalendarGrid({
                 }}
               >
                 <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.72rem' }}>
-                  {getDayName(dayIdx)}
+                  {getDayName(startDay + dayIdx)}
                 </Typography>
               </Box>
 

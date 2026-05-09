@@ -27,6 +27,8 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import ToggleButton from '@mui/material/ToggleButton';
 import GroupIcon from '@mui/icons-material/Group';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import Diversity3Icon from '@mui/icons-material/Diversity3';
@@ -136,17 +138,100 @@ async function removeRoleFromUser(institutionId: string, userId: string, role: I
   });
 }
 
+type ScheduleType = '2' | '5' | '7';
+const SCHEDULE_TYPE_CONFIG: Record<ScheduleType, { days: number; startDay: number }> = {
+  '2': { days: 2, startDay: 5 },
+  '5': { days: 5, startDay: 0 },
+  '7': { days: 7, startDay: 0 },
+};
+
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+
+const SLOT_DURATION_OPTIONS = [
+  { value: 15, label: '15 min' },
+  { value: 20, label: '20 min' },
+  { value: 25, label: '25 min' },
+  { value: 30, label: '30 min' },
+  { value: 45, label: '45 min' },
+  { value: 50, label: '50 min' },
+  { value: 60, label: '1 h' },
+  { value: 75, label: '1 h 15 min' },
+  { value: 90, label: '1 h 30 min' },
+  { value: 100, label: '1 h 40 min' },
+  { value: 120, label: '2 h' },
+];
+
+function nearestMinute(value: number): number {
+  return MINUTES.reduce((prev, curr) => Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev);
+}
+
+function nearestSlotDuration(value: number): number {
+  return SLOT_DURATION_OPTIONS.map((o) => o.value).reduce((prev, curr) => Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev);
+}
+
+function fmtTime(hour: string, minute: string) {
+  return `${String(parseInt(hour) || 0).padStart(2, '0')}:${String(parseInt(minute) || 0).padStart(2, '0')}`;
+}
+
+function EditTimePicker({
+  label,
+  hour,
+  minute,
+  onHourChange,
+  onMinuteChange,
+  disabled,
+}: {
+  label: string;
+  hour: string;
+  minute: string;
+  onHourChange: (h: string) => void;
+  onMinuteChange: (m: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <Box sx={{ flex: 1 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 0.75, fontSize: '0.8rem' }}>
+        {label}
+      </Typography>
+      <Stack direction="row" spacing={0.5} alignItems="center">
+        <FormControl size="small" disabled={disabled} sx={{ flex: 1 }}>
+          <InputLabel sx={{ fontSize: '0.8rem' }}>hh</InputLabel>
+          <Select value={hour} label="hh" onChange={(e) => onHourChange(e.target.value as string)} sx={{ borderRadius: 2, fontSize: '0.9rem' }}>
+            {HOURS.map((h) => (
+              <MenuItem key={h} value={String(h)} sx={{ fontSize: '0.875rem' }}>{String(h).padStart(2, '0')}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <Typography sx={{ fontWeight: 700, color: 'text.secondary', userSelect: 'none' }}>:</Typography>
+        <FormControl size="small" disabled={disabled} sx={{ flex: 1 }}>
+          <InputLabel sx={{ fontSize: '0.8rem' }}>mm</InputLabel>
+          <Select value={minute} label="mm" onChange={(e) => onMinuteChange(e.target.value as string)} sx={{ borderRadius: 2, fontSize: '0.9rem' }}>
+            {MINUTES.map((m) => (
+              <MenuItem key={m} value={String(m)} sx={{ fontSize: '0.875rem' }}>{String(m).padStart(2, '0')}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Stack>
+    </Box>
+  );
+}
+
 type EditFormValues = {
   name: string;
   weeks: string;
-  days: string;
-  timeslotsPerDay: string;
+  scheduleType: ScheduleType;
+  startHour: string;
+  startMinute: string;
+  endHour: string;
+  endMinute: string;
+  slotDuration: string;
   maxTimeslotsPerDayPerGroup: string;
 };
 
 async function updateInstitutionData(
   institutionId: string,
-  payload: { name: string; time_grid_config: { weeks: number; days: number; timeslots_per_day: number; max_timeslots_per_day_per_group: number } },
+  payload: { name: string; time_grid_config: { weeks: number; days: number; timeslots_per_day: number; max_timeslots_per_day_per_group: number; start_hour: number; start_minute: number; timeslot_duration_minutes: number; start_day: number } },
 ) {
   const res = await apiPut<any>(`${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}`, payload, getAuthHeaders());
   return (res?.institution ?? res) as Institution;
@@ -447,7 +532,7 @@ export default function InstitutionMainPage() {
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
   const [removeMemberError, setRemoveMemberError] = useState<string | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editValues, setEditValues] = useState<EditFormValues>({ name: '', weeks: '2', days: '5', timeslotsPerDay: '12', maxTimeslotsPerDayPerGroup: '8' });
+  const [editValues, setEditValues] = useState<EditFormValues>({ name: '', weeks: '2', scheduleType: '5', startHour: '8', startMinute: '0', endHour: '20', endMinute: '0', slotDuration: '60', maxTimeslotsPerDayPerGroup: '8' });
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -1082,12 +1167,24 @@ export default function InstitutionMainPage() {
 
   const openEditDialog = () => {
     if (!institution) return;
+    const tgc = institution.time_grid_config;
+    const slotDuration = nearestSlotDuration(tgc.timeslot_duration_minutes ?? 60);
+    const startHour = tgc.start_hour ?? 8;
+    const startMinute = nearestMinute(tgc.start_minute ?? 0);
+    const endTotalMins = startHour * 60 + startMinute + tgc.timeslots_per_day * slotDuration;
+    const endHour = Math.floor(endTotalMins / 60);
+    const endMinute = nearestMinute(endTotalMins % 60);
+    const scheduleType: ScheduleType = (tgc.start_day ?? 0) >= 5 ? '2' : (tgc.days ?? 5) >= 7 ? '7' : '5';
     setEditValues({
       name: institution.name,
-      weeks: String(institution.time_grid_config.weeks),
-      days: String(institution.time_grid_config.days),
-      timeslotsPerDay: String(institution.time_grid_config.timeslots_per_day),
-      maxTimeslotsPerDayPerGroup: String(institution.time_grid_config.max_timeslots_per_day_per_group),
+      weeks: String(tgc.weeks),
+      scheduleType,
+      startHour: String(startHour),
+      startMinute: String(startMinute),
+      endHour: String(endHour),
+      endMinute: String(endMinute),
+      slotDuration: String(slotDuration),
+      maxTimeslotsPerDayPerGroup: String(tgc.max_timeslots_per_day_per_group),
     });
     setEditError(null);
     setIsEditDialogOpen(true);
@@ -1099,28 +1196,43 @@ export default function InstitutionMainPage() {
     setEditError(null);
   };
 
+  const editTimeslotsPerDay = useMemo(() => {
+    const startMins = parseInt(editValues.startHour) * 60 + parseInt(editValues.startMinute || '0');
+    const endMins = parseInt(editValues.endHour) * 60 + parseInt(editValues.endMinute || '0');
+    const sd = parseInt(editValues.slotDuration);
+    if (isNaN(startMins) || isNaN(endMins) || isNaN(sd) || sd <= 0 || endMins <= startMins) return 0;
+    return Math.floor((endMins - startMins) / sd);
+  }, [editValues.startHour, editValues.startMinute, editValues.endHour, editValues.endMinute, editValues.slotDuration]);
+
   const handleEditSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!institutionId) return;
 
     const weeks = parseInt(editValues.weeks, 10);
-    const days = parseInt(editValues.days, 10);
-    const timeslotsPerDay = parseInt(editValues.timeslotsPerDay, 10);
     const maxTimeslotsPerDayPerGroup = parseInt(editValues.maxTimeslotsPerDayPerGroup, 10);
+    const { days, startDay } = SCHEDULE_TYPE_CONFIG[editValues.scheduleType];
 
     if (!editValues.name.trim()) { setEditError('Institution name is required.'); return; }
     if (!Number.isInteger(weeks) || weeks <= 0) { setEditError('Weeks rotation must be a positive integer.'); return; }
-    if (!Number.isInteger(days) || days <= 0) { setEditError('Days per week must be a positive integer.'); return; }
-    if (!Number.isInteger(timeslotsPerDay) || timeslotsPerDay <= 0) { setEditError('Timeslots per day must be a positive integer.'); return; }
+    if (editTimeslotsPerDay <= 0) { setEditError('End time must be after start time.'); return; }
     if (!Number.isInteger(maxTimeslotsPerDayPerGroup) || maxTimeslotsPerDayPerGroup <= 0) { setEditError('Max timeslots per day per group must be a positive integer.'); return; }
-    if (maxTimeslotsPerDayPerGroup > timeslotsPerDay) { setEditError('Max timeslots per group cannot exceed timeslots per day.'); return; }
+    if (maxTimeslotsPerDayPerGroup > editTimeslotsPerDay) { setEditError('Max timeslots per group cannot exceed timeslots per day.'); return; }
 
     setEditLoading(true);
     setEditError(null);
     try {
       const updated = await updateInstitutionData(institutionId, {
         name: editValues.name.trim(),
-        time_grid_config: { weeks, days, timeslots_per_day: timeslotsPerDay, max_timeslots_per_day_per_group: maxTimeslotsPerDayPerGroup },
+        time_grid_config: {
+          weeks,
+          days,
+          timeslots_per_day: editTimeslotsPerDay,
+          max_timeslots_per_day_per_group: maxTimeslotsPerDayPerGroup,
+          start_hour: parseInt(editValues.startHour, 10),
+          start_minute: parseInt(editValues.startMinute || '0', 10),
+          timeslot_duration_minutes: parseInt(editValues.slotDuration, 10),
+          start_day: startDay,
+        },
       });
       setInstitution(updated);
       try { window.dispatchEvent(new Event('institutionsChanged')); } catch { /* ignore */ }
@@ -1728,58 +1840,92 @@ export default function InstitutionMainPage() {
                 label="Institution name"
                 value={editValues.name}
                 onChange={(e) => setEditValues((prev) => ({ ...prev, name: e.target.value }))}
-                required
-                fullWidth
-                autoFocus
-                disabled={editLoading}
+                required fullWidth autoFocus disabled={editLoading}
               />
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <TextField
-                  label="Week rotation"
-                  type="number"
-                  value={editValues.weeks}
-                  onChange={(e) => setEditValues((prev) => ({ ...prev, weeks: e.target.value }))}
-                  slotProps={{ htmlInput: { min: 1 } }}
-                  required
-                  fullWidth
+
+              <TextField
+                label="Week rotation"
+                type="number"
+                value={editValues.weeks}
+                onChange={(e) => setEditValues((prev) => ({ ...prev, weeks: e.target.value }))}
+                slotProps={{ htmlInput: { min: 1 } }}
+                required fullWidth disabled={editLoading}
+                helperText="Distinct week patterns (e.g. 2 for alternating weeks)"
+              />
+
+              <Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontSize: '0.875rem' }}>
+                  Days per week
+                </Typography>
+                <ToggleButtonGroup
+                  value={editValues.scheduleType}
+                  exclusive
+                  onChange={(_, v) => { if (v) setEditValues((prev) => ({ ...prev, scheduleType: v as ScheduleType })); }}
                   disabled={editLoading}
-                  helperText="Number of distinct week patterns"
+                  size="small"
+                  sx={{ '& .MuiToggleButton-root': { borderRadius: 2, px: 2 } }}
+                >
+                  <ToggleButton value="2">2 days (Weekend)</ToggleButton>
+                  <ToggleButton value="5">5 days (Mon–Fri)</ToggleButton>
+                  <ToggleButton value="7">7 days (Full week)</ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <EditTimePicker
+                  label="Start time"
+                  hour={editValues.startHour} minute={editValues.startMinute}
+                  onHourChange={(h) => setEditValues((prev) => ({ ...prev, startHour: h }))}
+                  onMinuteChange={(m) => setEditValues((prev) => ({ ...prev, startMinute: m }))}
+                  disabled={editLoading}
                 />
-                <TextField
-                  label="Days per week"
-                  type="number"
-                  value={editValues.days}
-                  onChange={(e) => setEditValues((prev) => ({ ...prev, days: e.target.value }))}
-                  slotProps={{ htmlInput: { min: 1 } }}
-                  required
-                  fullWidth
+                <EditTimePicker
+                  label="End time"
+                  hour={editValues.endHour} minute={editValues.endMinute}
+                  onHourChange={(h) => setEditValues((prev) => ({ ...prev, endHour: h }))}
+                  onMinuteChange={(m) => setEditValues((prev) => ({ ...prev, endMinute: m }))}
                   disabled={editLoading}
                 />
               </Stack>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <TextField
-                  label="Timeslots per day"
-                  type="number"
-                  value={editValues.timeslotsPerDay}
-                  onChange={(e) => setEditValues((prev) => ({ ...prev, timeslotsPerDay: e.target.value }))}
-                  slotProps={{ htmlInput: { min: 1 } }}
-                  required
-                  fullWidth
-                  disabled={editLoading}
+
+              <FormControl fullWidth disabled={editLoading}>
+                <InputLabel>Slot duration</InputLabel>
+                <Select
+                  value={editValues.slotDuration}
+                  label="Slot duration"
+                  onChange={(e) => setEditValues((prev) => ({ ...prev, slotDuration: e.target.value as string }))}
+                  sx={{ borderRadius: 2 }}
+                >
+                  {SLOT_DURATION_OPTIONS.map(({ value, label }) => (
+                    <MenuItem key={value} value={String(value)}>{label}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Chip
+                  label={editTimeslotsPerDay > 0 ? `${editTimeslotsPerDay} timeslots per day` : 'Invalid range'}
+                  color={editTimeslotsPerDay > 0 ? 'primary' : 'error'}
+                  variant="outlined" size="small" sx={{ borderRadius: 1.5 }}
                 />
-                <TextField
-                  label="Max timeslots / group / day"
-                  type="number"
-                  value={editValues.maxTimeslotsPerDayPerGroup}
-                  onChange={(e) => setEditValues((prev) => ({ ...prev, maxTimeslotsPerDayPerGroup: e.target.value }))}
-                  slotProps={{ htmlInput: { min: 1 } }}
-                  required
-                  fullWidth
-                  disabled={editLoading}
-                  helperText="Cannot exceed timeslots per day"
-                />
-              </Stack>
-              {editError && <Alert severity="error">{editError}</Alert>}
+                {editTimeslotsPerDay > 0 && (
+                  <Typography variant="caption" color="text.secondary">
+                    ({fmtTime(editValues.startHour, editValues.startMinute)} – {fmtTime(editValues.endHour, editValues.endMinute)}, {SLOT_DURATION_OPTIONS.find((o) => o.value === parseInt(editValues.slotDuration))?.label ?? `${editValues.slotDuration} min`} each)
+                  </Typography>
+                )}
+              </Box>
+
+              <TextField
+                label="Max timeslots / group / day"
+                type="number"
+                value={editValues.maxTimeslotsPerDayPerGroup}
+                onChange={(e) => setEditValues((prev) => ({ ...prev, maxTimeslotsPerDayPerGroup: e.target.value }))}
+                slotProps={{ htmlInput: { min: 1 } }}
+                required fullWidth disabled={editLoading}
+                helperText={editTimeslotsPerDay > 0 ? `Cannot exceed ${editTimeslotsPerDay} timeslots per day` : undefined}
+              />
+
+              {editError && <Alert severity="error" sx={{ borderRadius: 2 }}>{editError}</Alert>}
             </Stack>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2.5 }}>

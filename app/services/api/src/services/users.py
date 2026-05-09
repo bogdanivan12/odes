@@ -199,6 +199,45 @@ def update_user(db: Database, user_id: str, request: dto_in.UpdateUser) -> model
     return get_user_by_id(db, user_id)
 
 
+def update_timeslot_preferences(
+    db: Database, user_id: str, institution_id: str, request: dto_in.UpdateTimeslotPreferences
+) -> models.User:
+    """Set professor timeslot preferences for a specific institution"""
+    logger.info(f"Updating timeslot preferences for user {user_id}, institution {institution_id}")
+
+    user = get_user_by_id(db, user_id)
+
+    # Verify the user is a professor in this institution
+    roles = user.user_roles.get(institution_id, [])
+    if models.UserRole.PROFESSOR not in roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"User is not a professor in institution {institution_id}",
+        )
+
+    # Verify institution exists
+    inst = institutions_repo.find_institution_by_id(db, institution_id)
+    if not inst:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Institution with id {institution_id} not found",
+        )
+
+    prefs_data = [p.model_dump() for p in request.preferences]
+    try:
+        users_repo.update_user_by_id(
+            db, user_id, {f"timeslot_preferences.{institution_id}": prefs_data}
+        )
+    except Exception as e:
+        logger.error(f"Failed to update timeslot preferences for user {user_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error updating timeslot preferences: {str(e)}",
+        )
+
+    return get_user_by_id(db, user_id)
+
+
 def get_professor_activities(db: Database, professor_id: str) -> List[models.Activity]:
     """Get all activities for a specific professor"""
     logger.info(f"Fetching activities for professor {professor_id}")

@@ -73,6 +73,10 @@ export interface CreateInstitutionRequest {
     days: number;
     timeslots_per_day: number;
     max_timeslots_per_day_per_group: number;
+    start_hour: number;
+    start_minute: number;
+    timeslot_duration_minutes: number;
+    start_day: number;
   };
 }
 
@@ -83,6 +87,10 @@ export interface UpdateInstitutionRequest {
     days: number;
     timeslots_per_day: number;
     max_timeslots_per_day_per_group: number;
+    start_hour: number;
+    start_minute: number;
+    timeslot_duration_minutes: number;
+    start_day: number;
   };
 }
 
