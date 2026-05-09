@@ -287,6 +287,54 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
         } for activity in activities
     }
 
+    # ── Professor work-hour preferences ───────────────────────────────────────
+    # Preferences are week-independent: slot = day * tpd + slot_in_day
+    prof_unavailable: dict = {}   # prof_id -> set of unavailable slot indices
+    prof_not_ideal: dict = {}     # prof_id -> set of not-ideal slot indices
+
+    for prof in professors:
+        inst_prefs = prof.timeslot_preferences.get(institution_id, [])
+        unavail = {p.slot for p in inst_prefs if p.preference == models.TimeslotPreferenceValue.UNAVAILABLE}
+        not_ideal = {p.slot for p in inst_prefs if p.preference == models.TimeslotPreferenceValue.NOT_IDEAL}
+        if unavail:
+            prof_unavailable[prof.id] = unavail
+        if not_ideal:
+            prof_not_ideal[prof.id] = not_ideal
+
+    # Hard constraints: no activity may be placed at a slot the professor is unavailable for
+    for activity in activities:
+        if not activity.professor_id:
+            continue
+        unavail = prof_unavailable.get(activity.professor_id, set())
+        if not unavail:
+            continue
+        for room in activity.possible_rooms:
+            for start in allowed_starts_map[activity.id]:
+                covered = covered_slots_map[activity.id][start]
+                if covered & unavail:
+                    # Block this (room, start) choice entirely — applies to all weeks
+                    model.Add(allocation_map[activity.id][room.id][start] == 0)
+
+    # Soft constraints: penalise placements that overlap not-ideal slots
+    # Weight = number of overlapping not-ideal slots in the placement
+    penalty_terms = []   # list of (weight, BoolVar)
+    for activity in activities:
+        if not activity.professor_id:
+            continue
+        not_ideal = prof_not_ideal.get(activity.professor_id, set())
+        if not not_ideal:
+            continue
+        for room in activity.possible_rooms:
+            for start in allowed_starts_map[activity.id]:
+                covered = covered_slots_map[activity.id][start]
+                overlap = len(covered & not_ideal)
+                if overlap > 0:
+                    penalty_terms.append((overlap, allocation_map[activity.id][room.id][start]))
+
+    if penalty_terms:
+        model.Minimize(sum(w * v for w, v in penalty_terms))
+        logger.info(f"Soft constraints: {len(penalty_terms)} not-ideal penalty terms added.")
+
     room_ids = [room.id for room in rooms]
     for week in range(institution.time_grid_config.weeks):
         for room_id in room_ids:
@@ -366,8 +414,9 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
     # ---- Solve ----
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = 60.0
-    solver.parameters.stop_after_first_solution = True
     solver.parameters.num_search_workers = 8
+    # stop_after_first_solution is intentionally omitted so that the solver can
+    # minimise the not-ideal penalty when soft constraints are present
     start_time = time.time()
     result = solver.Solve(model)
     end_time = time.time()
