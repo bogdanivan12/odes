@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPost, apiPut } from '../utils/apiClient';
+import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from '../utils/apiClient';
 import { API_INSTITUTIONS_PATH, API_URL } from '../config/constants';
 import { Institution as InstitutionClass } from '../types/institution';
 import type { InstitutionData } from '../types/institution';
@@ -232,6 +232,48 @@ export async function setActiveSchedule(institutionId: string, scheduleId: strin
   const res = await apiPut<any>(url, { schedule_id: scheduleId }, headers);
   const institutionData: InstitutionData = res?.institution ?? res;
   return InstitutionClass.from(institutionData);
+}
+
+// ── Schedule editing ──────────────────────────────────────────────────────────
+
+const API_SCHEDULES_PATH = '/api/v1/schedules';
+
+export interface ScheduleChangeItem {
+  record_id: string;
+  new_start_timeslot: number;
+  new_room_id: string;
+}
+
+export interface ConflictItem {
+  type: 'room' | 'professor' | 'group';
+  conflicting_record_id: string;
+  description: string;
+}
+
+export interface RecordConflicts {
+  record_id: string;
+  conflicts: ConflictItem[];
+}
+
+export async function checkScheduleConflicts(
+  scheduleId: string,
+  changes: ScheduleChangeItem[],
+): Promise<RecordConflicts[]> {
+  const url = `${API_URL}${API_SCHEDULES_PATH}/${scheduleId}/check-conflicts`;
+  const headers = buildAuthHeaders();
+  const res = await apiPost<{ results: RecordConflicts[] }>(url, { changes }, headers);
+  return res?.results ?? [];
+}
+
+export async function batchUpdateScheduleRecords(
+  scheduleId: string,
+  changes: ScheduleChangeItem[],
+  force: boolean,
+): Promise<ScheduledActivityRecord[]> {
+  const url = `${API_URL}${API_SCHEDULES_PATH}/${scheduleId}/records`;
+  const headers = buildAuthHeaders();
+  const res = await apiPatch<{ scheduled_activities: any[] }>(url, { changes, force }, headers);
+  return (res?.scheduled_activities ?? []) as ScheduledActivityRecord[];
 }
 
 

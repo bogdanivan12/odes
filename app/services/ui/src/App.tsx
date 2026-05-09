@@ -16,6 +16,7 @@ import {
   INSTITUTION_MY_SCHEDULE_ROUTE,
   MY_SCHEDULE_ROUTE,
   SCHEDULE_VIEW_ROUTE,
+  SCHEDULE_EDIT_ROUTE,
   INSTITUTION_ROUTE,
   INSTITUTION_UPDATE_ROUTE,
   INSTITUTIONS_ROUTE,
@@ -45,6 +46,7 @@ import InstitutionActivities from './features/activities/InstitutionActivities';
 import ActivityMainPage from './features/activities/ActivityMainPage';
 import InstitutionSchedules from './features/schedules/InstitutionSchedules';
 import ScheduleViewPage from './features/schedules/ScheduleViewPage';
+import ScheduleEditPage from './features/schedules/ScheduleEditPage';
 import MySchedulePage from './features/schedules/MySchedulePage';
 import InstitutionMembers from './features/members/InstitutionMembers';
 import MemberMainPage from './features/members/MemberMainPage';
@@ -75,6 +77,7 @@ function App() {
           <Route path={MY_SCHEDULE_ROUTE} element={<GlobalMySchedulePage />} />
           <Route path={INSTITUTION_MY_SCHEDULE_ROUTE} element={<MySchedulePage />} />
           <Route path={SCHEDULE_VIEW_ROUTE} element={<ScheduleViewPage />} />
+          <Route path={SCHEDULE_EDIT_ROUTE} element={<ScheduleEditPage />} />
           <Route path={COURSE_ROUTE} element={<CourseMainPage />} />
           <Route path={GROUP_ROUTE} element={<GroupMainPage />} />
           <Route path={ROOM_ROUTE} element={<RoomMainPage />} />
