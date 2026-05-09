@@ -17,6 +17,30 @@ from app.services.api.src.repositories import (
 logger = get_logger()
 
 
+def _would_create_cycle(db: Database, group_id: str, new_parent_id: str) -> bool:
+    """
+    Return True if making new_parent_id the parent of group_id would introduce
+    a cycle in the group hierarchy.
+
+    Strategy: walk the ancestor chain starting from new_parent_id.  If we ever
+    reach group_id the proposed edge (group_id → new_parent_id) would close a
+    loop.  We also track visited IDs so we terminate safely even if the
+    existing data already contains a cycle.
+    """
+    visited: set = set()
+    current_id: str | None = new_parent_id
+    while current_id is not None:
+        if current_id == group_id:
+            return True
+        if current_id in visited:
+            # Existing cycle in the data — stop to avoid an infinite loop
+            break
+        visited.add(current_id)
+        row = groups_repo.find_group_by_id(db, current_id)
+        current_id = row.get("parent_group_id") if row else None
+    return False
+
+
 def get_groups(db: Database, current_user_id: str) -> List[models.Group]:
     """Get all groups"""
     logger.info("Fetching all groups")
@@ -159,7 +183,18 @@ def update_group(
     updated_data = request.model_dump(exclude_unset=True)
 
     if "parent_group_id" in updated_data and updated_data["parent_group_id"] is not None:
-        parent_group = get_group_by_id(db, updated_data["parent_group_id"], current_user_id)
+        new_parent_id = updated_data["parent_group_id"]
+
+        if _would_create_cycle(db, group_id, new_parent_id):
+            logger.error(
+                f"Setting parent of group {group_id} to {new_parent_id} would create a cycle"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Setting this parent would create a cycle in the group hierarchy."
+            )
+
+        parent_group = get_group_by_id(db, new_parent_id, current_user_id)
 
         if parent_group.institution_id != group.institution_id:
             logger.error(f"Parent group {parent_group.id} not in same institution as {group.id}")
