@@ -200,13 +200,24 @@ export default function GlobalMySchedulePage() {
     ),
     [selectedData],
   );
-  const globalSlotDuration = useMemo(
-    () => selectedData.length === 0 ? 60 : selectedData.reduce(
-      (acc, d) => gcd(acc, d.institution.time_grid_config?.timeslot_duration_minutes ?? 60),
-      selectedData[0].institution.time_grid_config?.timeslot_duration_minutes ?? 60,
-    ),
-    [selectedData],
-  );
+  const globalSlotDuration = useMemo(() => {
+    if (selectedData.length === 0) return 60;
+    // Start with GCD of all individual slot durations
+    let g = selectedData[0].institution.time_grid_config?.timeslot_duration_minutes ?? 60;
+    for (const d of selectedData) {
+      g = gcd(g, d.institution.time_grid_config?.timeslot_duration_minutes ?? 60);
+    }
+    // Also fold in every institution's start-time offset from globalStartMinutes.
+    // This guarantees each institution's first slot lands exactly on a grid boundary.
+    // e.g. inst A starts 6:00, inst B starts 8:30 → offset 150 min → gcd(60,150)=30
+    for (const d of selectedData) {
+      const tgc = d.institution.time_grid_config;
+      const instStart = (tgc?.start_hour ?? 8) * 60 + (tgc?.start_minute ?? 0);
+      const offset = instStart - globalStartMinutes;
+      if (offset > 0) g = gcd(g, offset);
+    }
+    return Math.max(1, g);
+  }, [selectedData, globalStartMinutes]);
   const currentTimeslotsPerDay = useMemo(
     () => Math.max(1, Math.round((globalEndMinutes - globalStartMinutes) / globalSlotDuration)),
     [globalStartMinutes, globalEndMinutes, globalSlotDuration],
