@@ -5,6 +5,13 @@ from pydantic import BaseModel, SecretStr, EmailStr
 from app.libs.db import models
 
 
+class UpdateTimeslotPreferences(BaseModel):
+    """
+    DTO for updating professor timeslot preferences for a specific institution
+    """
+    preferences: List[models.TimeslotPreference]
+
+
 class CreateUser(BaseModel):
     """
     DTO for creating a new user

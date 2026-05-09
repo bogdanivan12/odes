@@ -64,6 +64,16 @@ async def delete_user(db: DB, token: AUTH):
     service.delete_user(db, current_user_id)
 
 
+@router.put("/me/timeslot-preferences/{institution_id}",
+            status_code=status.HTTP_200_OK,
+            response_model=dto_out.GetUser)
+async def update_timeslot_preferences(db: DB, token: AUTH, institution_id: str, request: dto_in.UpdateTimeslotPreferences):
+    """Set professor timeslot preferences for a specific institution"""
+    current_user_id = token_utils.get_user_id_from_token(token)
+    user = service.update_timeslot_preferences(db, current_user_id, institution_id, request)
+    return dto_out.GetUser(user=user)
+
+
 @router.get("/{professor_id}/activities",
             status_code=status.HTTP_200_OK,
             response_model=dto_out.GetProfessorActivities)

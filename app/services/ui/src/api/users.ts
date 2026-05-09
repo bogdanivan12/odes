@@ -1,6 +1,7 @@
 import { apiGet, apiPut } from '../utils/apiClient';
 import { API_URL } from '../config/constants';
 import { User } from '../types/user';
+import type { TimeslotPreference } from '../types/user';
 import { Activity } from '../types/activity';
 
 export type UpdateCurrentUserRequest = {
@@ -47,5 +48,17 @@ export async function updateCurrentUserProfile(payload: UpdateCurrentUserRequest
 export async function getProfessorActivities(userId: string): Promise<Activity[]> {
   const res = await apiGet<unknown>(`${API_URL}/api/v1/users/${userId}/activities`, buildAuthHeaders());
   return normalizeCollection<any>(res, 'activities').map((item) => Activity.from(item));
+}
+
+export async function updateTimeslotPreferences(
+  institutionId: string,
+  preferences: TimeslotPreference[],
+): Promise<User> {
+  const res = await apiPut<any>(
+    `${API_URL}/api/v1/users/me/timeslot-preferences/${institutionId}`,
+    { preferences },
+    buildAuthHeaders(),
+  );
+  return User.from((res?.user ?? res) as any);
 }
 
