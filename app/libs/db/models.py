@@ -12,6 +12,10 @@ class TimeGridConfig(BaseModel):
     days: int
     timeslots_per_day: int
     max_timeslots_per_day_per_group: int
+    start_hour: int = 8
+    start_minute: int = 0
+    timeslot_duration_minutes: int = 60
+    start_day: int = 0  # 0=Monday, 5=Saturday
 
 
 class Institution(BaseModel):

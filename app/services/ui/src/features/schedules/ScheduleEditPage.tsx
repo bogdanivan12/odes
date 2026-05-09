@@ -858,6 +858,10 @@ export default function ScheduleEditPage() {
                         activeDropId={activeDropId}
                         onRoomChange={handleRoomChange}
                         isDragActive={activeId !== null}
+                        startHour={timeGrid?.start_hour ?? 8}
+                        startMinute={timeGrid?.start_minute ?? 0}
+                        timeslotDurationMinutes={timeGrid?.timeslot_duration_minutes ?? 60}
+                        startDay={timeGrid?.start_day ?? 0}
                       />
                     </>
                   ) : (
@@ -924,6 +928,10 @@ export default function ScheduleEditPage() {
                         activeDropId={activeDropId}
                         onRoomChange={handleRoomChange}
                         isDragActive={activeId !== null}
+                        startHour={timeGrid?.start_hour ?? 8}
+                        startMinute={timeGrid?.start_minute ?? 0}
+                        timeslotDurationMinutes={timeGrid?.timeslot_duration_minutes ?? 60}
+                        startDay={timeGrid?.start_day ?? 0}
                       />
                     </>
                   ) : (
@@ -987,6 +995,10 @@ export default function ScheduleEditPage() {
                         activeDropId={activeDropId}
                         onRoomChange={handleRoomChange}
                         isDragActive={activeId !== null}
+                        startHour={timeGrid?.start_hour ?? 8}
+                        startMinute={timeGrid?.start_minute ?? 0}
+                        timeslotDurationMinutes={timeGrid?.timeslot_duration_minutes ?? 60}
+                        startDay={timeGrid?.start_day ?? 0}
                       />
                     </>
                   ) : (

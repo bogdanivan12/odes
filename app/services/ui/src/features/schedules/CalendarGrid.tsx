@@ -26,6 +26,13 @@ export function getDayName(dayIndex: number): string {
   return dayIndex < DAY_NAMES.length ? DAY_NAMES[dayIndex] : `Day ${dayIndex + 1}`;
 }
 
+export function slotToTime(slotIndex: number, startHour: number, durationMinutes: number, startMinute = 0): string {
+  const totalMinutes = startHour * 60 + startMinute + slotIndex * durationMinutes;
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
 export function getActivityTypeColor(type: string): string {
   const t = type.toLowerCase();
   if (t === 'course') return '#6366F1';    // indigo
@@ -122,6 +129,10 @@ export interface CalendarGridProps {
   roomsById: Map<string, InstitutionRoom>;
   getTypeColor: (type: string) => string;
   entityLabel: string;
+  startHour?: number;
+  startMinute?: number;
+  timeslotDurationMinutes?: number;
+  startDay?: number;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -137,6 +148,10 @@ export default function CalendarGrid({
   roomsById,
   getTypeColor,
   entityLabel,
+  startHour = 8,
+  startMinute = 0,
+  timeslotDurationMinutes = 60,
+  startDay = 0,
 }: CalendarGridProps) {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -184,7 +199,7 @@ export default function CalendarGrid({
               }}
             >
               <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.70rem' }}>
-                {i + 1}
+                {slotToTime(i, startHour, timeslotDurationMinutes, startMinute)}
               </Typography>
             </Box>
           ))}
@@ -214,7 +229,7 @@ export default function CalendarGrid({
                 }}
               >
                 <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.72rem' }}>
-                  {getDayName(dayIdx)}
+                  {getDayName(startDay + dayIdx)}
                 </Typography>
               </Box>
 

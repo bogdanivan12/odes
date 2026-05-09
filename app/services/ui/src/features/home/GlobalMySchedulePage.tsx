@@ -179,14 +179,52 @@ export default function GlobalMySchedulePage() {
     return [...dataMap.values()];
   }, [dataMap, filterInstitutionId]);
 
-  // Combined time grid — use max values across selected institutions
+  function gcd(a: number, b: number): number {
+    return b === 0 ? a : gcd(b, a % b);
+  }
+
+  // Global time range derived from all selected institutions
+  const globalStartMinutes = useMemo(
+    () => selectedData.length === 0 ? 8 * 60 : Math.min(
+      ...selectedData.map((d) => (d.institution.time_grid_config?.start_hour ?? 8) * 60 + (d.institution.time_grid_config?.start_minute ?? 0)),
+    ),
+    [selectedData],
+  );
+  const globalEndMinutes = useMemo(
+    () => selectedData.length === 0 ? 20 * 60 : Math.max(
+      ...selectedData.map((d) => {
+        const tgc = d.institution.time_grid_config;
+        return (tgc?.start_hour ?? 8) * 60 + (tgc?.timeslots_per_day ?? 8) * (tgc?.timeslot_duration_minutes ?? 60);
+      }),
+    ),
+    [selectedData],
+  );
+  const globalSlotDuration = useMemo(
+    () => selectedData.length === 0 ? 60 : selectedData.reduce(
+      (acc, d) => gcd(acc, d.institution.time_grid_config?.timeslot_duration_minutes ?? 60),
+      selectedData[0].institution.time_grid_config?.timeslot_duration_minutes ?? 60,
+    ),
+    [selectedData],
+  );
   const currentTimeslotsPerDay = useMemo(
-    () => Math.max(1, ...selectedData.map((d) => d.institution.time_grid_config?.timeslots_per_day ?? 8)),
+    () => Math.max(1, Math.round((globalEndMinutes - globalStartMinutes) / globalSlotDuration)),
+    [globalStartMinutes, globalEndMinutes, globalSlotDuration],
+  );
+  // Global day range: from earliest start_day to latest end_day across institutions
+  const globalStartDay = useMemo(
+    () => selectedData.length === 0 ? 0 : Math.min(
+      ...selectedData.map((d) => d.institution.time_grid_config?.start_day ?? 0),
+    ),
     [selectedData],
   );
   const currentDays = useMemo(
-    () => Math.max(1, ...selectedData.map((d) => d.institution.time_grid_config?.days ?? 5)),
-    [selectedData],
+    () => selectedData.length === 0 ? 5 : Math.max(
+      ...selectedData.map((d) => {
+        const tgc = d.institution.time_grid_config;
+        return (tgc?.start_day ?? 0) + (tgc?.days ?? 5) - globalStartDay;
+      }),
+    ),
+    [selectedData, globalStartDay],
   );
   const currentWeeks = useMemo(
     () => Math.max(1, ...selectedData.map((d) => d.institution.time_grid_config?.weeks ?? 1)),
@@ -236,14 +274,16 @@ export default function GlobalMySchedulePage() {
     return map;
   }, [selectedData]);
 
-  // Build ScheduledEntry[] for all selected institutions, normalising
-  // startTimeslot to currentTimeslotsPerDay so entries from institutions
-  // with different grid configs display in the correct column.
+  // Build ScheduledEntry[] for all selected institutions using time-based normalisation.
+  // Each activity's absolute start time (minutes from midnight) is mapped to a global slot index.
   const scheduledEntries = useMemo((): ScheduledEntry[] => {
     return selectedData.flatMap((d) => {
       const instId = String(d.institution.id ?? (d.institution as any)._id ?? '');
-      const tpd = d.institution.time_grid_config?.timeslots_per_day ?? 8;
-      const instWeeks = d.institution.time_grid_config?.weeks ?? 1;
+      const tgc = d.institution.time_grid_config;
+      const tpd = tgc?.timeslots_per_day ?? 8;
+      const instStartMinutes = (tgc?.start_hour ?? 8) * 60 + (tgc?.start_minute ?? 0);
+      const instSlotDuration = tgc?.timeslot_duration_minutes ?? 60;
+      const instWeeks = tgc?.weeks ?? 1;
       const allInstWeeks = Array.from({ length: instWeeks }, (_, i) => i + 1);
 
       const activitiesById = new Map<string, InstitutionActivity>();
@@ -263,10 +303,14 @@ export default function GlobalMySchedulePage() {
             ? allInstWeeks
             : (rec.active_weeks ?? []).map((w) => w + 1);
 
-        // Normalise to common grid
-        const dayIdx = Math.floor(rec.start_timeslot / tpd);
+        // Convert institution-relative slot to global slot index
+        const localDayIdx = Math.floor(rec.start_timeslot / tpd);
         const slotIdx = rec.start_timeslot % tpd;
-        const normalizedStart = dayIdx * currentTimeslotsPerDay + slotIdx;
+        const absDay = (tgc?.start_day ?? 0) + localDayIdx - globalStartDay;
+        const absMinutes = instStartMinutes + slotIdx * instSlotDuration;
+        const globalSlotIdx = Math.round((absMinutes - globalStartMinutes) / globalSlotDuration);
+        const normalizedStart = absDay * currentTimeslotsPerDay + globalSlotIdx;
+        const normalizedDuration = Math.max(1, Math.round((activity.duration_slots * instSlotDuration) / globalSlotDuration));
 
         return [{
           schedRecId: `${instId}-${String(rec.id ?? rec._id ?? '')}`,
@@ -279,14 +323,14 @@ export default function GlobalMySchedulePage() {
           courseId: String(activity.course_id ?? ''),
           groupId: String(activity.group_id ?? ''),
           professorId: activity.professor_id ? String(activity.professor_id) : null,
-          durationSlots: activity.duration_slots,
+          durationSlots: normalizedDuration,
           requiredRoomFeatures: activity.required_room_features ?? [],
           frequency: activity.frequency,
           institutionId: instId,
         }] as ScheduledEntry[];
       });
     });
-  }, [selectedData, currentTimeslotsPerDay]);
+  }, [selectedData, globalStartMinutes, globalSlotDuration, globalStartDay, currentTimeslotsPerDay]);
 
   // User's groups (direct + ancestors) across all selected institutions
   const myGroupIds = useMemo((): Set<string> => {
@@ -514,6 +558,10 @@ export default function GlobalMySchedulePage() {
                           roomsById={combinedRoomsById}
                           getTypeColor={getActivityTypeColor}
                           entityLabel="your groups"
+                          startHour={Math.floor(globalStartMinutes / 60)}
+                          startMinute={globalStartMinutes % 60}
+                          timeslotDurationMinutes={globalSlotDuration}
+                          startDay={globalStartDay}
                         />
                       </Stack>
                     </TabPanel>
@@ -533,6 +581,10 @@ export default function GlobalMySchedulePage() {
                           roomsById={combinedRoomsById}
                           getTypeColor={getActivityTypeColor}
                           entityLabel="you"
+                          startHour={Math.floor(globalStartMinutes / 60)}
+                          startMinute={globalStartMinutes % 60}
+                          timeslotDurationMinutes={globalSlotDuration}
+                          startDay={globalStartDay}
                         />
                       </Stack>
                     </TabPanel>
