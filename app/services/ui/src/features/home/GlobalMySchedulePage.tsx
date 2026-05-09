@@ -98,6 +98,7 @@ export default function GlobalMySchedulePage() {
   const [error, setError] = useState<string | null>(null);
 
   const [filterInstitutionId, setFilterInstitutionId] = useState<string | null>(null);
+  const [filterGroupId, setFilterGroupId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(0);
   const [studentWeek, setStudentWeek] = useState(1);
   const [professorWeek, setProfessorWeek] = useState(1);
@@ -234,6 +235,9 @@ export default function GlobalMySchedulePage() {
     () => Array.from({ length: currentWeeks }, (_, i) => i + 1),
     [currentWeeks],
   );
+
+  // Reset group filter when institution filter changes
+  useEffect(() => { setFilterGroupId(null); }, [filterInstitutionId]);
 
   // Reset week when it's out of range for the newly selected institution
   useEffect(() => {
@@ -388,6 +392,39 @@ export default function GlobalMySchedulePage() {
     [scheduledEntries, myGroupIds],
   );
 
+  // Direct group IDs the user belongs to, limited to the selected institution (for the group filter chips)
+  const myDirectGroupIds = useMemo((): Set<string> => {
+    const userGroupIds = new Set(currentUser?.group_ids ?? []);
+    const sourceGroups = filterInstitutionId
+      ? (dataMap.get(filterInstitutionId)?.groups ?? [])
+      : selectedData.flatMap((d) => d.groups);
+    const direct = new Set<string>();
+    sourceGroups.forEach((g) => {
+      const gId = String(g.id ?? g._id ?? '');
+      if (gId && userGroupIds.has(gId)) direct.add(gId);
+    });
+    return direct;
+  }, [currentUser, filterInstitutionId, dataMap, selectedData]);
+
+  // Group filter: expand selected group to include all ancestor groups
+  const filterGroupIds = useMemo((): Set<string> | null => {
+    if (!filterGroupId) return null;
+    const ids = new Set<string>([filterGroupId]);
+    const walkUp = (gId: string) => {
+      const g = combinedGroupsById.get(gId);
+      if (!g || !g.parent_group_id) return;
+      const parentId = String(g.parent_group_id);
+      if (!ids.has(parentId)) { ids.add(parentId); walkUp(parentId); }
+    };
+    walkUp(filterGroupId);
+    return ids;
+  }, [filterGroupId, combinedGroupsById]);
+
+  const filteredStudentEntries = useMemo(
+    () => filterGroupIds ? studentEntries.filter((e) => filterGroupIds.has(e.groupId)) : studentEntries,
+    [studentEntries, filterGroupIds],
+  );
+
   const professorEntries = useMemo(
     () => scheduledEntries.filter((e) => e.professorId === myUserId),
     [scheduledEntries, myUserId],
@@ -477,6 +514,30 @@ export default function GlobalMySchedulePage() {
                 </Stack>
               )}
 
+              {/* Group filter chips — shown when an institution is selected and user has direct groups */}
+              {filterInstitutionId && myDirectGroupIds.size > 0 && isStudent && (
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
+                  <SchoolRoundedIcon sx={{ fontSize: '0.9rem', color: 'text.secondary' }} />
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                    Group:
+                  </Typography>
+                  {[...myDirectGroupIds].map((gId) => {
+                    const isSelected = filterGroupId === gId;
+                    return (
+                      <Chip
+                        key={gId}
+                        label={combinedGroupsById.get(gId)?.name ?? gId}
+                        size="small"
+                        color={isSelected ? 'secondary' : 'default'}
+                        variant={isSelected ? 'filled' : 'outlined'}
+                        onClick={() => setFilterGroupId(isSelected ? null : gId)}
+                        sx={{ borderRadius: 1.5, fontSize: '0.72rem', height: 24, cursor: 'pointer' }}
+                      />
+                    );
+                  })}
+                </Stack>
+              )}
+
               {/* Link to the selected institution's full schedule (when filtered) */}
               {filterInstitutionId && (() => {
                 const d = dataMap.get(filterInstitutionId);
@@ -548,7 +609,7 @@ export default function GlobalMySchedulePage() {
                       <Stack spacing={2}>
                         <WeekSelector weekNumbers={weekNumbers} selectedWeek={studentWeek} onSelect={setStudentWeek} />
                         <CalendarGrid
-                          entries={studentEntries}
+                          entries={filteredStudentEntries}
                           days={currentDays}
                           timeslotsPerDay={currentTimeslotsPerDay}
                           selectedWeek={studentWeek}
