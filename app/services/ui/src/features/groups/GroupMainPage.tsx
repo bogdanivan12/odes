@@ -76,9 +76,10 @@ interface GroupPreferenceGridProps {
   institution: Institution;
   initialPrefs: Record<number, TimeslotPreferenceValue>;
   readOnly: boolean;
+  onSaved?: (updated: import('../../types/group').Group) => void;
 }
 
-function GroupPreferenceGrid({ groupId, institution, initialPrefs, readOnly }: GroupPreferenceGridProps) {
+function GroupPreferenceGrid({ groupId, institution, initialPrefs, readOnly, onSaved }: GroupPreferenceGridProps) {
   const theme = useTheme();
   const tgc = institution.time_grid_config;
   const days = tgc.days;
@@ -142,8 +143,9 @@ function GroupPreferenceGrid({ groupId, institution, initialPrefs, readOnly }: G
     setSaveError(null);
     setSaveSuccess(false);
     try {
-      await updateGroupTimeslotPreferences(groupId, preferences);
+      const updated = await updateGroupTimeslotPreferences(groupId, preferences);
       setSavedPrefs({ ...prefs });
+      onSaved?.(updated);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2500);
     } catch (err) {
@@ -773,6 +775,7 @@ export default function GroupMainPage() {
                       return map;
                     })()}
                     readOnly={!isCurrentUserAdmin}
+                    onSaved={(updated) => setGroup(updated)}
                   />
                 </Box>
               </Collapse>
