@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -91,14 +91,37 @@ function AvailabilityGrid({ institution, initialPrefs }: AvailabilityGridProps) 
     [prefs, savedPrefs],
   );
 
-  const handleCellClick = (day: number, slotInDay: number) => {
+  // ── Paint interaction (click-and-drag to fill multiple cells) ─────────────
+  // useRef keeps the painting state outside the React render cycle so that
+  // onMouseOver handlers always see the current value without stale closures.
+  const isPainting = useRef(false);
+  const paintTarget = useRef<TimeslotPreferenceValue>('desired');
+
+  // Stop painting on mouseup anywhere on the page
+  useEffect(() => {
+    const stop = () => { isPainting.current = false; };
+    window.addEventListener('mouseup', stop);
+    return () => window.removeEventListener('mouseup', stop);
+  }, []);
+
+  const handleCellMouseDown = (day: number, slotInDay: number) => {
     const absSlot = day * tpd + slotInDay;
     const current = prefs[absSlot] ?? 'desired';
-    const idx = PREF_CYCLE.indexOf(current);
-    const next = PREF_CYCLE[(idx + 1) % PREF_CYCLE.length];
+    const next = PREF_CYCLE[(PREF_CYCLE.indexOf(current) + 1) % PREF_CYCLE.length];
+    isPainting.current = true;
+    paintTarget.current = next;
     setPrefs((prev) => ({ ...prev, [absSlot]: next }));
     setSaveSuccess(false);
     setSaveError(null);
+  };
+
+  const handleCellMouseEnter = (day: number, slotInDay: number) => {
+    if (!isPainting.current) return;
+    const absSlot = day * tpd + slotInDay;
+    setPrefs((prev) => {
+      if (prev[absSlot] === paintTarget.current) return prev; // skip if already correct
+      return { ...prev, [absSlot]: paintTarget.current };
+    });
   };
 
   const handleSave = async () => {
@@ -132,7 +155,7 @@ function AvailabilityGrid({ institution, initialPrefs }: AvailabilityGridProps) 
     <Box>
       {/* Legend */}
       <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap sx={{ mb: 2 }} alignItems="center">
-        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Click to cycle:</Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Click or drag to paint:</Typography>
         {PREF_CYCLE.map((k) => (
           <Stack key={k} direction="row" spacing={0.5} alignItems="center">
             <Box sx={{ width: 12, height: 12, borderRadius: 0.5, bgcolor: PREF_CONFIG[k].bg, border: `1px solid ${PREF_CONFIG[k].border}`, flexShrink: 0 }} />
@@ -142,7 +165,10 @@ function AvailabilityGrid({ institution, initialPrefs }: AvailabilityGridProps) 
       </Stack>
 
       {/* Grid — table-like: single DOM tree so header and body columns are identical */}
-      <Box sx={{ overflowX: 'auto' }}>
+      <Box
+        sx={{ overflowX: 'auto', userSelect: 'none' }}
+        onDragStart={(e) => e.preventDefault()}
+      >
         <Box sx={{ display: 'inline-block', minWidth: 'min-content' }}>
 
           {/* ── Header row (time labels) ── */}
@@ -210,13 +236,14 @@ function AvailabilityGrid({ institution, initialPrefs }: AvailabilityGridProps) 
                 return (
                   <Tooltip
                     key={slotIdx}
-                    title={`${cfg.label} — click to change`}
+                    title={`${cfg.label} — click or drag to change`}
                     placement="top"
                     arrow
                     disableInteractive
                   >
                     <Box
-                      onClick={() => handleCellClick(dayIdx, slotIdx)}
+                      onMouseDown={() => handleCellMouseDown(dayIdx, slotIdx)}
+                      onMouseEnter={() => handleCellMouseEnter(dayIdx, slotIdx)}
                       sx={{
                         width: cellW,
                         height: cellH,
