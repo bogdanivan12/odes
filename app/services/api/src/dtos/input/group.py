@@ -1,6 +1,8 @@
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel
+
+from app.libs.db import models
 
 
 class CreateGroup(BaseModel):
@@ -18,3 +20,10 @@ class UpdateGroup(BaseModel):
     """
     name: Optional[str] = None
     parent_group_id: Optional[str] = None
+
+
+class UpdateGroupTimeslotPreferences(BaseModel):
+    """
+    DTO for updating timeslot preferences for a group (admin only)
+    """
+    preferences: List[models.TimeslotPreference]

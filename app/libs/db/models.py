@@ -70,6 +70,7 @@ class Group(BaseModel):
     institution_id: str
     name: str
     parent_group_id: Optional[str] = None
+    timeslot_preferences: List[TimeslotPreference] = Field(default_factory=list)
 
     COLLECTION_NAME: ClassVar[str] = "groups"
 

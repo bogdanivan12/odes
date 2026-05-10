@@ -315,7 +315,7 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
                     # Block this (room, start) choice entirely — applies to all weeks
                     model.Add(allocation_map[activity.id][room.id][start] == 0)
 
-    # Soft constraints: penalise placements that overlap not-ideal slots
+    # Soft constraints: penalise placements that overlap not-ideal slots (professor)
     # Weight = number of overlapping not-ideal slots in the placement
     penalty_terms = []   # list of (weight, BoolVar)
     for activity in activities:
@@ -328,6 +328,57 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
             for start in allowed_starts_map[activity.id]:
                 covered = covered_slots_map[activity.id][start]
                 overlap = len(covered & not_ideal)
+                if overlap > 0:
+                    penalty_terms.append((overlap, allocation_map[activity.id][room.id][start]))
+
+    # ── Group timeslot preferences ─────────────────────────────────────────────
+    # Preferences are week-independent: slot = day * tpd + slot_in_day
+    # We also propagate constraints to activities whose group is a descendant of a
+    # group that has preferences (via ancestor_ids on the enhanced Group model).
+    groups_by_id = {g.id: g for g in groups}
+
+    group_unavailable: dict = {}   # group_id -> set of unavailable slot indices
+    group_not_ideal: dict = {}     # group_id -> set of not-ideal slot indices
+
+    for group in groups:
+        unavail_g = {p.slot for p in group.timeslot_preferences
+                     if p.preference == models.TimeslotPreferenceValue.UNAVAILABLE}
+        not_ideal_g = {p.slot for p in group.timeslot_preferences
+                       if p.preference == models.TimeslotPreferenceValue.NOT_IDEAL}
+        if unavail_g:
+            group_unavailable[group.id] = unavail_g
+        if not_ideal_g:
+            group_not_ideal[group.id] = not_ideal_g
+
+    # Hard constraints: block (room, start) combos that land on unavailable slots
+    for activity in activities:
+        # Collect unavailable slots from the activity's group and all its ancestors
+        act_group = groups_by_id.get(activity.group_id)
+        if act_group is None:
+            continue
+        all_unavail: set = set()
+        for gid in [act_group.id] + act_group.ancestor_ids:
+            all_unavail |= group_unavailable.get(gid, set())
+        if not all_unavail:
+            continue
+        for room in activity.possible_rooms:
+            for start in allowed_starts_map[activity.id]:
+                if covered_slots_map[activity.id][start] & all_unavail:
+                    model.Add(allocation_map[activity.id][room.id][start] == 0)
+
+    # Soft constraints: penalise placements that overlap not-ideal slots (group)
+    for activity in activities:
+        act_group = groups_by_id.get(activity.group_id)
+        if act_group is None:
+            continue
+        all_not_ideal: set = set()
+        for gid in [act_group.id] + act_group.ancestor_ids:
+            all_not_ideal |= group_not_ideal.get(gid, set())
+        if not all_not_ideal:
+            continue
+        for room in activity.possible_rooms:
+            for start in allowed_starts_map[activity.id]:
+                overlap = len(covered_slots_map[activity.id][start] & all_not_ideal)
                 if overlap > 0:
                     penalty_terms.append((overlap, allocation_map[activity.id][room.id][start]))
 
