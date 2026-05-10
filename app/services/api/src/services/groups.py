@@ -224,6 +224,30 @@ def update_group(
     return updated
 
 
+def update_group_timeslot_preferences(
+        db: Database,
+        group_id: str,
+        request: dto_in.UpdateGroupTimeslotPreferences,
+        current_user_id: str,
+) -> models.Group:
+    """Set timeslot preferences for a group (institution admin only)"""
+    logger.info(f"Updating timeslot preferences for group {group_id}")
+    group = get_group_by_id(db, group_id, current_user_id)
+    access_verifiers.raise_group_forbidden(db, current_user_id, group, admin_only=True)
+
+    prefs_data = [p.model_dump() for p in request.preferences]
+    try:
+        groups_repo.update_group_by_id(db, group_id, {"timeslot_preferences": prefs_data})
+    except Exception as e:
+        logger.error(f"Failed to update timeslot preferences for group {group_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error updating timeslot preferences: {str(e)}",
+        )
+
+    return get_group_by_id(db, group_id, current_user_id)
+
+
 def get_group_activities(db: Database, group_id: str, current_user_id: str) -> List[models.Activity]:
     """Get activities for a specific group"""
     logger.info(f"Fetching activities for group {group_id}")

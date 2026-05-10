@@ -2,6 +2,7 @@ import { apiDelete, apiGet, apiPost, apiPut } from '../utils/apiClient';
 import { API_URL } from '../config/constants';
 import { Group as GroupClass } from '../types/group';
 import type { GroupData } from '../types/group';
+import type { TimeslotPreference } from '../types/user';
 
 export interface CreateGroupRequest {
   institution_id: string;
@@ -85,5 +86,16 @@ export async function deleteGroup(groupId: string): Promise<void> {
   const url = `${API_URL}/api/v1/groups/${groupId}`;
   const headers = buildAuthHeaders();
   await apiDelete<void>(url, headers);
+}
+
+export async function updateGroupTimeslotPreferences(
+  groupId: string,
+  preferences: TimeslotPreference[],
+): Promise<GroupClass> {
+  const url = `${API_URL}/api/v1/groups/${groupId}/timeslot-preferences`;
+  const headers = buildAuthHeaders();
+  const res = await apiPut<any>(url, { preferences }, headers);
+  const groupData: GroupData = res?.group ?? res;
+  return GroupClass.from(groupData);
 }
 

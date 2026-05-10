@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -8,6 +8,7 @@ import Chip from '@mui/material/Chip';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
+import Collapse from '@mui/material/Collapse';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -20,8 +21,12 @@ import Grid from '@mui/material/Grid';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
+import Tooltip from '@mui/material/Tooltip';
+import IconButton from '@mui/material/IconButton';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
+import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
 import EventNoteRoundedIcon from '@mui/icons-material/EventNoteRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import CallSplitRoundedIcon from '@mui/icons-material/CallSplitRounded';
@@ -30,19 +35,253 @@ import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import NavigateNextRoundedIcon from '@mui/icons-material/NavigateNextRounded';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
+import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
+import SaveRoundedIcon from '@mui/icons-material/SaveRounded';
+import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
 import PageContainer from '../layout/PageContainer';
 import EntityStatCard from '../../components/EntityStatCard';
 import { compareAlphabetical, toTitleLabel } from '../../utils/text';
-import { deleteGroup, getGroupActivities, getGroupById, updateGroup } from '../../api/groups';
+import { deleteGroup, getGroupActivities, getGroupById, updateGroup, updateGroupTimeslotPreferences } from '../../api/groups';
 import type { GroupActivity } from '../../api/groups';
-import { getInstitutionCourses, getInstitutionGroups, getInstitutionUsers } from '../../api/institutions';
+import { getInstitutionById, getInstitutionCourses, getInstitutionGroups, getInstitutionUsers } from '../../api/institutions';
 import type { InstitutionCourse, InstitutionGroup, InstitutionUser } from '../../api/institutions';
+import type { Institution } from '../../types/institution';
 import type { Group } from '../../types/group';
 import { activityRoute, groupRoute, institutionRoute, memberRoute, INSTITUTIONS_ROUTE } from '../../config/routes';
 import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionAdmin';
 import { useInstitutionSync } from '../../utils/useInstitutionSync';
 import { useTheme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
+import type { TimeslotPreferenceValue } from '../../types/user';
+import { getDayName, slotToTime } from '../schedules/CalendarGrid';
+
+// ─── Preference grid (reused from ProfilePage pattern) ───────────────────────
+
+const PREF_CYCLE: TimeslotPreferenceValue[] = ['desired', 'not_ideal', 'unavailable'];
+
+const PREF_CONFIG: Record<TimeslotPreferenceValue, { label: string; bg: string; border: string }> = {
+  desired:     { label: 'Desired',     bg: '#dcfce7', border: '#86efac' },
+  not_ideal:   { label: 'Not ideal',   bg: '#fef9c3', border: '#fde047' },
+  unavailable: { label: 'Unavailable', bg: '#fee2e2', border: '#fca5a5' },
+};
+
+function buildDefaultPrefs(days: number, tpd: number): Record<number, TimeslotPreferenceValue> {
+  const result: Record<number, TimeslotPreferenceValue> = {};
+  for (let i = 0; i < days * tpd; i++) result[i] = 'desired';
+  return result;
+}
+
+interface GroupPreferenceGridProps {
+  groupId: string;
+  institution: Institution;
+  initialPrefs: Record<number, TimeslotPreferenceValue>;
+  readOnly: boolean;
+}
+
+function GroupPreferenceGrid({ groupId, institution, initialPrefs, readOnly }: GroupPreferenceGridProps) {
+  const theme = useTheme();
+  const tgc = institution.time_grid_config;
+  const days = tgc.days;
+  const tpd = tgc.timeslots_per_day;
+  const startHour = tgc.start_hour ?? 8;
+  const startMinute = tgc.start_minute ?? 0;
+  const slotDuration = tgc.timeslot_duration_minutes ?? 60;
+  const startDay = tgc.start_day ?? 0;
+
+  const defaultPrefs = useMemo(() => buildDefaultPrefs(days, tpd), [days, tpd]);
+
+  const [prefs, setPrefs] = useState<Record<number, TimeslotPreferenceValue>>(
+    Object.keys(initialPrefs).length > 0 ? initialPrefs : defaultPrefs,
+  );
+  const [savedPrefs, setSavedPrefs] = useState<Record<number, TimeslotPreferenceValue>>(
+    Object.keys(initialPrefs).length > 0 ? initialPrefs : defaultPrefs,
+  );
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const isDirty = useMemo(() => JSON.stringify(prefs) !== JSON.stringify(savedPrefs), [prefs, savedPrefs]);
+
+  const isPainting = useRef(false);
+  const paintTarget = useRef<TimeslotPreferenceValue>('desired');
+
+  useEffect(() => {
+    if (readOnly) return;
+    const stop = () => { isPainting.current = false; };
+    window.addEventListener('mouseup', stop);
+    return () => window.removeEventListener('mouseup', stop);
+  }, [readOnly]);
+
+  const handleCellMouseDown = (day: number, slotInDay: number) => {
+    if (readOnly) return;
+    const absSlot = day * tpd + slotInDay;
+    const current = prefs[absSlot] ?? 'desired';
+    const next = PREF_CYCLE[(PREF_CYCLE.indexOf(current) + 1) % PREF_CYCLE.length];
+    isPainting.current = true;
+    paintTarget.current = next;
+    setPrefs((prev) => ({ ...prev, [absSlot]: next }));
+    setSaveSuccess(false);
+    setSaveError(null);
+  };
+
+  const handleCellMouseEnter = (day: number, slotInDay: number) => {
+    if (!isPainting.current || readOnly) return;
+    const absSlot = day * tpd + slotInDay;
+    setPrefs((prev) => {
+      if (prev[absSlot] === paintTarget.current) return prev;
+      return { ...prev, [absSlot]: paintTarget.current };
+    });
+  };
+
+  const handleSave = async () => {
+    const preferences = Object.entries(prefs).map(([slot, preference]) => ({
+      slot: parseInt(slot, 10),
+      preference,
+    }));
+    setSaving(true);
+    setSaveError(null);
+    setSaveSuccess(false);
+    try {
+      await updateGroupTimeslotPreferences(groupId, preferences);
+      setSavedPrefs({ ...prefs });
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2500);
+    } catch (err) {
+      setSaveError((err as Error).message || 'Failed to save preferences.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const DAY_COL_W = 72;
+  const cellW = Math.max(28, Math.min(52, Math.floor((820 - DAY_COL_W) / tpd)));
+  const cellH = 32;
+  const borderColor = theme.palette.divider;
+
+  return (
+    <Box>
+      {/* Legend */}
+      <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap sx={{ mb: 2 }} alignItems="center">
+        {!readOnly && (
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Click or drag to paint:</Typography>
+        )}
+        {PREF_CYCLE.map((k) => (
+          <Stack key={k} direction="row" spacing={0.5} alignItems="center">
+            <Box sx={{ width: 12, height: 12, borderRadius: 0.5, bgcolor: PREF_CONFIG[k].bg, border: `1px solid ${PREF_CONFIG[k].border}`, flexShrink: 0 }} />
+            <Typography variant="caption" color="text.secondary">{PREF_CONFIG[k].label}</Typography>
+          </Stack>
+        ))}
+      </Stack>
+
+      {/* Grid */}
+      <Box
+        sx={{ overflowX: 'auto', userSelect: 'none' }}
+        onDragStart={(e) => e.preventDefault()}
+      >
+        <Box sx={{ display: 'inline-block', minWidth: 'min-content' }}>
+          {/* Header row */}
+          <Box sx={{ display: 'flex', alignItems: 'flex-end', mb: '2px' }}>
+            <Box sx={{ width: DAY_COL_W, flexShrink: 0 }} />
+            {Array.from({ length: tpd }, (_, i) => (
+              <Box
+                key={i}
+                sx={{
+                  width: cellW, flexShrink: 0, display: 'flex', justifyContent: 'flex-start',
+                  fontSize: '0.6rem', lineHeight: 1, color: 'text.secondary', fontWeight: 600,
+                  overflow: 'hidden', pl: '2px',
+                }}
+              >
+                {slotToTime(i, startHour, slotDuration, startMinute)}
+              </Box>
+            ))}
+          </Box>
+          {/* Day rows */}
+          {Array.from({ length: days }, (_, dayIdx) => (
+            <Box
+              key={dayIdx}
+              sx={{
+                display: 'flex', alignItems: 'stretch',
+                borderTop: `1px solid ${borderColor}`,
+                '&:last-child': { borderBottom: `1px solid ${borderColor}` },
+              }}
+            >
+              <Box sx={{
+                width: DAY_COL_W, flexShrink: 0, display: 'flex', alignItems: 'center',
+                fontSize: '0.75rem', fontWeight: 700, color: 'text.secondary',
+                pl: 0.5, borderRight: `1px solid ${borderColor}`,
+              }}>
+                {getDayName(startDay + dayIdx)}
+              </Box>
+              {Array.from({ length: tpd }, (_, slotIdx) => {
+                const absSlot = dayIdx * tpd + slotIdx;
+                const pref = prefs[absSlot] ?? 'desired';
+                const cfg = PREF_CONFIG[pref];
+                return (
+                  <Tooltip
+                    key={slotIdx}
+                    title={readOnly ? cfg.label : `${cfg.label} — click or drag to change`}
+                    placement="top"
+                    arrow
+                    disableInteractive
+                  >
+                    <Box
+                      onMouseDown={() => handleCellMouseDown(dayIdx, slotIdx)}
+                      onMouseEnter={() => handleCellMouseEnter(dayIdx, slotIdx)}
+                      sx={{
+                        width: cellW, height: cellH, flexShrink: 0,
+                        cursor: readOnly ? 'default' : 'pointer',
+                        bgcolor: cfg.bg,
+                        borderRight: `1px solid ${borderColor}`,
+                        transition: 'filter 0.1s ease',
+                        ...(!readOnly && { '&:hover': { filter: 'brightness(0.9)' } }),
+                      }}
+                    />
+                  </Tooltip>
+                );
+              })}
+            </Box>
+          ))}
+        </Box>
+      </Box>
+
+      {/* Save / discard (admin only) */}
+      {!readOnly && (
+        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 2 }}>
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <SaveRoundedIcon />}
+            onClick={handleSave}
+            disabled={saving || !isDirty}
+            sx={{ borderRadius: 2 }}
+          >
+            {saving ? 'Saving…' : 'Save preferences'}
+          </Button>
+          {isDirty && (
+            <Button
+              variant="text"
+              size="small"
+              onClick={() => { setPrefs(savedPrefs); setSaveError(null); setSaveSuccess(false); }}
+              disabled={saving}
+              sx={{ borderRadius: 2, color: 'text.secondary' }}
+            >
+              Discard
+            </Button>
+          )}
+          {saveSuccess && (
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              <CheckCircleOutlineRoundedIcon sx={{ fontSize: '1rem', color: 'success.main' }} />
+              <Typography variant="caption" color="success.main">Saved</Typography>
+            </Stack>
+          )}
+          {saveError && (
+            <Typography variant="caption" color="error">{saveError}</Typography>
+          )}
+        </Stack>
+      )}
+    </Box>
+  );
+}
 
 const activityTypePriority: Record<string, number> = { course: 0, seminar: 1, laboratory: 2 };
 
@@ -75,10 +314,13 @@ export default function GroupMainPage() {
   const [allGroups, setAllGroups] = useState<InstitutionGroup[]>([]);
   const [courses, setCourses] = useState<InstitutionCourse[]>([]);
   const [users, setUsers] = useState<InstitutionUser[]>([]);
+  const [institution, setInstitution] = useState<Institution | null>(null);
   const [currentUser, setCurrentUser] = useState<InstitutionUser | null>(null);
   const [currentUserLoading, setCurrentUserLoading] = useState(true);
   const [relatedLoading, setRelatedLoading] = useState(false);
   const [relatedError, setRelatedError] = useState<string | null>(null);
+
+  const [prefsExpanded, setPrefsExpanded] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -109,17 +351,19 @@ export default function GroupMainPage() {
       setRelatedLoading(true);
       setRelatedError(null);
       try {
-        const [groupActivities, institutionGroups, institutionCourses, institutionUsers] = await Promise.all([
+        const [groupActivities, institutionGroups, institutionCourses, institutionUsers, institutionData] = await Promise.all([
           getGroupActivities(group.id),
           getInstitutionGroups(group.institution_id),
           getInstitutionCourses(group.institution_id),
           getInstitutionUsers(group.institution_id),
+          getInstitutionById(group.institution_id),
         ]);
         if (!mounted) return;
         setActivities(groupActivities);
         setAllGroups(institutionGroups);
         setCourses(institutionCourses);
         setUsers(institutionUsers);
+        setInstitution(institutionData);
       } catch (err) {
         if (!mounted) return;
         setRelatedError((err as Error).message || 'Failed to load related entities.');
@@ -473,6 +717,67 @@ export default function GroupMainPage() {
             </Stack>
           )}
           {relatedError && <Alert severity="error" sx={{ borderRadius: 2 }}>{relatedError}</Alert>}
+
+          {/* Timeslot preferences section */}
+          {institution && (
+            <Paper
+              variant="outlined"
+              sx={{
+                borderRadius: 4, overflow: 'hidden',
+                boxShadow: `0 4px 24px ${alpha(theme.palette.common.black, theme.palette.mode === 'dark' ? 0.3 : 0.06)}`,
+              }}
+            >
+              <Box
+                onClick={() => setPrefsExpanded((v) => !v)}
+                sx={{
+                  display: 'flex', alignItems: 'center', gap: 1.5,
+                  px: { xs: 3, md: 4 }, py: 2.5,
+                  cursor: 'pointer',
+                  '&:hover': { bgcolor: alpha(theme.palette.secondary.main, 0.04) },
+                  transition: 'background-color 0.15s',
+                }}
+              >
+                <Box sx={{
+                  width: 40, height: 40, borderRadius: 2.5, flexShrink: 0,
+                  bgcolor: alpha(theme.palette.secondary.main, 0.1), color: 'secondary.main',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <AccessTimeRoundedIcon />
+                </Box>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>Timeslot preferences</Typography>
+                  <Typography variant="body2" color="text.secondary" noWrap>
+                    {isCurrentUserAdmin
+                      ? 'Set preferred, not-ideal, and unavailable timeslots for this group.'
+                      : 'View preferred timeslots for this group.'}
+                  </Typography>
+                </Box>
+                <IconButton size="small" sx={{ color: 'text.secondary', flexShrink: 0 }}>
+                  {prefsExpanded ? <ExpandLessRoundedIcon /> : <ExpandMoreRoundedIcon />}
+                </IconButton>
+              </Box>
+              <Collapse in={prefsExpanded} timeout="auto" unmountOnExit>
+                <Divider />
+                <Box sx={{ px: { xs: 3, md: 4 }, pt: 2.5, pb: 3 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    {isCurrentUserAdmin
+                      ? 'Click or drag on cells to cycle through preferences. The scheduler respects these when generating a timetable.'
+                      : 'These are the preferred timeslots configured by the institution admin.'}
+                  </Typography>
+                  <GroupPreferenceGrid
+                    groupId={group.id}
+                    institution={institution}
+                    initialPrefs={(() => {
+                      const map: Record<number, TimeslotPreferenceValue> = {};
+                      (group.timeslot_preferences ?? []).forEach((p) => { map[p.slot] = p.preference; });
+                      return map;
+                    })()}
+                    readOnly={!isCurrentUserAdmin}
+                  />
+                </Box>
+              </Collapse>
+            </Paper>
+          )}
 
           {!relatedLoading && !relatedError && (
             <Grid container spacing={2.5}>

@@ -60,6 +60,18 @@ async def update_group(db: DB, group_id: str, request: dto_in.UpdateGroup, token
     return dto_out.GetGroup(group=group)
 
 
+@router.put("/{group_id}/timeslot-preferences",
+            status_code=status.HTTP_200_OK,
+            response_model=dto_out.GetGroup)
+async def update_group_timeslot_preferences(
+        db: DB, group_id: str, request: dto_in.UpdateGroupTimeslotPreferences, token: AUTH
+):
+    """Set timeslot preferences for a group (institution admin only)"""
+    current_user_id = token_utils.get_user_id_from_token(token)
+    group = service.update_group_timeslot_preferences(db, group_id, request, current_user_id)
+    return dto_out.GetGroup(group=group)
+
+
 @router.get("/{group_id}/activities",
             status_code=status.HTTP_200_OK,
             response_model=dto_out.GetGroupActivities)
