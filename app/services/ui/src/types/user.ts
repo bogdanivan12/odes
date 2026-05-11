@@ -13,6 +13,7 @@ export interface UserData {
   user_roles?: Record<string, string[]>;
   group_ids?: string[];
   timeslot_preferences?: Record<string, TimeslotPreference[]>;
+  max_timeslots_per_day?: Record<string, number>;
 }
 
 export class User {
@@ -22,6 +23,7 @@ export class User {
   user_roles: Record<string, string[]>;
   group_ids: string[];
   timeslot_preferences: Record<string, TimeslotPreference[]>;
+  max_timeslots_per_day: Record<string, number>;
 
   constructor(data: UserData) {
     this.id = data.id ?? data._id ?? '';
@@ -30,6 +32,7 @@ export class User {
     this.user_roles = data.user_roles ?? {};
     this.group_ids = data.group_ids ?? [];
     this.timeslot_preferences = data.timeslot_preferences ?? {};
+    this.max_timeslots_per_day = data.max_timeslots_per_day ?? {};
   }
 
   static from(data: UserData): User {

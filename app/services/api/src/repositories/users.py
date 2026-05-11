@@ -27,6 +27,11 @@ def update_user_by_id(db: Database, user_id: str, update_data: dict):
     return collection.update_one({"_id": user_id}, {"$set": update_data})
 
 
+def unset_user_field_by_id(db: Database, user_id: str, field: str):
+    collection = db.get_collection(models.User.COLLECTION_NAME)
+    return collection.update_one({"_id": user_id}, {"$unset": {field: ""}})
+
+
 def delete_user_by_id(db: Database, user_id: str):
     collection = db.get_collection(models.User.COLLECTION_NAME)
     return collection.delete_one({"_id": user_id})

@@ -419,6 +419,32 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
                 if prof_slot_vars:
                     model.Add(sum(prof_slot_vars) <= 1)
 
+    # Per-professor personal max timeslots per day (hard constraint).
+    # Only applied when the professor has explicitly saved a cap below tpd.
+    prof_by_id = {prof.id: prof for prof in professors}
+    tpd = institution.time_grid_config.timeslots_per_day
+    for week in range(institution.time_grid_config.weeks):
+        for prof_id in prof_ids:
+            prof_max = prof_by_id[prof_id].max_timeslots_per_day.get(institution_id)
+            if not prof_max or prof_max >= tpd:
+                continue
+            for day in range(institution.time_grid_config.days):
+                day_slot_start = day * institution.time_grid_config.timeslots_per_day
+                day_slot_end = day_slot_start + institution.time_grid_config.timeslots_per_day
+                prof_day_vars = []
+                for slot in range(day_slot_start, day_slot_end):
+                    for activity in activities:
+                        if activity.professor_id != prof_id:
+                            continue
+                        for room_id in week_allocation_map[activity.id][week]:
+                            for start in week_allocation_map[activity.id][week][room_id]:
+                                if slot in covered_slots_map[activity.id][start]:
+                                    prof_day_vars.append(
+                                        week_allocation_map[activity.id][week][room_id][start]
+                                    )
+                if prof_day_vars:
+                    model.Add(sum(prof_day_vars) <= prof_max)
+
     for week in range(institution.time_grid_config.weeks):
         for group in groups:
             applicable_ids = [

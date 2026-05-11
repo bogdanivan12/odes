@@ -53,10 +53,14 @@ export async function getProfessorActivities(userId: string): Promise<Activity[]
 export async function updateTimeslotPreferences(
   institutionId: string,
   preferences: TimeslotPreference[],
+  maxTimeslotsPerDay?: number | null,
 ): Promise<User> {
+  const body: Record<string, unknown> = { preferences };
+  // Always send the field so the backend can unset it when the user clears it
+  body.max_timeslots_per_day = maxTimeslotsPerDay ?? null;
   const res = await apiPut<any>(
     `${API_URL}/api/v1/users/me/timeslot-preferences/${institutionId}`,
-    { preferences },
+    body,
     buildAuthHeaders(),
   );
   return User.from((res?.user ?? res) as any);

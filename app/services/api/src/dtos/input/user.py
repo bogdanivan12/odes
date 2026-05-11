@@ -7,9 +7,12 @@ from app.libs.db import models
 
 class UpdateTimeslotPreferences(BaseModel):
     """
-    DTO for updating professor timeslot preferences for a specific institution
+    DTO for updating professor timeslot preferences for a specific institution.
+    max_timeslots_per_day, when provided, sets a personal daily cap for this professor
+    at that institution. Pass null / omit to remove the cap.
     """
     preferences: List[models.TimeslotPreference]
+    max_timeslots_per_day: Optional[int] = None
 
 
 class CreateUser(BaseModel):
