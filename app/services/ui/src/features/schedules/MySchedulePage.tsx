@@ -40,6 +40,7 @@ import type { Institution as InstitutionClass } from '../../types/institution';
 import { institutionRoute, scheduleRoute } from '../../config/routes';
 import { compareAlphabetical } from '../../utils/text';
 import { getCurrentUserData } from '../../utils/institutionAdmin';
+import { parseServerTimestamp } from '../../utils/time';
 import { useTheme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
 
@@ -47,7 +48,10 @@ import { alpha } from '@mui/material/styles';
 
 function formatTimestamp(ts?: string): string {
   if (!ts) return '';
-  return new Date(ts).toLocaleString(undefined, {
+  // Parse as UTC — backend emits UTC datetimes and may omit trailing Z.
+  const date = parseServerTimestamp(ts);
+  if (!date) return '';
+  return date.toLocaleString(undefined, {
     year: 'numeric', month: 'short', day: 'numeric',
     hour: '2-digit', minute: '2-digit',
   });

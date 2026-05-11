@@ -140,6 +140,18 @@ export async function getInstitutionById(institutionId: string): Promise<Institu
   return InstitutionClass.from(institutionData);
 }
 
+export interface ScheduleEta {
+  num_activities: number;
+  eta_seconds: number;
+}
+
+export async function getScheduleEta(institutionId: string): Promise<ScheduleEta> {
+  const url = `${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/schedule-eta`;
+  const headers = buildAuthHeaders();
+  const res = await apiGet<ScheduleEta>(url, headers);
+  return res;
+}
+
 export async function getInstitutionGroups(institutionId: string): Promise<InstitutionGroup[]> {
   const url = `${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/groups`;
   const headers = buildAuthHeaders();

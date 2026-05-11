@@ -6,6 +6,7 @@ import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
+import LinearProgress from '@mui/material/LinearProgress';
 import Chip from '@mui/material/Chip';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
@@ -28,13 +29,15 @@ import {
   triggerScheduleGeneration,
   deleteSchedule,
   setActiveSchedule,
+  getScheduleEta,
 } from '../../api/institutions';
-import type { InstitutionSchedule, InstitutionUser } from '../../api/institutions';
+import type { InstitutionSchedule, InstitutionUser, ScheduleEta } from '../../api/institutions';
 import type { Institution } from '../../types/institution';
 import { scheduleRoute } from '../../config/routes';
 import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionAdmin';
 import { useTheme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
+import { parseServerTimestamp, parseServerTimestampMs, formatDuration } from '../../utils/time';
 
 function scheduleStatusColor(status?: string): 'success' | 'warning' | 'error' | 'default' {
   if (!status) return 'default';
@@ -51,7 +54,9 @@ function formatScheduleLabel(
 ): { primary: string; secondary?: string } {
   const n = `Schedule #${index + 1}`;
   if (schedule.timestamp) {
-    const date = new Date(schedule.timestamp);
+    // Parse as UTC — backend emits UTC and may omit trailing Z.
+    const date = parseServerTimestamp(schedule.timestamp);
+    if (!date) return { primary: n };
     const formatted = date.toLocaleString(undefined, {
       year: 'numeric',
       month: 'short',
@@ -81,6 +86,11 @@ export default function InstitutionSchedules() {
   const [currentUser, setCurrentUser] = useState<InstitutionUser | null>(null);
   const [activeLoading, setActiveLoading] = useState<string | null>(null); // scheduleId being toggled
   const [activeError, setActiveError] = useState<string | null>(null);
+  const [eta, setEta] = useState<ScheduleEta | null>(null);
+  // Re-render once per second while a schedule is running so the progress
+  // bar / remaining-time caption stay live.  Also poll the API every 5s to
+  // pick up status transitions (running → completed/failed).
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
 
   useEffect(() => {
     let mounted = true;
@@ -93,17 +103,19 @@ export default function InstitutionSchedules() {
       setLoading(true);
       setError(null);
       try {
-        const [data, inst, me] = await Promise.all([
+        const [data, inst, me, etaData] = await Promise.all([
           getInstitutionSchedules(institutionId),
           getInstitutionById(institutionId),
           getCurrentUserData().catch(() => null),
+          getScheduleEta(institutionId).catch(() => null),
         ]);
         if (!mounted) return;
         if (me) setCurrentUser(me);
+        if (etaData) setEta(etaData);
         setInstitution(inst);
         const sorted = [...data].sort((a, b) => {
-          const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-          const tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+          const ta = a.timestamp ? parseServerTimestampMs(a.timestamp) || 0 : 0;
+          const tb = b.timestamp ? parseServerTimestampMs(b.timestamp) || 0 : 0;
           return tb - ta;
         });
         setSchedules(sorted);
@@ -117,6 +129,32 @@ export default function InstitutionSchedules() {
     return () => { mounted = false; };
   }, [institutionId]);
 
+  // While at least one schedule is running, tick once per second (for the
+  // progress bar) and poll the schedule list every 5 s (to detect completion).
+  const hasRunningSchedule = useMemo(
+    () => schedules.some((s) => s.status?.toLowerCase() === 'running'),
+    [schedules],
+  );
+
+  useEffect(() => {
+    if (!hasRunningSchedule) return;
+    const tick = setInterval(() => setNowMs(Date.now()), 1000);
+    const poll = setInterval(() => {
+      if (!institutionId) return;
+      // Quietly refresh the schedules list — ignore errors here, the main
+      // load path handles them.
+      getInstitutionSchedules(institutionId).then((data) => {
+        const sorted = [...data].sort((a, b) => {
+          const ta = a.timestamp ? parseServerTimestampMs(a.timestamp) || 0 : 0;
+          const tb = b.timestamp ? parseServerTimestampMs(b.timestamp) || 0 : 0;
+          return tb - ta;
+        });
+        setSchedules(sorted);
+      }).catch(() => {});
+    }, 5000);
+    return () => { clearInterval(tick); clearInterval(poll); };
+  }, [hasRunningSchedule, institutionId]);
+
   const canManage = useMemo(() => isInstitutionAdmin(currentUser, institutionId), [currentUser, institutionId]);
 
   const activeScheduleId = institution?.active_schedule_id ?? null;
@@ -129,8 +167,8 @@ export default function InstitutionSchedules() {
     ]);
     setInstitution(inst);
     const sorted = [...data].sort((a, b) => {
-      const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-      const tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+      const ta = a.timestamp ? parseServerTimestampMs(a.timestamp) || 0 : 0;
+      const tb = b.timestamp ? parseServerTimestampMs(b.timestamp) || 0 : 0;
       return tb - ta;
     });
     setSchedules(sorted);
@@ -246,6 +284,23 @@ export default function InstitutionSchedules() {
                 const isActive = scheduleId === activeScheduleId;
                 const isToggling = activeLoading === scheduleId;
                 const isCompleted = schedule.status?.toLowerCase() === 'completed';
+                const isRunning = schedule.status?.toLowerCase() === 'running';
+
+                // Compute progress + remaining time for running schedules.
+                let progressPct: number | null = null;
+                let remainingLabel: string | null = null;
+                if (isRunning && eta && schedule.timestamp) {
+                  const startedMs = parseServerTimestampMs(schedule.timestamp);
+                  const elapsedSec = (nowMs - startedMs) / 1000;
+                  const etaSec = Math.max(1, eta.eta_seconds);
+                  // Cap visible progress at 95% so the bar doesn't sit at 100%
+                  // while the worker is still finishing up.
+                  progressPct = Math.min(95, Math.max(0, (elapsedSec / etaSec) * 100));
+                  const remaining = etaSec - elapsedSec;
+                  remainingLabel = remaining > 5
+                    ? `~${formatDuration(remaining)} remaining`
+                    : 'Almost done…';
+                }
 
                 return (
                   <Paper
@@ -254,8 +309,8 @@ export default function InstitutionSchedules() {
                     sx={{
                       borderRadius: 2.5,
                       display: 'flex',
-                      alignItems: 'center',
-                      gap: 1.5,
+                      flexDirection: 'column',
+                      gap: 1,
                       px: 2,
                       py: 1.25,
                       cursor: 'pointer',
@@ -268,6 +323,7 @@ export default function InstitutionSchedules() {
                     }}
                     onClick={() => scheduleId && navigate(scheduleRoute(scheduleId))}
                   >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                     {/* Icon box */}
                     <Box sx={{ width: 36, height: 36, borderRadius: 1.5, flexShrink: 0, bgcolor: isActive ? alpha(theme.palette.primary.main, 0.18) : alpha(theme.palette.primary.main, 0.1), color: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <CalendarMonthRoundedIcon sx={{ fontSize: '1.1rem' }} />
@@ -331,6 +387,21 @@ export default function InstitutionSchedules() {
                     )}
 
                     <ChevronRightRoundedIcon sx={{ fontSize: '1.1rem', color: 'text.disabled', flexShrink: 0 }} />
+                  </Box>
+
+                  {isRunning && (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.25 }} onClick={(e) => e.stopPropagation()}>
+                      <LinearProgress
+                        variant={progressPct === null ? 'indeterminate' : 'determinate'}
+                        value={progressPct ?? undefined}
+                        sx={{ height: 4, borderRadius: 2 }}
+                      />
+                      <Typography variant="caption" color="text.secondary">
+                        {remainingLabel ?? 'Generating…'}
+                        {eta && ` · estimated total ${formatDuration(eta.eta_seconds)} (${eta.num_activities} activities)`}
+                      </Typography>
+                    </Box>
+                  )}
                   </Paper>
                 );
               })}

@@ -208,6 +208,55 @@ def update_scheduled_activity(
     return updated_scheduled_activity
 
 
+def replace_scheduled_activities_for_schedule(
+        db: Database,
+        schedule_id: str,
+        request: dto_in.InsertManyScheduledActivities,
+        current_user_id: str,
+) -> List[models.ScheduledActivity]:
+    """Atomically replace all scheduled activities for a given schedule.
+
+    Used by the worker to persist intermediate solutions during long-running
+    schedule generation (every ~60s a new incumbent is saved so the UI can
+    show partial progress without waiting for the solver to terminate)."""
+    logger.info(f"Replacing scheduled activities for schedule {schedule_id}")
+
+    schedule = schedules_repo.find_schedule_by_id(db, schedule_id)
+    if not schedule:
+        logger.error(f"Schedule not found: {schedule_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Schedule with id {schedule_id} not found"
+        )
+    access_verifiers.raise_schedule_forbidden(
+        db, current_user_id, models.Schedule(**schedule), admin_only=True
+    )
+
+    new_activities = []
+    for sa in request.scheduled_activities:
+        sa_model = models.ScheduledActivity(**sa.model_dump())
+        if sa_model.schedule_id != schedule_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="All scheduled activities must belong to the target schedule.",
+            )
+        new_activities.append(sa_model)
+
+    try:
+        scheduled_activities_repo.delete_scheduled_activities_by_schedule_id(db, schedule_id)
+        if new_activities:
+            scheduled_activities_repo.insert_many_scheduled_activities(db, new_activities)
+    except Exception as e:
+        logger.error(f"Failed to replace scheduled activities for {schedule_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error replacing scheduled activities: {str(e)}"
+        )
+
+    logger.info(f"Replaced with {len(new_activities)} scheduled activities for {schedule_id}")
+    return new_activities
+
+
 def insert_scheduled_activities_bulk(
         db: Database,
         request: dto_in.InsertManyScheduledActivities,

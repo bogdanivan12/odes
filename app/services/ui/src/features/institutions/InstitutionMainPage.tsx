@@ -94,6 +94,7 @@ import { Institution } from '../../types/institution';
 import { API_INSTITUTIONS_PATH, API_URL } from '../../config/constants';
 import { apiGet, apiPost, apiPut } from '../../utils/apiClient';
 import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionAdmin';
+import { parseServerTimestamp, parseServerTimestampMs } from '../../utils/time';
 import { alpha, useTheme } from '@mui/material/styles';
 
 type RelatedState<T> = {
@@ -244,8 +245,9 @@ function getInstitutionRoles(user: InstitutionUser, institutionId: string): Inst
 
 function formatCreatedAt(timestamp?: string): string | undefined {
   if (!timestamp) return undefined;
-  const date = new Date(timestamp);
-  if (Number.isNaN(date.getTime())) return timestamp;
+  // Parse as UTC — backend emits UTC datetimes and may omit the trailing Z.
+  const date = parseServerTimestamp(timestamp);
+  if (!date) return timestamp;
   const datePart = date.toLocaleDateString();
   const timePart = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   return `Created on ${datePart} at ${timePart}`;
@@ -1130,8 +1132,8 @@ export default function InstitutionMainPage() {
 
   const schedulesList = useMemo(() => {
     const sorted = [...schedulesState.data].sort((a, b) => {
-      const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-      const tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+      const ta = a.timestamp ? parseServerTimestampMs(a.timestamp) || 0 : 0;
+      const tb = b.timestamp ? parseServerTimestampMs(b.timestamp) || 0 : 0;
       return tb - ta;
     });
     return sorted.map((schedule, index) => {
