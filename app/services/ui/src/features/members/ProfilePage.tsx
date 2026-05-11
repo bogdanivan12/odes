@@ -18,6 +18,8 @@ import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlin
 import RemoveCircleOutlineRoundedIcon from '@mui/icons-material/RemoveCircleOutlineRounded';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import SaveRoundedIcon from '@mui/icons-material/SaveRounded';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import RemoveRoundedIcon from '@mui/icons-material/RemoveRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
 import PageContainer from '../layout/PageContainer';
@@ -27,6 +29,7 @@ import { getDayName, slotToTime } from '../schedules/CalendarGrid';
 import { useTheme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
 import type { TimeslotPreferenceValue } from '../../types/user';
+import { User } from '../../types/user';
 import type { Institution } from '../../types/institution';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -58,9 +61,11 @@ function buildDefaultPrefs(days: number, tpd: number): Record<number, TimeslotPr
 interface AvailabilityGridProps {
   institution: Institution;
   initialPrefs: Record<number, TimeslotPreferenceValue>;
+  initialMaxPerDay?: number | null;
+  onSaved?: (updatedUser: User) => void;
 }
 
-function AvailabilityGrid({ institution, initialPrefs }: AvailabilityGridProps) {
+function AvailabilityGrid({ institution, initialPrefs, initialMaxPerDay, onSaved }: AvailabilityGridProps) {
   const theme = useTheme();
   const tgc = institution.time_grid_config;
   const days = tgc.days;
@@ -86,9 +91,18 @@ function AvailabilityGrid({ institution, initialPrefs }: AvailabilityGridProps) 
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // Personal daily cap — defaults to tpd (no real restriction) when not explicitly saved
+  const instDefaultMax = tpd;
+  const [maxPerDay, setMaxPerDay] = useState<number>(
+    initialMaxPerDay != null && initialMaxPerDay > 0 ? initialMaxPerDay : instDefaultMax,
+  );
+  const [savedMaxPerDay, setSavedMaxPerDay] = useState<number>(
+    initialMaxPerDay != null && initialMaxPerDay > 0 ? initialMaxPerDay : instDefaultMax,
+  );
+
   const isDirty = useMemo(
-    () => JSON.stringify(prefs) !== JSON.stringify(savedPrefs),
-    [prefs, savedPrefs],
+    () => JSON.stringify(prefs) !== JSON.stringify(savedPrefs) || maxPerDay !== savedMaxPerDay,
+    [prefs, savedPrefs, maxPerDay, savedMaxPerDay],
   );
 
   // ── Paint interaction (click-and-drag to fill multiple cells) ─────────────
@@ -134,8 +148,10 @@ function AvailabilityGrid({ institution, initialPrefs }: AvailabilityGridProps) 
     setSaveError(null);
     setSaveSuccess(false);
     try {
-      await updateTimeslotPreferences(instId, preferences);
+      const updatedUser = await updateTimeslotPreferences(instId, preferences, maxPerDay);
       setSavedPrefs({ ...prefs });
+      setSavedMaxPerDay(maxPerDay);
+      onSaved?.(updatedUser);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2500);
     } catch (err) {
@@ -153,6 +169,45 @@ function AvailabilityGrid({ institution, initialPrefs }: AvailabilityGridProps) 
 
   return (
     <Box>
+      {/* Max timeslots per day — compact stepper */}
+      <Box
+        sx={{
+          display: 'inline-flex', alignItems: 'center', gap: 1.5,
+          px: 1.5, py: 1, mb: 2.5, borderRadius: 2,
+          border: '1px solid', borderColor: 'divider',
+          bgcolor: alpha(theme.palette.secondary.main, 0.04),
+        }}
+      >
+        <AccessTimeRoundedIcon sx={{ fontSize: '1rem', color: 'secondary.main', flexShrink: 0 }} />
+        <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', userSelect: 'none' }}>
+          Max slots per day
+        </Typography>
+        <Stack direction="row" alignItems="center" spacing={0.25}>
+          <IconButton
+            size="small"
+            onClick={() => { setMaxPerDay((v) => Math.max(1, v - 1)); setSaveSuccess(false); setSaveError(null); }}
+            disabled={maxPerDay <= 1}
+            sx={{ borderRadius: 1.5, width: 28, height: 28 }}
+          >
+            <RemoveRoundedIcon sx={{ fontSize: '0.9rem' }} />
+          </IconButton>
+          <Box sx={{ minWidth: 28, textAlign: 'center' }}>
+            <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1 }}>{maxPerDay}</Typography>
+          </Box>
+          <IconButton
+            size="small"
+            onClick={() => { setMaxPerDay((v) => Math.min(tpd, v + 1)); setSaveSuccess(false); setSaveError(null); }}
+            disabled={maxPerDay >= tpd}
+            sx={{ borderRadius: 1.5, width: 28, height: 28 }}
+          >
+            <AddRoundedIcon sx={{ fontSize: '0.9rem' }} />
+          </IconButton>
+        </Stack>
+        {maxPerDay === tpd && (
+          <Typography variant="caption" color="text.disabled" sx={{ userSelect: 'none' }}>no limit</Typography>
+        )}
+      </Box>
+
       {/* Legend */}
       <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap sx={{ mb: 2 }} alignItems="center">
         <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Click or drag to paint:</Typography>
@@ -280,7 +335,7 @@ function AvailabilityGrid({ institution, initialPrefs }: AvailabilityGridProps) 
           <Button
             variant="text"
             size="small"
-            onClick={() => { setPrefs(savedPrefs); setSaveError(null); setSaveSuccess(false); }}
+            onClick={() => { setPrefs(savedPrefs); setMaxPerDay(savedMaxPerDay); setSaveError(null); setSaveSuccess(false); }}
             disabled={saving}
             sx={{ borderRadius: 2, color: 'text.secondary' }}
           >
@@ -315,7 +370,7 @@ export default function ProfilePage() {
   const [password, setPassword] = useState('');
 
   const [professorInstitutions, setProfessorInstitutions] = useState<
-    { institution: Institution; initialPrefs: Record<number, TimeslotPreferenceValue> }[]
+    { institution: Institution; initialPrefs: Record<number, TimeslotPreferenceValue>; initialMaxPerDay: number | null }[]
   >([]);
 
   // Collapsed by default — track which institution IDs are expanded
@@ -355,7 +410,8 @@ export default function ProfilePage() {
               const savedPrefs = me.timeslot_preferences?.[instId] ?? [];
               const initialPrefs: Record<number, TimeslotPreferenceValue> = {};
               savedPrefs.forEach((p) => { initialPrefs[p.slot] = p.preference; });
-              return { institution: inst, initialPrefs };
+              const initialMaxPerDay = me.max_timeslots_per_day?.[instId] ?? null;
+              return { institution: inst, initialPrefs, initialMaxPerDay };
             });
           setProfessorInstitutions(items);
         }
@@ -487,7 +543,7 @@ export default function ProfilePage() {
           </Paper>
 
           {/* ── Professor work hour preferences — one card per institution ── */}
-          {professorInstitutions.map(({ institution, initialPrefs }) => {
+          {professorInstitutions.map(({ institution, initialPrefs, initialMaxPerDay }) => {
             const instId = String((institution as any).id ?? (institution as any)._id ?? '');
             const instName = (institution as any).name ?? 'Institution';
             const isExpanded = expandedIds.has(instId);
@@ -547,7 +603,26 @@ export default function ProfilePage() {
                       </Stack>
                     </Stack>
 
-                    <AvailabilityGrid institution={institution} initialPrefs={initialPrefs} />
+                    <AvailabilityGrid
+                      institution={institution}
+                      initialPrefs={initialPrefs}
+                      initialMaxPerDay={initialMaxPerDay}
+                      onSaved={(updatedUser) => {
+                        const newPrefs: Record<number, TimeslotPreferenceValue> = {};
+                        (updatedUser.timeslot_preferences?.[instId] ?? []).forEach(
+                          (p) => { newPrefs[p.slot] = p.preference; },
+                        );
+                        const newMax = updatedUser.max_timeslots_per_day?.[instId] ?? null;
+                        setProfessorInstitutions((prev) =>
+                          prev.map((item) => {
+                            const id = String((item.institution as any).id ?? (item.institution as any)._id ?? '');
+                            return id === instId
+                              ? { ...item, initialPrefs: newPrefs, initialMaxPerDay: newMax }
+                              : item;
+                          }),
+                        );
+                      }}
+                    />
                   </Box>
                 </Collapse>
               </Paper>

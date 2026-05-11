@@ -235,6 +235,24 @@ def update_timeslot_preferences(
             detail=f"Error updating timeslot preferences: {str(e)}",
         )
 
+    # Persist (or remove) the personal daily cap
+    max_per_day = request.max_timeslots_per_day
+    try:
+        if max_per_day is not None and max_per_day > 0:
+            users_repo.update_user_by_id(
+                db, user_id, {f"max_timeslots_per_day.{institution_id}": max_per_day}
+            )
+        else:
+            users_repo.unset_user_field_by_id(
+                db, user_id, f"max_timeslots_per_day.{institution_id}"
+            )
+    except Exception as e:
+        logger.error(f"Failed to update max_timeslots_per_day for user {user_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail=f"Error updating max timeslots per day: {str(e)}",
+        )
+
     return get_user_by_id(db, user_id)
 
 

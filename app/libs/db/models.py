@@ -58,6 +58,8 @@ class User(BaseModel):
     group_ids: List[str] = Field(default_factory=list)
     # professor timeslot preferences per institution
     timeslot_preferences: Dict[str, List[TimeslotPreference]] = Field(default_factory=dict)
+    # professor personal max active timeslots per day, keyed by institution_id
+    max_timeslots_per_day: Dict[str, int] = Field(default_factory=dict)
 
     COLLECTION_NAME: ClassVar[str] = "users"
 

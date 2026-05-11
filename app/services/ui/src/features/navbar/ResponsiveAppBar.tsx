@@ -15,7 +15,7 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
 import DarkModeRoundedIcon from '@mui/icons-material/DarkModeRounded';
 import LightModeRoundedIcon from '@mui/icons-material/LightModeRounded';
-import AccountCircleRoundedIcon from '@mui/icons-material/AccountCircleRounded';
+import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { institutionRoute, MY_SCHEDULE_ROUTE, PROFILE_ROUTE, USER_LOGIN_ROUTE } from '../../config/routes';
@@ -576,8 +576,8 @@ export default function ResponsiveAppBar() {
               <Typography variant="caption" color="text.secondary">Account</Typography>
             </Box>
             <MenuItem onClick={handleOpenProfile}>
-              <ListItemIcon><AccountCircleRoundedIcon fontSize="small" /></ListItemIcon>
-              Profile
+              <ListItemIcon><SettingsRoundedIcon fontSize="small" /></ListItemIcon>
+              Settings
             </MenuItem>
             <Divider sx={{ my: 0.5 }} />
             <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
