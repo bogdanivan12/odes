@@ -18,6 +18,7 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
+import TablePagination from '@mui/material/TablePagination';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import StarRoundedIcon from '@mui/icons-material/StarRounded';
@@ -89,6 +90,8 @@ export default function InstitutionSchedules() {
   const [activeLoading, setActiveLoading] = useState<string | null>(null); // scheduleId being toggled
   const [activeError, setActiveError] = useState<string | null>(null);
   const [eta, setEta] = useState<ScheduleEta | null>(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   // Re-render once per second while a schedule is running so the progress
   // bar / remaining-time caption stay live.  Also poll the API every 5s to
   // pick up status transitions (running → completed/failed).
@@ -158,6 +161,11 @@ export default function InstitutionSchedules() {
   }, [hasRunningSchedule, institutionId]);
 
   const canManage = useMemo(() => isInstitutionAdmin(currentUser, institutionId), [currentUser, institutionId]);
+
+  const paginatedSchedules = useMemo(
+    () => schedules.slice(page * rowsPerPage, (page + 1) * rowsPerPage),
+    [schedules, page, rowsPerPage],
+  );
 
   const activeScheduleId = institution?.active_schedule_id ?? null;
 
@@ -278,9 +286,9 @@ export default function InstitutionSchedules() {
           {/* Schedule list */}
           {!error && schedules.length > 0 && (
             <Stack spacing={1.5}>
-              {schedules.map((schedule, index) => {
+              {paginatedSchedules.map((schedule, index) => {
                 const scheduleId = String(schedule.id ?? schedule._id ?? '');
-                const num = schedules.length - index;
+                const num = schedules.length - (page * rowsPerPage + index);
                 const { primary, secondary } = formatScheduleLabel(schedule, num - 1);
                 const statusColor = scheduleStatusColor(schedule.status);
                 const isActive = scheduleId === activeScheduleId;
@@ -432,6 +440,16 @@ export default function InstitutionSchedules() {
                   </Paper>
                 );
               })}
+                              <TablePagination
+                  component="div"
+                  count={schedules.length}
+                  page={page}
+                  onPageChange={(_, newPage) => setPage(newPage)}
+                  rowsPerPage={rowsPerPage}
+                  onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+                  rowsPerPageOptions={[5, 10, 25]}
+                />
+
             </Stack>
           )}
         </Stack>

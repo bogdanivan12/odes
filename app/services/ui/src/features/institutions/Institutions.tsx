@@ -7,6 +7,7 @@ import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
+import TablePagination from '@mui/material/TablePagination';
 import SearchIcon from '@mui/icons-material/Search';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import AccountBalanceRoundedIcon from '@mui/icons-material/AccountBalanceRounded';
@@ -30,6 +31,8 @@ export default function Institutions() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [usersMap, setUsersMap] = useState<Record<string, { loading: boolean; membersCount?: number }>>({});
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const navigate = useNavigate();
 
   const handleViewInstitution = (inst: Institution) => {
@@ -76,6 +79,13 @@ export default function Institutions() {
     const q = searchQuery.trim().toLowerCase();
     return items.filter((inst) => (inst.name ?? '').toLowerCase().includes(q));
   }, [items, searchQuery]);
+
+  useEffect(() => { setPage(0); }, [filteredInstitutions]);
+
+  const paginatedInstitutions = useMemo(
+    () => filteredInstitutions.slice(page * rowsPerPage, (page + 1) * rowsPerPage),
+    [filteredInstitutions, page, rowsPerPage],
+  );
 
   if (loading) {
     return (
@@ -153,7 +163,7 @@ export default function Institutions() {
           {/* Institution list */}
           {!error && filteredInstitutions.length > 0 && (
             <Stack spacing={1}>
-              {filteredInstitutions.map((inst) => {
+              {paginatedInstitutions.map((inst) => {
                 const entry = usersMap[inst.id];
                 return (
                   <Paper
@@ -212,6 +222,16 @@ export default function Institutions() {
                   </Paper>
                 );
               })}
+                              <TablePagination
+                  component="div"
+                  count={filteredInstitutions.length}
+                  page={page}
+                  onPageChange={(_, newPage) => setPage(newPage)}
+                  rowsPerPage={rowsPerPage}
+                  onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+                  rowsPerPageOptions={[5, 10, 25]}
+                />
+
             </Stack>
           )}
 

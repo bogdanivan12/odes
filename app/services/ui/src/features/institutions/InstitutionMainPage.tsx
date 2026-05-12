@@ -27,6 +27,7 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
+import TablePagination from '@mui/material/TablePagination';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import ToggleButton from '@mui/material/ToggleButton';
 import GroupIcon from '@mui/icons-material/Group';
@@ -314,6 +315,8 @@ function SearchableList({
   const navigate = useNavigate();
   const theme = useTheme();
   const [query, setQuery] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const filteredItems = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -322,6 +325,13 @@ function SearchableList({
       `${item.primary} ${item.secondary ?? ''} ${(item.roles ?? []).join(' ')}`.toLowerCase().includes(q),
     );
   }, [items, query]);
+
+  useEffect(() => { setPage(0); }, [filteredItems]);
+
+  const paginatedItems = useMemo(
+    () => filteredItems.slice(page * rowsPerPage, (page + 1) * rowsPerPage),
+    [filteredItems, page, rowsPerPage],
+  );
 
   return (
     <Paper
@@ -448,17 +458,9 @@ function SearchableList({
           </Box>
         ) : (
           /* ── List ── */
-          <Box
-            sx={{
-              maxHeight: 248,
-              overflowY: 'auto',
-              '&::-webkit-scrollbar': { width: 4 },
-              '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 2 },
-              '&::-webkit-scrollbar-track': { bgcolor: 'transparent' },
-            }}
-          >
+          <Box>
             <Stack spacing={0.25}>
-              {filteredItems.map((item) => (
+              {paginatedItems.map((item) => (
                 <Box
                   key={item.key}
                   onClick={item.to ? () => navigate(item.to as string) : undefined}
@@ -503,6 +505,17 @@ function SearchableList({
                 </Box>
               ))}
             </Stack>
+                          <TablePagination
+                component="div"
+                count={filteredItems.length}
+                page={page}
+                onPageChange={(_, newPage) => setPage(newPage)}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+                rowsPerPageOptions={[5, 10, 25]}
+                sx={{ borderTop: '1px solid', borderColor: 'divider', mt: 0.5 }}
+              />
+
           </Box>
         )}
       </Box>
@@ -635,6 +648,8 @@ export default function InstitutionMainPage() {
   const [scheduleDeleteError, setScheduleDeleteError] = useState<string | null>(null);
 
   const [groupSearchQuery, setGroupSearchQuery] = useState('');
+  const [groupPage, setGroupPage] = useState(0);
+  const [groupRowsPerPage, setGroupRowsPerPage] = useState(10);
 
   const institutionBase = institutionId ? `/institutions/${institutionId}` : '';
 
@@ -1066,6 +1081,13 @@ export default function InstitutionMainPage() {
   const displayedRootGroupIds = useMemo(
     () => rootGroupIds.filter((id) => displayedTreeGroupIds.has(id)),
     [rootGroupIds, displayedTreeGroupIds],
+  );
+
+  useEffect(() => { setGroupPage(0); }, [displayedRootGroupIds]);
+
+  const paginatedGroupIds = useMemo(
+    () => displayedRootGroupIds.slice(groupPage * groupRowsPerPage, (groupPage + 1) * groupRowsPerPage),
+    [displayedRootGroupIds, groupPage, groupRowsPerPage],
   );
 
   const coursesList = useMemo(() => coursesState.data.map((course) => ({
@@ -1762,10 +1784,21 @@ export default function InstitutionMainPage() {
                     No results for &ldquo;{groupSearchQuery}&rdquo;
                   </Typography>
                 ) : (
-                  <Box sx={{ maxHeight: 248, overflowY: 'auto', '&::-webkit-scrollbar': { width: 4 }, '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 2 }, '&::-webkit-scrollbar-track': { bgcolor: 'transparent' } }}>
+                  <Box>
                     <Stack spacing={0.75}>
-                      {displayedRootGroupIds.map((id) => renderGroupTreeNode(id))}
+                      {paginatedGroupIds.map((id) => renderGroupTreeNode(id))}
                     </Stack>
+                                          <TablePagination
+                        component="div"
+                        count={displayedRootGroupIds.length}
+                        page={groupPage}
+                        onPageChange={(_, newPage) => setGroupPage(newPage)}
+                        rowsPerPage={groupRowsPerPage}
+                        onRowsPerPageChange={(e) => { setGroupRowsPerPage(parseInt(e.target.value, 10)); setGroupPage(0); }}
+                        rowsPerPageOptions={[5, 10, 25]}
+                        sx={{ borderTop: '1px solid', borderColor: 'divider', mt: 0.5 }}
+                      />
+
                   </Box>
                 )}
               </Box>

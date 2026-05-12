@@ -16,6 +16,7 @@ import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
 import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid';
+import TablePagination from '@mui/material/TablePagination';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import MeetingRoomRoundedIcon from '@mui/icons-material/MeetingRoomRounded';
 import EventNoteRoundedIcon from '@mui/icons-material/EventNoteRounded';
@@ -72,6 +73,8 @@ export default function RoomMainPage() {
   const [currentUser, setCurrentUser] = useState<InstitutionUser | null>(null);
   const [currentUserLoading, setCurrentUserLoading] = useState(true);
   const [relatedLoading, setRelatedLoading] = useState(false);
+  const [activitiesPage, setActivitiesPage] = useState(0);
+  const [activitiesRowsPerPage, setActivitiesRowsPerPage] = useState(10);
   const [relatedError, setRelatedError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -361,15 +364,10 @@ export default function RoomMainPage() {
                     <Typography variant="body2" color="text.secondary">No activities currently fit this room's feature set.</Typography>
                   </Box>
                 ) : (
-                  <Stack
-                    spacing={1}
-                    sx={{
-                      maxHeight: 480, overflowY: 'auto', pr: 0.5,
-                      scrollbarWidth: 'thin',
-                      scrollbarColor: `${alpha(theme.palette.primary.main, 0.4)} transparent`,
-                    }}
-                  >
-                    {compatibleActivities.map((activity) => {
+                  <Stack spacing={1}>
+                    {compatibleActivities
+                      .slice(activitiesPage * activitiesRowsPerPage, (activitiesPage + 1) * activitiesRowsPerPage)
+                      .map((activity) => {
                       const activityId = String(activity.id ?? activity._id ?? `${activity.course_id}-${activity.group_id}-${activity.activity_type}`);
                       const courseName = coursesById.get(String(activity.course_id))?.name ?? 'Unknown course';
                       const groupName = groupsById.get(String(activity.group_id))?.name ?? 'Unknown group';
@@ -421,6 +419,16 @@ export default function RoomMainPage() {
                         </Box>
                       );
                     })}
+                                          <TablePagination
+                        component="div"
+                        count={compatibleActivities.length}
+                        page={activitiesPage}
+                        onPageChange={(_, newPage) => setActivitiesPage(newPage)}
+                        rowsPerPage={activitiesRowsPerPage}
+                        onRowsPerPageChange={(e) => { setActivitiesRowsPerPage(parseInt(e.target.value, 10)); setActivitiesPage(0); }}
+                        rowsPerPageOptions={[5, 10, 25]}
+                      />
+
                   </Stack>
                 )}
               </Box>

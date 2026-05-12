@@ -24,6 +24,7 @@ import AccordionDetails from '@mui/material/AccordionDetails';
 import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
 import Autocomplete from '@mui/material/Autocomplete';
+import TablePagination from '@mui/material/TablePagination';
 import PersonAddAlt1RoundedIcon from '@mui/icons-material/PersonAddAlt1Rounded';
 import RemoveCircleOutlineRoundedIcon from '@mui/icons-material/RemoveCircleOutlineRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
@@ -347,6 +348,8 @@ export default function GroupMainPage() {
   // Per-row "removing" tracker so multiple removes can be in-flight.
   const [removingStudentId, setRemovingStudentId] = useState<string | null>(null);
   const [studentsExpanded, setStudentsExpanded] = useState(true);
+  const [studentsPage, setStudentsPage] = useState(0);
+  const [studentsRowsPerPage, setStudentsRowsPerPage] = useState(10);
 
   useEffect(() => {
     let mounted = true;
@@ -1025,17 +1028,11 @@ export default function GroupMainPage() {
                           </Typography>
                         </Box>
                       ) : (
-                        <Stack
-                          spacing={1}
-                          sx={{
-                            maxHeight: 360, overflowY: 'auto', pr: 0.5,
-                            scrollbarWidth: 'thin',
-                            scrollbarColor: `${alpha(theme.palette.primary.main, 0.4)} transparent`,
-                          }}
-                        >
+                        <Stack spacing={1}>
                           {students
                             .slice()
                             .sort((a, b) => compareAlphabetical(a.name ?? '', b.name ?? ''))
+                            .slice(studentsPage * studentsRowsPerPage, (studentsPage + 1) * studentsRowsPerPage)
                             .map((student) => {
                               const sid = String(student.id ?? student._id ?? '');
                               const isRemoving = removingStudentId === sid;
@@ -1096,6 +1093,16 @@ export default function GroupMainPage() {
                                 </Box>
                               );
                             })}
+                                                      <TablePagination
+                              component="div"
+                              count={students.length}
+                              page={studentsPage}
+                              onPageChange={(_, newPage) => setStudentsPage(newPage)}
+                              rowsPerPage={studentsRowsPerPage}
+                              onRowsPerPageChange={(e) => { setStudentsRowsPerPage(parseInt(e.target.value, 10)); setStudentsPage(0); }}
+                              rowsPerPageOptions={[5, 10, 25]}
+                            />
+
                         </Stack>
                       )}
                     </Collapse>

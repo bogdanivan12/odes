@@ -16,6 +16,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
+import TablePagination from '@mui/material/TablePagination';
 import Chip from '@mui/material/Chip';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
@@ -64,6 +65,8 @@ export default function InstitutionGroups() {
   const [currentUserLoading, setCurrentUserLoading] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const loadGroups = async () => {
     if (!institutionId) { setError('Missing institution id in route.'); setLoading(false); return; }
@@ -153,6 +156,13 @@ export default function InstitutionGroups() {
   const displayedRootGroupIds = useMemo(
     () => rootGroupIds.filter((groupId) => displayedTreeGroupIds.has(groupId)),
     [rootGroupIds, displayedTreeGroupIds],
+  );
+
+  useEffect(() => { setPage(0); }, [displayedRootGroupIds]);
+
+  const paginatedRootGroupIds = useMemo(
+    () => displayedRootGroupIds.slice(page * rowsPerPage, (page + 1) * rowsPerPage),
+    [displayedRootGroupIds, page, rowsPerPage],
   );
 
   const getDescendantIds = (groupId: string): Set<string> => {
@@ -449,7 +459,17 @@ export default function InstitutionGroups() {
         {/* Group tree */}
         {!error && displayedRootGroupIds.length > 0 && (
           <Stack spacing={1}>
-            {displayedRootGroupIds.map((groupId) => renderGroupNode(groupId))}
+            {paginatedRootGroupIds.map((groupId) => renderGroupNode(groupId))}
+                          <TablePagination
+                component="div"
+                count={displayedRootGroupIds.length}
+                page={page}
+                onPageChange={(_, newPage) => setPage(newPage)}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+                rowsPerPageOptions={[5, 10, 25]}
+              />
+
           </Stack>
         )}
       </Stack>
