@@ -766,6 +766,23 @@ export default function ScheduleViewPage() {
             <Alert severity="error" sx={{ borderRadius: 2 }}>{activeToggleError}</Alert>
           )}
 
+          {schedule?.status?.toLowerCase() === 'failed' && (
+            <Alert
+              severity="error"
+              sx={{ borderRadius: 2, whiteSpace: 'pre-wrap' }}
+              icon={false}
+            >
+              <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5 }}>
+                Schedule generation failed
+              </Typography>
+              <Typography variant="body2">
+                {schedule.error_message
+                  ? schedule.error_message
+                  : 'No additional details were reported by the generator.'}
+              </Typography>
+            </Alert>
+          )}
+
           {!schedule && (
             <Alert severity="error" sx={{ borderRadius: 2 }}>Schedule not found.</Alert>
           )}

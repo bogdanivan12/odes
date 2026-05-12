@@ -186,20 +186,57 @@ def get_institution_rooms(institution_id: str, token: str) -> List[models.Room]:
     return rooms
 
 
+def get_institution_students(institution_id: str, token: str) -> List[models.User]:
+    """Fetch all users with the STUDENT role in this institution.
+
+    Used to determine each group's seat-count requirement so the schedule
+    generator can filter rooms by capacity, not just features."""
+    url = f"{API_URL}/api/v1/institutions/{institution_id}/users"
+    response = requests.get(url, headers={"Authorization": f"Bearer {token}"})
+    response.raise_for_status()
+    users_data = response.json().get("users", [])
+    students = [
+        models.User(**u) for u in users_data
+        if models.UserRole.STUDENT
+        in u.get("user_roles", {}).get(institution_id, [])
+    ]
+    logger.info(f"Fetched {len(students)} students for institution {institution_id}")
+    return students
+
+
 def get_schedule_input_data(institution_id: str, token: str):
     activities = get_institution_activities(institution_id, token)
     rooms = get_institution_rooms(institution_id, token)
     groups = get_institution_groups(institution_id, token)
     professor_ids = list({a.professor_id for a in activities if a.professor_id})
     professors = get_professors_by_ids(professor_ids, token)
+    students = get_institution_students(institution_id, token)
     institution = get_institution_by_id(institution_id, token)
-    return institution, rooms, groups, professors, activities
+    return institution, rooms, groups, professors, students, activities
 
 
 def filter_rooms_by_features(rooms: List[models.Room], required_features: List[str]):
     if not required_features:
         return rooms
     return [r for r in rooms if all(f in r.features for f in required_features)]
+
+
+def filter_rooms_for_activity(
+    rooms: List[models.Room],
+    required_features: List[str],
+    min_capacity: int,
+) -> List[models.Room]:
+    """Return rooms with the required features AND ``capacity >= min_capacity``.
+
+    ``min_capacity`` is the number of students who will attend the activity,
+    which equals the size of the activity's group (counting students whose
+    ``group_ids`` contain that group — descendants count because we
+    propagate enrollment up to ancestors).  When the group has zero
+    students, ``min_capacity`` is 0 and the capacity filter is a no-op."""
+    return [
+        r for r in filter_rooms_by_features(rooms, required_features)
+        if r.capacity >= min_capacity
+    ]
 
 
 def db_update_failed_schedule(schedule_id: str, reason: str, token: str):
@@ -384,14 +421,15 @@ class _StagnationMonitor:
 def generate_schedule(institution_id: str, schedule_id: str, token: str):
     """Build the CP-SAT model, solve it, and persist the result."""
     db_update_schedule_status(schedule_id, models.ScheduleStatus.RUNNING, token)
-    institution, rooms, groups, professors, activities = get_schedule_input_data(
+    institution, rooms, groups, professors, students, activities = get_schedule_input_data(
         institution_id, token,
     )
 
     logger.info(
         f"Generating schedule for institution {institution_id}: "
         f"{len(activities)} activities, {len(rooms)} rooms, "
-        f"{len(groups)} groups, {len(professors)} professors."
+        f"{len(groups)} groups, {len(professors)} professors, "
+        f"{len(students)} students."
     )
 
     if not activities:
@@ -405,11 +443,38 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
     weeks = institution.time_grid_config.weeks
     total_slots = days * tpd
 
-    # ── Per-activity feasibility: rooms + allowed starts ─────────────────────
+    # ── Per-group student counts ──────────────────────────────────────────────
+    # Count students whose group_ids contain each group's id directly.  Thanks
+    # to the ancestor-propagation done on enrollment, a student in Section A
+    # also carries Year 1 and Faculty in their group_ids, so iterating the
+    # roster once and incrementing counters here yields correct sizes for
+    # every group in the hierarchy without re-walking parents per group.
+    group_student_count: Dict[str, int] = {}
+    for student in students:
+        for gid in student.group_ids:
+            group_student_count[gid] = group_student_count.get(gid, 0) + 1
+
+    # ── Per-activity feasibility: rooms (features + capacity) + allowed starts
     for a in activities:
-        a.possible_rooms = filter_rooms_by_features(rooms, a.required_room_features)
+        required_capacity = group_student_count.get(a.group_id, 0)
+        a.possible_rooms = filter_rooms_for_activity(
+            rooms=rooms,
+            required_features=a.required_room_features,
+            min_capacity=required_capacity,
+        )
         if not a.possible_rooms:
-            msg = f"No room with required features for activity {a.id}."
+            # Diagnose precisely so the user knows which constraint failed.
+            feat_only = filter_rooms_by_features(rooms, a.required_room_features)
+            if not feat_only:
+                msg = f"No room with required features for activity {a.id}."
+            else:
+                max_feat_capacity = max((r.capacity for r in feat_only), default=0)
+                msg = (
+                    f"No room with required features AND capacity ≥ "
+                    f"{required_capacity} for activity {a.id} "
+                    f"(group has {required_capacity} students; "
+                    f"largest matching room seats {max_feat_capacity})."
+                )
             logger.error(msg)
             db_update_failed_schedule(schedule_id, msg, token)
             raise Exception(msg)

@@ -99,3 +99,39 @@ export async function updateGroupTimeslotPreferences(
   return GroupClass.from(groupData);
 }
 
+// Lightweight student record shape — mirrors a subset of the User model.
+// We don't need every field; only what the group page renders.
+export interface GroupStudent {
+  id?: string;
+  _id?: string;
+  name?: string;
+  email?: string;
+}
+
+export async function getGroupStudents(groupId: string): Promise<GroupStudent[]> {
+  const url = `${API_URL}/api/v1/groups/${groupId}/students`;
+  const headers = buildAuthHeaders();
+  const res = await apiGet<any>(url, headers);
+  const list = res?.students ?? res ?? [];
+  return Array.isArray(list) ? list : [];
+}
+
+export async function addStudentToGroup(
+  groupId: string,
+  userId: string,
+): Promise<GroupStudent> {
+  const url = `${API_URL}/api/v1/groups/${groupId}/students/${userId}`;
+  const headers = buildAuthHeaders();
+  const res = await apiPost<any>(url, {}, headers);
+  return (res?.user ?? res) as GroupStudent;
+}
+
+export async function removeStudentFromGroup(
+  groupId: string,
+  userId: string,
+): Promise<void> {
+  const url = `${API_URL}/api/v1/groups/${groupId}/students/${userId}`;
+  const headers = buildAuthHeaders();
+  await apiDelete<void>(url, headers);
+}
+
