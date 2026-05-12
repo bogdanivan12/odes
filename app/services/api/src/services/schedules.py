@@ -58,21 +58,23 @@ def trigger_schedule_generation(
 
     logger.info(f"Found {len(activities)} activities for institution {institution_id}")
 
-    # Allocate the next monotonically-increasing schedule number BEFORE
-    # building the Schedule object so the label is stable from the start.
-    # Deleting an existing schedule does not free its number — the counter
-    # only ever goes up.
-    next_number = institutions_repo.get_next_schedule_number(db, institution_id)
-    schedule_name = f"Schedule #{next_number}"
-
     schedule = models.Schedule(
         institution_id=institution.id,
         time_grid_config=institution.time_grid_config,
-        name=schedule_name,
     )
 
-    # Check authorization - user must be admin of the institution
+    # IMPORTANT: check authorization BEFORE allocating the schedule number.
+    # ``get_next_schedule_number`` mutates the institution's monotonic
+    # counter; if we ran it before the auth check, an unauthorized caller
+    # could burn schedule numbers and leave permanent gaps in the
+    # "Schedule #N" sequence.
     access_verifiers.raise_schedule_forbidden(db, current_user_id, schedule, admin_only=True)
+
+    # Authorized — safe to atomically reserve the next number.  The counter
+    # only ever goes up, so deleting an existing schedule does not free its
+    # number.
+    next_number = institutions_repo.get_next_schedule_number(db, institution_id)
+    schedule.name = f"Schedule #{next_number}"
 
     try:
         schedules_repo.insert_schedule(db, schedule)
