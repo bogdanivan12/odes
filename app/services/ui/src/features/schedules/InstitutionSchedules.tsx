@@ -287,6 +287,7 @@ export default function InstitutionSchedules() {
                 const isToggling = activeLoading === scheduleId;
                 const isCompleted = schedule.status?.toLowerCase() === 'completed';
                 const isRunning = schedule.status?.toLowerCase() === 'running';
+                const isFailed = schedule.status?.toLowerCase() === 'failed';
 
                 // Compute progress + remaining time for running schedules.
                 let progressPct: number | null = null;
@@ -403,6 +404,30 @@ export default function InstitutionSchedules() {
                         {eta && ` · estimated total ${formatDuration(eta.eta_seconds)} (${eta.num_activities} activities)`}
                       </Typography>
                     </Box>
+                  )}
+
+                  {isFailed && schedule.error_message && (
+                    // Use Alert inline so the failure reason is visible from
+                    // the list without having to open the schedule.  Stop
+                    // propagation so clicking inside the alert (e.g. to
+                    // select text) doesn't navigate away.
+                    <Alert
+                      severity="error"
+                      onClick={(e) => e.stopPropagation()}
+                      sx={{
+                        borderRadius: 2, mt: 0.25, py: 0.5,
+                        whiteSpace: 'pre-wrap',
+                        cursor: 'text',
+                        '.MuiAlert-message': { width: '100%' },
+                      }}
+                    >
+                      <Typography variant="caption" sx={{ fontWeight: 600, display: 'block' }}>
+                        Generation failed
+                      </Typography>
+                      <Typography variant="caption" sx={{ display: 'block' }}>
+                        {schedule.error_message}
+                      </Typography>
+                    </Alert>
                   )}
                   </Paper>
                 );

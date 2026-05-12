@@ -80,3 +80,31 @@ async def get_group_activities(db: DB, group_id: str, token: AUTH):
     current_user_id = token_utils.get_user_id_from_token(token)
     activities = service.get_group_activities(db, group_id, current_user_id)
     return dto_out.GetGroupActivities(activities=activities)
+
+
+@router.get("/{group_id}/students",
+            status_code=status.HTTP_200_OK,
+            response_model=dto_out.GetGroupStudents)
+async def get_group_students(db: DB, group_id: str, token: AUTH):
+    """List the students currently belonging to this group."""
+    current_user_id = token_utils.get_user_id_from_token(token)
+    students = service.get_group_students(db, group_id, current_user_id)
+    return dto_out.GetGroupStudents(students=students)
+
+
+@router.post("/{group_id}/students/{user_id}",
+             status_code=status.HTTP_200_OK,
+             response_model=dto_out.GetGroupStudentUpdated)
+async def add_student_to_group(db: DB, group_id: str, user_id: str, token: AUTH):
+    """Add a student to a group (institution admin only)."""
+    current_user_id = token_utils.get_user_id_from_token(token)
+    user = service.add_student_to_group(db, group_id, user_id, current_user_id)
+    return dto_out.GetGroupStudentUpdated(user=user)
+
+
+@router.delete("/{group_id}/students/{user_id}",
+               status_code=status.HTTP_204_NO_CONTENT)
+async def remove_student_from_group(db: DB, group_id: str, user_id: str, token: AUTH):
+    """Remove a student from a group (institution admin only)."""
+    current_user_id = token_utils.get_user_id_from_token(token)
+    service.remove_student_from_group(db, group_id, user_id, current_user_id)

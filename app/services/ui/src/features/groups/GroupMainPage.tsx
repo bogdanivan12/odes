@@ -23,6 +23,10 @@ import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
+import Autocomplete from '@mui/material/Autocomplete';
+import PersonAddAlt1RoundedIcon from '@mui/icons-material/PersonAddAlt1Rounded';
+import RemoveCircleOutlineRoundedIcon from '@mui/icons-material/RemoveCircleOutlineRounded';
+import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
@@ -41,7 +45,17 @@ import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlin
 import PageContainer from '../layout/PageContainer';
 import EntityStatCard from '../../components/EntityStatCard';
 import { compareAlphabetical, toTitleLabel } from '../../utils/text';
-import { deleteGroup, getGroupActivities, getGroupById, updateGroup, updateGroupTimeslotPreferences } from '../../api/groups';
+import {
+  deleteGroup,
+  getGroupActivities,
+  getGroupById,
+  updateGroup,
+  updateGroupTimeslotPreferences,
+  getGroupStudents,
+  addStudentToGroup,
+  removeStudentFromGroup,
+} from '../../api/groups';
+import type { GroupStudent } from '../../api/groups';
 import type { GroupActivity } from '../../api/groups';
 import { getInstitutionById, getInstitutionCourses, getInstitutionGroups, getInstitutionUsers } from '../../api/institutions';
 import type { InstitutionCourse, InstitutionGroup, InstitutionUser } from '../../api/institutions';
@@ -324,6 +338,16 @@ export default function GroupMainPage() {
 
   const [prefsExpanded, setPrefsExpanded] = useState(false);
 
+  // ── Student roster state ───────────────────────────────────────────────
+  const [students, setStudents] = useState<GroupStudent[]>([]);
+  const [studentsError, setStudentsError] = useState<string | null>(null);
+  // "Add student" picker — only rendered for admins.
+  const [studentToAdd, setStudentToAdd] = useState<InstitutionUser | null>(null);
+  const [addingStudent, setAddingStudent] = useState(false);
+  // Per-row "removing" tracker so multiple removes can be in-flight.
+  const [removingStudentId, setRemovingStudentId] = useState<string | null>(null);
+  const [studentsExpanded, setStudentsExpanded] = useState(true);
+
   useEffect(() => {
     let mounted = true;
     if (!groupId) { setLoading(false); setError('Missing group id in route.'); return () => { mounted = false; }; }
@@ -353,12 +377,20 @@ export default function GroupMainPage() {
       setRelatedLoading(true);
       setRelatedError(null);
       try {
-        const [groupActivities, institutionGroups, institutionCourses, institutionUsers, institutionData] = await Promise.all([
+        const [
+          groupActivities,
+          institutionGroups,
+          institutionCourses,
+          institutionUsers,
+          institutionData,
+          groupStudents,
+        ] = await Promise.all([
           getGroupActivities(group.id),
           getInstitutionGroups(group.institution_id),
           getInstitutionCourses(group.institution_id),
           getInstitutionUsers(group.institution_id),
           getInstitutionById(group.institution_id),
+          getGroupStudents(group.id).catch(() => []),
         ]);
         if (!mounted) return;
         setActivities(groupActivities);
@@ -366,6 +398,7 @@ export default function GroupMainPage() {
         setCourses(institutionCourses);
         setUsers(institutionUsers);
         setInstitution(institutionData);
+        setStudents(groupStudents);
       } catch (err) {
         if (!mounted) return;
         setRelatedError((err as Error).message || 'Failed to load related entities.');
@@ -565,6 +598,57 @@ export default function GroupMainPage() {
       setDeleteLoading(false);
     }
   };
+
+  const handleAddStudent = async () => {
+    if (!isCurrentUserAdmin || !group?.id || !studentToAdd) return;
+    const userId = String(studentToAdd.id ?? studentToAdd._id ?? '');
+    if (!userId) return;
+    setAddingStudent(true);
+    setStudentsError(null);
+    try {
+      await addStudentToGroup(group.id, userId);
+      // Refresh the canonical roster from the server (cheaper than computing
+      // locally + handles edge cases like the student already being a member).
+      const refreshed = await getGroupStudents(group.id);
+      setStudents(refreshed);
+      setStudentToAdd(null);
+    } catch (err) {
+      setStudentsError((err as Error).message || 'Failed to add student.');
+    } finally {
+      setAddingStudent(false);
+    }
+  };
+
+  const handleRemoveStudent = async (userId: string) => {
+    if (!isCurrentUserAdmin || !group?.id || !userId) return;
+    setRemovingStudentId(userId);
+    setStudentsError(null);
+    try {
+      await removeStudentFromGroup(group.id, userId);
+      setStudents((prev) =>
+        prev.filter((s) => String(s.id ?? s._id ?? '') !== userId),
+      );
+    } catch (err) {
+      setStudentsError((err as Error).message || 'Failed to remove student.');
+    } finally {
+      setRemovingStudentId(null);
+    }
+  };
+
+  // Pool of users available to add: institution members with a STUDENT
+  // role in this institution who aren't already in the group.
+  const addableStudents = useMemo<InstitutionUser[]>(() => {
+    if (!group?.institution_id) return [];
+    const memberIds = new Set(
+      students.map((s) => String(s.id ?? s._id ?? '')).filter(Boolean),
+    );
+    return users.filter((u) => {
+      const id = String(u.id ?? u._id ?? '');
+      if (!id || memberIds.has(id)) return false;
+      const roles = u.user_roles?.[group.institution_id] ?? [];
+      return roles.includes('student');
+    });
+  }, [users, students, group?.institution_id]);
 
   const backRoute = group?.institution_id
     ? `${institutionRoute(group.institution_id)}/groups`
@@ -863,6 +947,158 @@ export default function GroupMainPage() {
                         })}
                       </Stack>
                     )}
+                  </Box>
+                </Paper>
+              </Grid>
+
+              {/* Students */}
+              <Grid size={{ xs: 12 }}>
+                <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+                  <Box sx={{ height: 3, background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})` }} />
+                  <Box sx={{ p: 2.5 }}>
+                    <Box
+                      sx={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        cursor: 'pointer', mb: studentsExpanded ? 1.5 : 0,
+                      }}
+                      onClick={() => setStudentsExpanded((v) => !v)}
+                    >
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Students</Typography>
+                        <Chip
+                          label={`${students.length} member${students.length === 1 ? '' : 's'}`}
+                          size="small"
+                          sx={{ borderRadius: 1.5, fontSize: '0.7rem', height: 20 }}
+                        />
+                      </Stack>
+                      <IconButton size="small" sx={{ borderRadius: 1.5 }} aria-label={studentsExpanded ? 'Collapse' : 'Expand'}>
+                        {studentsExpanded ? <ExpandLessRoundedIcon /> : <ExpandMoreRoundedIcon />}
+                      </IconButton>
+                    </Box>
+
+                    <Collapse in={studentsExpanded} timeout="auto" unmountOnExit>
+                      {studentsError && (
+                        <Alert severity="error" sx={{ borderRadius: 2, mb: 1.5 }}>{studentsError}</Alert>
+                      )}
+
+                      {/* Admin-only: pick a student from the institution to add */}
+                      {isCurrentUserAdmin && (
+                        <Box sx={{ display: 'flex', gap: 1, mb: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+                          <Autocomplete
+                            size="small"
+                            sx={{ flex: 1, minWidth: 240 }}
+                            options={addableStudents}
+                            value={studentToAdd}
+                            onChange={(_, value) => setStudentToAdd(value)}
+                            getOptionLabel={(option) =>
+                              option.name
+                                ? (option.email ? `${option.name} (${option.email})` : option.name)
+                                : (option.email ?? String(option.id ?? option._id ?? ''))
+                            }
+                            isOptionEqualToValue={(opt, value) =>
+                              String(opt.id ?? opt._id ?? '') === String(value.id ?? value._id ?? '')
+                            }
+                            disabled={addingStudent}
+                            noOptionsText="No matching students in this institution"
+                            renderInput={(params) => (
+                              <TextField {...params} label="Add student" placeholder="Search by name or email" />
+                            )}
+                          />
+                          <Button
+                            variant="contained"
+                            size="medium"
+                            startIcon={addingStudent ? <CircularProgress size={16} color="inherit" /> : <PersonAddAlt1RoundedIcon />}
+                            onClick={handleAddStudent}
+                            disabled={!studentToAdd || addingStudent}
+                            sx={{ borderRadius: 2 }}
+                          >
+                            Add
+                          </Button>
+                        </Box>
+                      )}
+
+                      {students.length === 0 ? (
+                        <Box sx={{ textAlign: 'center', py: 3 }}>
+                          <Diversity3RoundedIcon sx={{ fontSize: '2rem', color: 'text.disabled', mb: 1 }} />
+                          <Typography variant="body2" color="text.secondary">
+                            No students assigned to this group yet.
+                          </Typography>
+                        </Box>
+                      ) : (
+                        <Stack
+                          spacing={1}
+                          sx={{
+                            maxHeight: 360, overflowY: 'auto', pr: 0.5,
+                            scrollbarWidth: 'thin',
+                            scrollbarColor: `${alpha(theme.palette.primary.main, 0.4)} transparent`,
+                          }}
+                        >
+                          {students
+                            .slice()
+                            .sort((a, b) => compareAlphabetical(a.name ?? '', b.name ?? ''))
+                            .map((student) => {
+                              const sid = String(student.id ?? student._id ?? '');
+                              const isRemoving = removingStudentId === sid;
+                              const navigable = Boolean(sid);
+                              return (
+                                <Box
+                                  key={sid || student.email}
+                                  onClick={() => navigable && navigate(memberRoute(sid))}
+                                  sx={{
+                                    p: 1.25, borderRadius: 2,
+                                    border: '1px solid', borderColor: 'divider',
+                                    display: 'flex', alignItems: 'center', gap: 1,
+                                    cursor: navigable ? 'pointer' : 'default',
+                                    transition: 'border-color 150ms ease, background 150ms ease',
+                                    '&:hover': navigable
+                                      ? { borderColor: 'primary.main', bgcolor: alpha(theme.palette.primary.main, 0.04) }
+                                      : undefined,
+                                  }}
+                                >
+                                  <Box
+                                    sx={{
+                                      width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                                      bgcolor: alpha(theme.palette.primary.main, 0.12),
+                                      color: 'primary.main',
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    }}
+                                  >
+                                    <PersonRoundedIcon sx={{ fontSize: '1rem' }} />
+                                  </Box>
+                                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                      {student.name ?? 'Unknown'}
+                                    </Typography>
+                                    {student.email && (
+                                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {student.email}
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                  {isCurrentUserAdmin && sid && (
+                                    <Tooltip title="Remove from group">
+                                      <span>
+                                        <IconButton
+                                          size="small"
+                                          color="error"
+                                          disabled={isRemoving}
+                                          onClick={(e) => { e.stopPropagation(); handleRemoveStudent(sid); }}
+                                          sx={{ borderRadius: 1.5 }}
+                                        >
+                                          {isRemoving
+                                            ? <CircularProgress size={14} />
+                                            : <RemoveCircleOutlineRoundedIcon sx={{ fontSize: '1.1rem' }} />
+                                          }
+                                        </IconButton>
+                                      </span>
+                                    </Tooltip>
+                                  )}
+                                </Box>
+                              );
+                            })}
+                        </Stack>
+                      )}
+                    </Collapse>
                   </Box>
                 </Paper>
               </Grid>

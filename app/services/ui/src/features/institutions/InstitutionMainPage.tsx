@@ -1150,12 +1150,26 @@ export default function InstitutionMainPage() {
         rowAction: (
           <Stack direction="row" spacing={0.5} alignItems="center">
             {schedule.status && (
-              <Chip
-                label={schedule.status}
-                size="small"
-                color={scheduleStatusColor(schedule.status)}
-                sx={{ borderRadius: 1.5, fontSize: '0.7rem', height: 20 }}
-              />
+              // For failed schedules, wrap the chip in a Tooltip so hovering
+              // reveals the generator's error message without leaving this
+              // page.  Full text is also shown on the dedicated schedule view.
+              schedule.status.toLowerCase() === 'failed' && schedule.error_message ? (
+                <Tooltip title={schedule.error_message} arrow placement="top">
+                  <Chip
+                    label={schedule.status}
+                    size="small"
+                    color={scheduleStatusColor(schedule.status)}
+                    sx={{ borderRadius: 1.5, fontSize: '0.7rem', height: 20 }}
+                  />
+                </Tooltip>
+              ) : (
+                <Chip
+                  label={schedule.status}
+                  size="small"
+                  color={scheduleStatusColor(schedule.status)}
+                  sx={{ borderRadius: 1.5, fontSize: '0.7rem', height: 20 }}
+                />
+              )
             )}
             {canManageInstitution && (
               <Tooltip title="Delete">
