@@ -11,6 +11,7 @@ import Avatar from '@mui/material/Avatar';
 import CircularProgress from '@mui/material/CircularProgress';
 import Grid from '@mui/material/Grid';
 import Divider from '@mui/material/Divider';
+import TablePagination from '@mui/material/TablePagination';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import EventNoteRoundedIcon from '@mui/icons-material/EventNoteRounded';
@@ -86,6 +87,10 @@ export default function MemberMainPage() {
   const [currentUser, setCurrentUser] = useState<InstitutionUser | null>(null);
   const [currentUserLoading, setCurrentUserLoading] = useState(true);
   const [isRolesDialogOpen, setIsRolesDialogOpen] = useState(false);
+  const [rolesPage, setRolesPage] = useState(0);
+  const [rolesRowsPerPage, setRolesRowsPerPage] = useState(10);
+  const [activitiesPage, setActivitiesPage] = useState(0);
+  const [activitiesRowsPerPage, setActivitiesRowsPerPage] = useState(10);
   const [selectedRoles, setSelectedRoles] = useState<InstitutionRole[]>([]);
   const [rolesSaving, setRolesSaving] = useState(false);
   const [rolesError, setRolesError] = useState<string | null>(null);
@@ -363,7 +368,9 @@ export default function MemberMainPage() {
                     </Box>
                   ) : (
                     <Stack spacing={1}>
-                      {rolesEntries.map(([instId, roles]) => (
+                      {rolesEntries
+                        .slice(rolesPage * rolesRowsPerPage, (rolesPage + 1) * rolesRowsPerPage)
+                        .map(([instId, roles]) => (
                         <Box
                           key={instId}
                           sx={{
@@ -388,6 +395,16 @@ export default function MemberMainPage() {
                           </Stack>
                         </Box>
                       ))}
+                                              <TablePagination
+                          component="div"
+                          count={rolesEntries.length}
+                          page={rolesPage}
+                          onPageChange={(_, newPage) => setRolesPage(newPage)}
+                          rowsPerPage={rolesRowsPerPage}
+                          onRowsPerPageChange={(e) => { setRolesRowsPerPage(parseInt(e.target.value, 10)); setRolesPage(0); }}
+                          rowsPerPageOptions={[5, 10, 25]}
+                        />
+
                     </Stack>
                   )}
                 </Box>
@@ -411,15 +428,10 @@ export default function MemberMainPage() {
                       <Typography variant="body2" color="text.secondary">No activities assigned to this member.</Typography>
                     </Box>
                   ) : (
-                    <Stack
-                      spacing={1}
-                      sx={{
-                        maxHeight: 360, overflowY: 'auto', pr: 0.5,
-                        scrollbarWidth: 'thin',
-                        scrollbarColor: `${alpha(theme.palette.primary.main, 0.4)} transparent`,
-                      }}
-                    >
-                      {sortedActivities.map((activity) => {
+                    <Stack spacing={1}>
+                      {sortedActivities
+                        .slice(activitiesPage * activitiesRowsPerPage, (activitiesPage + 1) * activitiesRowsPerPage)
+                        .map((activity) => {
                         const id = String(activity.id ?? '').trim();
                         const canOpen = Boolean(id);
                         const courseName = coursesById.get(String(activity.course_id)) ?? 'Unknown course';
@@ -445,6 +457,16 @@ export default function MemberMainPage() {
                           </Box>
                         );
                       })}
+                                              <TablePagination
+                          component="div"
+                          count={sortedActivities.length}
+                          page={activitiesPage}
+                          onPageChange={(_, newPage) => setActivitiesPage(newPage)}
+                          rowsPerPage={activitiesRowsPerPage}
+                          onRowsPerPageChange={(e) => { setActivitiesRowsPerPage(parseInt(e.target.value, 10)); setActivitiesPage(0); }}
+                          rowsPerPageOptions={[5, 10, 25]}
+                        />
+
                     </Stack>
                   )}
                 </Box>

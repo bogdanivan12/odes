@@ -17,6 +17,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Paper from '@mui/material/Paper';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
+import TablePagination from '@mui/material/TablePagination';
 import MeetingRoomRoundedIcon from '@mui/icons-material/MeetingRoomRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import SearchIcon from '@mui/icons-material/Search';
@@ -67,6 +68,8 @@ export default function InstitutionRooms() {
   const [searchQuery, setSearchQuery] = useState('');
   const [minCapacityFilter, setMinCapacityFilter] = useState('');
   const [selectedRequiredFeatures, setSelectedRequiredFeatures] = useState<string[]>([]);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const loadRooms = async () => {
     if (!institutionId) { setError('Missing institution id in route.'); setLoading(false); return; }
@@ -202,6 +205,13 @@ export default function InstitutionRooms() {
 
   const hasActiveFilters = searchQuery || minCapacityFilter || selectedRequiredFeatures.length > 0;
 
+  useEffect(() => { setPage(0); }, [filteredRooms]);
+
+  const paginatedRooms = useMemo(
+    () => filteredRooms.slice(page * rowsPerPage, (page + 1) * rowsPerPage),
+    [filteredRooms, page, rowsPerPage],
+  );
+
   if (loading || currentUserLoading) {
     return (
       <PageContainer alignItems="center">
@@ -319,7 +329,7 @@ export default function InstitutionRooms() {
           {/* Room list */}
           {!error && filteredRooms.length > 0 && (
             <Stack spacing={1}>
-              {filteredRooms.map((room) => {
+              {paginatedRooms.map((room) => {
                 const roomId = String(room.id ?? room._id ?? '');
                 return (
                   <Paper
@@ -400,6 +410,16 @@ export default function InstitutionRooms() {
                   </Paper>
                 );
               })}
+                              <TablePagination
+                  component="div"
+                  count={filteredRooms.length}
+                  page={page}
+                  onPageChange={(_, newPage) => setPage(newPage)}
+                  rowsPerPage={rowsPerPage}
+                  onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+                  rowsPerPageOptions={[5, 10, 25]}
+                />
+
             </Stack>
           )}
         </Stack>

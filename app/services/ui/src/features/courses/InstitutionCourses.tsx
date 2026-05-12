@@ -15,6 +15,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Paper from '@mui/material/Paper';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
+import TablePagination from '@mui/material/TablePagination';
 import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import SearchIcon from '@mui/icons-material/Search';
@@ -56,6 +57,8 @@ export default function InstitutionCourses() {
   const [currentUserLoading, setCurrentUserLoading] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const loadCourses = async () => {
     if (!institutionId) { setError('Missing institution id in route.'); setLoading(false); return; }
@@ -149,6 +152,13 @@ export default function InstitutionCourses() {
     return courses.filter((c) => (c.name ?? '').toLowerCase().includes(query));
   }, [courses, searchQuery]);
 
+  useEffect(() => { setPage(0); }, [filteredCourses]);
+
+  const paginatedCourses = useMemo(
+    () => filteredCourses.slice(page * rowsPerPage, (page + 1) * rowsPerPage),
+    [filteredCourses, page, rowsPerPage],
+  );
+
   if (loading || currentUserLoading) {
     return (
       <PageContainer alignItems="center">
@@ -230,7 +240,7 @@ export default function InstitutionCourses() {
           {/* Course list */}
           {!error && filteredCourses.length > 0 && (
             <Stack spacing={1}>
-              {filteredCourses.map((course) => (
+              {paginatedCourses.map((course) => (
                 <Paper
                   key={course.id}
                   variant="outlined"
@@ -272,6 +282,16 @@ export default function InstitutionCourses() {
                   </Box>
                 </Paper>
               ))}
+                              <TablePagination
+                  component="div"
+                  count={filteredCourses.length}
+                  page={page}
+                  onPageChange={(_, newPage) => setPage(newPage)}
+                  rowsPerPage={rowsPerPage}
+                  onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+                  rowsPerPageOptions={[5, 10, 25]}
+                />
+
             </Stack>
           )}
         </Stack>

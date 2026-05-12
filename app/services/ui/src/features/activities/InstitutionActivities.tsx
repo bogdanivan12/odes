@@ -14,10 +14,12 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
-import Grid from '@mui/material/Grid';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
+import TablePagination from '@mui/material/TablePagination';
 import Chip from '@mui/material/Chip';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
@@ -63,6 +65,13 @@ export default function InstitutionActivities() {
   const [groupSectionQuery, setGroupSectionQuery] = useState('');
   const [professorSectionQuery, setProfessorSectionQuery] = useState('');
   const [courseSectionQuery, setCourseSectionQuery] = useState('');
+  const [activeTab, setActiveTab] = useState(0);
+  const [groupPage, setGroupPage] = useState(0);
+  const [groupRowsPerPage, setGroupRowsPerPage] = useState(10);
+  const [professorPage, setProfessorPage] = useState(0);
+  const [professorRowsPerPage, setProfessorRowsPerPage] = useState(10);
+  const [coursePage, setCoursePage] = useState(0);
+  const [courseRowsPerPage, setCourseRowsPerPage] = useState(10);
 
   const [activityToDelete, setActivityToDelete] = useState<Activity | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -285,6 +294,23 @@ export default function InstitutionActivities() {
       .filter(Boolean) as Array<{ key: string; label: string; sublabel?: string; activities: Activity[] }>;
   }, [filteredActivities, coursesById, courseSectionQuery]);
 
+  useEffect(() => { setGroupPage(0); }, [displayedRootGroupIds]);
+  useEffect(() => { setProfessorPage(0); }, [activitiesByProfessor]);
+  useEffect(() => { setCoursePage(0); }, [activitiesByCourse]);
+
+  const paginatedRootGroupIds = useMemo(
+    () => displayedRootGroupIds.slice(groupPage * groupRowsPerPage, (groupPage + 1) * groupRowsPerPage),
+    [displayedRootGroupIds, groupPage, groupRowsPerPage],
+  );
+  const paginatedByProfessor = useMemo(
+    () => activitiesByProfessor.slice(professorPage * professorRowsPerPage, (professorPage + 1) * professorRowsPerPage),
+    [activitiesByProfessor, professorPage, professorRowsPerPage],
+  );
+  const paginatedByCourse = useMemo(
+    () => activitiesByCourse.slice(coursePage * courseRowsPerPage, (coursePage + 1) * courseRowsPerPage),
+    [activitiesByCourse, coursePage, courseRowsPerPage],
+  );
+
   const validateForm = () => {
     const duration = Number(formDurationSlots);
     if (!formCourseId) return 'Course is required.';
@@ -504,11 +530,18 @@ export default function InstitutionActivities() {
     </Paper>
   );
 
-  const renderGroupedList = (grouped: Array<{ key: string; label: string; sublabel?: string; activities: Activity[] }>) => {
-    if (grouped.length === 0) return <Typography variant="body2" color="text.secondary">No activities in this section.</Typography>;
+  const renderGroupedList = (
+    allGrouped: Array<{ key: string; label: string; sublabel?: string; activities: Activity[] }>,
+    paginatedGrouped: Array<{ key: string; label: string; sublabel?: string; activities: Activity[] }>,
+    sectionPage: number,
+    setSectionPage: (p: number) => void,
+    sectionRowsPerPage: number,
+    setSectionRowsPerPage: (r: number) => void,
+  ) => {
+    if (allGrouped.length === 0) return <Typography variant="body2" color="text.secondary">No activities in this section.</Typography>;
     return (
       <Stack spacing={0.75}>
-        {grouped.map((entity) => (
+        {paginatedGrouped.map((entity) => (
           <Accordion key={entity.key} disableGutters elevation={0} sx={accordionSx}>
             <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ fontSize: '1rem', color: 'text.secondary' }} />} sx={{ ...summarySx, minHeight: entity.sublabel ? 48 : 40 }}>
               <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, pr: 1 }}>
@@ -532,6 +565,16 @@ export default function InstitutionActivities() {
             </AccordionDetails>
           </Accordion>
         ))}
+                  <TablePagination
+            component="div"
+            count={allGrouped.length}
+            page={sectionPage}
+            onPageChange={(_, newPage) => setSectionPage(newPage)}
+            rowsPerPage={sectionRowsPerPage}
+            onRowsPerPageChange={(e) => { setSectionRowsPerPage(parseInt(e.target.value, 10)); setSectionPage(0); }}
+            rowsPerPageOptions={[5, 10, 25]}
+          />
+
       </Stack>
     );
   };
@@ -633,40 +676,59 @@ export default function InstitutionActivities() {
 
           {/* Sections */}
           {!error && activities.length > 0 && (
-            <Grid container spacing={2}>
-              <Grid size={{ xs: 12, lg: 4 }}>
-                {renderSection(
-                  'By group',
-                  <Diversity3Icon sx={{ fontSize: '0.9rem' }} />,
-                  groupSectionQuery,
-                  setGroupSectionQuery,
-                  'Search groups or activities...',
-                  displayedRootGroupIds.length === 0
-                    ? <Typography variant="body2" color="text.secondary">No activities in this section.</Typography>
-                    : <Stack spacing={0.75}>{displayedRootGroupIds.map((id) => renderGroupNode(id))}</Stack>,
-                )}
-              </Grid>
-              <Grid size={{ xs: 12, lg: 4 }}>
-                {renderSection(
-                  'By professor',
-                  <SchoolIcon sx={{ fontSize: '0.9rem' }} />,
-                  professorSectionQuery,
-                  setProfessorSectionQuery,
-                  'Search professors or activities...',
-                  renderGroupedList(activitiesByProfessor),
-                )}
-              </Grid>
-              <Grid size={{ xs: 12, lg: 4 }}>
-                {renderSection(
-                  'By course',
-                  <MenuBookIcon sx={{ fontSize: '0.9rem' }} />,
-                  courseSectionQuery,
-                  setCourseSectionQuery,
-                  'Search courses or activities...',
-                  renderGroupedList(activitiesByCourse),
-                )}
-              </Grid>
-            </Grid>
+            <Box>
+              <Tabs
+                value={activeTab}
+                onChange={(_, v) => setActiveTab(v)}
+                sx={{ borderBottom: '1px solid', borderColor: 'divider', mb: 2 }}
+              >
+                <Tab icon={<Diversity3Icon sx={{ fontSize: '1rem' }} />} iconPosition="start" label="By group" sx={{ minHeight: 40, textTransform: 'none', fontWeight: 600 }} />
+                <Tab icon={<SchoolIcon sx={{ fontSize: '1rem' }} />} iconPosition="start" label="By professor" sx={{ minHeight: 40, textTransform: 'none', fontWeight: 600 }} />
+                <Tab icon={<MenuBookIcon sx={{ fontSize: '1rem' }} />} iconPosition="start" label="By course" sx={{ minHeight: 40, textTransform: 'none', fontWeight: 600 }} />
+              </Tabs>
+
+              {activeTab === 0 && renderSection(
+                'By group',
+                <Diversity3Icon sx={{ fontSize: '0.9rem' }} />,
+                groupSectionQuery,
+                setGroupSectionQuery,
+                'Search groups or activities...',
+                displayedRootGroupIds.length === 0
+                  ? <Typography variant="body2" color="text.secondary">No activities in this section.</Typography>
+                  : (
+                    <Stack spacing={0.75}>
+                      {paginatedRootGroupIds.map((id) => renderGroupNode(id))}
+                      <TablePagination
+                        component="div"
+                        count={displayedRootGroupIds.length}
+                        page={groupPage}
+                        onPageChange={(_, newPage) => setGroupPage(newPage)}
+                        rowsPerPage={groupRowsPerPage}
+                        onRowsPerPageChange={(e) => { setGroupRowsPerPage(parseInt(e.target.value, 10)); setGroupPage(0); }}
+                        rowsPerPageOptions={[5, 10, 25]}
+                      />
+                    </Stack>
+                  ),
+              )}
+
+              {activeTab === 1 && renderSection(
+                'By professor',
+                <SchoolIcon sx={{ fontSize: '0.9rem' }} />,
+                professorSectionQuery,
+                setProfessorSectionQuery,
+                'Search professors or activities...',
+                renderGroupedList(activitiesByProfessor, paginatedByProfessor, professorPage, setProfessorPage, professorRowsPerPage, setProfessorRowsPerPage),
+              )}
+
+              {activeTab === 2 && renderSection(
+                'By course',
+                <MenuBookIcon sx={{ fontSize: '0.9rem' }} />,
+                courseSectionQuery,
+                setCourseSectionQuery,
+                'Search courses or activities...',
+                renderGroupedList(activitiesByCourse, paginatedByCourse, coursePage, setCoursePage, courseRowsPerPage, setCourseRowsPerPage),
+              )}
+            </Box>
           )}
 
         </Stack>

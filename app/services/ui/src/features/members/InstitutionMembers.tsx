@@ -10,6 +10,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Chip from '@mui/material/Chip';
 import Avatar from '@mui/material/Avatar';
 import Paper from '@mui/material/Paper';
+import TablePagination from '@mui/material/TablePagination';
 import SearchIcon from '@mui/icons-material/Search';
 import GroupRoundedIcon from '@mui/icons-material/GroupRounded';
 import PageContainer from '../layout/PageContainer';
@@ -66,6 +67,8 @@ export default function InstitutionMembers() {
   const [selectedRoles, setSelectedRoles] = useState<InstitutionRole[]>([]);
   const [rolesSaving, setRolesSaving] = useState(false);
   const [rolesError, setRolesError] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   useEffect(() => {
     let mounted = true;
@@ -150,6 +153,13 @@ export default function InstitutionMembers() {
     });
   }, [members, searchQuery, institutionId]);
 
+  useEffect(() => { setPage(0); }, [filteredMembers]);
+
+  const paginatedMembers = useMemo(
+    () => filteredMembers.slice(page * rowsPerPage, (page + 1) * rowsPerPage),
+    [filteredMembers, page, rowsPerPage],
+  );
+
   if (loading || currentUserLoading) {
     return (
       <PageContainer alignItems="center">
@@ -215,7 +225,7 @@ export default function InstitutionMembers() {
           {/* Member list */}
           {!error && filteredMembers.length > 0 && (
             <Stack spacing={1}>
-              {filteredMembers.map((member) => {
+              {paginatedMembers.map((member) => {
                 const memberId = getMemberId(member);
                 const roles = getRolesForInstitution(member, institutionId).sort(compareAlphabetical);
                 return (
@@ -285,6 +295,16 @@ export default function InstitutionMembers() {
                   </Paper>
                 );
               })}
+                              <TablePagination
+                  component="div"
+                  count={filteredMembers.length}
+                  page={page}
+                  onPageChange={(_, newPage) => setPage(newPage)}
+                  rowsPerPage={rowsPerPage}
+                  onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+                  rowsPerPageOptions={[5, 10, 25]}
+                />
+
             </Stack>
           )}
         </Stack>
