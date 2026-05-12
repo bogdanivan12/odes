@@ -1,13 +1,21 @@
 from starlette import status
 from fastapi import APIRouter
 
+from pydantic import BaseModel
+
 from app.libs.db.db import DB
 from app.libs.db import models
+from app.libs.scheduling import eta as eta_helper
 from app.services.api.src.auth import token_utils
 from app.services.api.src.auth.token_utils import AUTH
 from app.services.api.src.services import institutions as service
 from app.services.api.src.dtos.input import institution as dto_in
 from app.services.api.src.dtos.output import institution as dto_out
+
+
+class ScheduleEtaResponse(BaseModel):
+    num_activities: int
+    eta_seconds: int
 
 
 router = APIRouter(prefix="/api/v1/institutions", tags=["institutions"])
@@ -114,6 +122,22 @@ async def get_institution_activities(db: DB, institution_id: str, token: AUTH):
     current_user_id = token_utils.get_user_id_from_token(token)
     activities = service.get_institution_activities(db, institution_id, current_user_id)
     return dto_out.GetInstitutionActivities(activities=activities)
+
+
+@router.get("/{institution_id}/schedule-eta",
+            status_code=status.HTTP_200_OK,
+            response_model=ScheduleEtaResponse)
+async def get_schedule_eta(db: DB, institution_id: str, token: AUTH):
+    """Estimate the wall-clock duration of generating a schedule for this
+    institution, in seconds.  Used by the UI to render a progress indicator
+    while generation is running."""
+    current_user_id = token_utils.get_user_id_from_token(token)
+    activities = service.get_institution_activities(db, institution_id, current_user_id)
+    num_activities = len(activities)
+    return ScheduleEtaResponse(
+        num_activities=num_activities,
+        eta_seconds=eta_helper.estimate_total_duration_seconds(num_activities),
+    )
 
 
 @router.get("/{institution_id}/schedules",

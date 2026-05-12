@@ -54,6 +54,10 @@ export interface InstitutionSchedule {
   status?: string;
   timestamp?: string;
   error_message?: string | null;
+  // Server-assigned monotonic label (e.g. "Schedule #4").  Optional on
+  // legacy records created before this field existed — the UI falls back
+  // to a sort-index label for those.
+  name?: string | null;
 }
 
 export interface ScheduledActivityRecord {
@@ -138,6 +142,18 @@ export async function getInstitutionById(institutionId: string): Promise<Institu
   const res = await apiGet<any>(url, headers);
   const institutionData: InstitutionData = res?.institution ?? res;
   return InstitutionClass.from(institutionData);
+}
+
+export interface ScheduleEta {
+  num_activities: number;
+  eta_seconds: number;
+}
+
+export async function getScheduleEta(institutionId: string): Promise<ScheduleEta> {
+  const url = `${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/schedule-eta`;
+  const headers = buildAuthHeaders();
+  const res = await apiGet<ScheduleEta>(url, headers);
+  return res;
 }
 
 export async function getInstitutionGroups(institutionId: string): Promise<InstitutionGroup[]> {

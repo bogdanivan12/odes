@@ -5,7 +5,9 @@ from app.libs.db.db import DB
 from app.services.api.src.auth import token_utils
 from app.services.api.src.auth.token_utils import AUTH
 from app.services.api.src.services import schedules as service
+from app.services.api.src.services import scheduled_activities as sa_service
 from app.services.api.src.dtos.input import schedule as dto_in
+from app.services.api.src.dtos.input import scheduled_activity as sa_dto_in
 from app.services.api.src.dtos.output import schedule as dto_out
 
 router = APIRouter(prefix="/api/v1/schedules", tags=["schedules"])
@@ -52,6 +54,27 @@ async def delete_schedule(db: DB, schedule_id: str, token: AUTH):
     """Delete a schedule by ID"""
     current_user_id = token_utils.get_user_id_from_token(token)
     service.delete_schedule(db, schedule_id, current_user_id)
+
+
+@router.put("/{schedule_id}/scheduled-activities",
+            status_code=status.HTTP_200_OK,
+            response_model=dto_out.GetScheduledActivitiesBySchedule)
+async def replace_scheduled_activities(
+    db: DB,
+    schedule_id: str,
+    request: sa_dto_in.InsertManyScheduledActivities,
+    token: AUTH,
+):
+    """Replace all scheduled activities for this schedule atomically.
+
+    Used by the worker for intermediate saves during long-running schedule
+    generation: every new incumbent solution is persisted, so the UI can
+    display partial progress without waiting for the solver to terminate."""
+    current_user_id = token_utils.get_user_id_from_token(token)
+    activities = sa_service.replace_scheduled_activities_for_schedule(
+        db, schedule_id, request, current_user_id
+    )
+    return dto_out.GetScheduledActivitiesBySchedule(scheduled_activities=activities)
 
 
 @router.get("/{schedule_id}/scheduled-activities",

@@ -31,6 +31,7 @@ import StarOutlineRoundedIcon from '@mui/icons-material/StarOutlineRounded';
 import EditCalendarRoundedIcon from '@mui/icons-material/EditCalendarRounded';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import LinearProgress from '@mui/material/LinearProgress';
 import PageContainer from '../layout/PageContainer';
 import {
   getInstitutionById,
@@ -41,6 +42,7 @@ import {
   getInstitutionCourses,
   getScheduleById,
   getScheduleActivities,
+  getScheduleEta,
   deleteSchedule,
   setActiveSchedule,
 } from '../../api/institutions';
@@ -52,7 +54,9 @@ import type {
   InstitutionCourse,
   InstitutionActivity,
   ScheduledActivityRecord,
+  ScheduleEta,
 } from '../../api/institutions';
+import { parseServerTimestamp, parseServerTimestampMs, formatDuration } from '../../utils/time';
 import type { Institution as InstitutionClass } from '../../types/institution';
 import type { TimeGridConfig } from '../../types/institution';
 import { institutionSchedulesRoute, scheduleEditRoute } from '../../config/routes';
@@ -77,7 +81,9 @@ function scheduleStatusColor(status?: string): 'success' | 'warning' | 'error' |
 
 function formatTimestamp(ts?: string): string {
   if (!ts) return '';
-  const date = new Date(ts);
+  // Parse as UTC — backend emits UTC datetimes and may omit the trailing Z.
+  const date = parseServerTimestamp(ts);
+  if (!date) return '';
   return date.toLocaleString(undefined, {
     year: 'numeric',
     month: 'short',
@@ -122,6 +128,11 @@ export default function ScheduleViewPage() {
   const [activeToggleLoading, setActiveToggleLoading] = useState(false);
   const [activeToggleError, setActiveToggleError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<InstitutionUser | null>(null);
+  const [eta, setEta] = useState<ScheduleEta | null>(null);
+  // Tick once per second while the schedule is running so the countdown +
+  // progress bar update live.  Poll the schedule status every 5 s so we
+  // pick up running → completed without a manual refresh.
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
 
   const [activeTab, setActiveTab] = useState(0);
   const [selectedGroupId, setSelectedGroupId] = useState('');
@@ -153,7 +164,7 @@ export default function ScheduleViewPage() {
         const institutionId = sched.institution_id;
         if (!institutionId) throw new Error('Schedule has no institution_id.');
 
-        const [inst, acts, grps, usrs, rms, crs, me] = await Promise.all([
+        const [inst, acts, grps, usrs, rms, crs, me, etaData] = await Promise.all([
           getInstitutionById(institutionId),
           getInstitutionActivities(institutionId),
           getInstitutionGroups(institutionId),
@@ -161,10 +172,12 @@ export default function ScheduleViewPage() {
           getInstitutionRooms(institutionId),
           getInstitutionCourses(institutionId),
           getCurrentUserData().catch(() => null),
+          getScheduleEta(institutionId).catch(() => null),
         ]);
         if (!mounted) return;
 
         if (me) setCurrentUser(me);
+        if (etaData) setEta(etaData);
         setSchedule(sched);
         setSchedRecords(schedActs);
         setInstitution(inst);
@@ -188,6 +201,27 @@ export default function ScheduleViewPage() {
     [currentUser, schedule?.institution_id],
   );
   useInstitutionSync(schedule?.institution_id);
+
+  // While the schedule is running, tick once per second (for the live
+  // countdown) and poll the schedule + scheduled-activities every 5 s so
+  // we transition to "completed" without a manual refresh.
+  const isRunning = schedule?.status?.toLowerCase() === 'running';
+  useEffect(() => {
+    if (!isRunning || !scheduleId) return;
+    const tick = setInterval(() => setNowMs(Date.now()), 1000);
+    const poll = setInterval(() => {
+      Promise.all([
+        getScheduleById(scheduleId),
+        getScheduleActivities(scheduleId),
+      ])
+        .then(([sched, schedActs]) => {
+          setSchedule(sched);
+          setSchedRecords(schedActs);
+        })
+        .catch(() => {});
+    }, 5000);
+    return () => { clearInterval(tick); clearInterval(poll); };
+  }, [isRunning, scheduleId]);
 
   // ── Build lookup maps ──────────────────────────────────────────────────────
 
@@ -619,7 +653,9 @@ export default function ScheduleViewPage() {
                 <CalendarMonthRoundedIcon sx={{ fontSize: '1.6rem' }} />
               </Box>
               <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>Schedule</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                  {schedule?.name ?? 'Schedule'}
+                </Typography>
                 {schedule?.timestamp && (
                   <Typography variant="body2" color="text.secondary">
                     {formatTimestamp(schedule.timestamp)}
@@ -691,6 +727,39 @@ export default function ScheduleViewPage() {
                 )}
               </Stack>
             </Box>
+
+            {/* Live progress / ETA while the worker is running. */}
+            {isRunning && (() => {
+              const startedMs = parseServerTimestampMs(schedule?.timestamp);
+              const etaSec = eta ? Math.max(1, eta.eta_seconds) : null;
+              let progressPct: number | null = null;
+              let remainingLabel: string;
+              if (etaSec !== null && Number.isFinite(startedMs)) {
+                const elapsedSec = Math.max(0, (nowMs - startedMs) / 1000);
+                // Cap visible progress at 95% so the bar doesn't sit at
+                // 100% while the solver is still polishing.
+                progressPct = Math.min(95, (elapsedSec / etaSec) * 100);
+                const remaining = etaSec - elapsedSec;
+                remainingLabel = remaining > 5
+                  ? `~${formatDuration(remaining)} remaining`
+                  : 'Almost done…';
+              } else {
+                remainingLabel = 'Generating…';
+              }
+              return (
+                <Box sx={{ px: 2.5, pb: 2, pt: 0.25, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                  <LinearProgress
+                    variant={progressPct === null ? 'indeterminate' : 'determinate'}
+                    value={progressPct ?? undefined}
+                    sx={{ height: 6, borderRadius: 3 }}
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    {remainingLabel}
+                    {eta && ` · estimated total ${formatDuration(eta.eta_seconds)} (${eta.num_activities} activities)`}
+                  </Typography>
+                </Box>
+              );
+            })()}
           </Paper>
 
           {activeToggleError && (
