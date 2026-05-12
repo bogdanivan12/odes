@@ -23,6 +23,11 @@ class Institution(BaseModel):
     name: str
     time_grid_config: TimeGridConfig
     active_schedule_id: Optional[str] = None
+    # Monotonically-increasing counter for "Schedule #N" labels.  Never
+    # decremented, so deleting Schedule #3 does not free up the number 3.
+    # Backfilled the first time a schedule is generated for an institution
+    # that pre-dates this field — see institutions_repo.get_next_schedule_number.
+    last_schedule_number: int = 0
 
     COLLECTION_NAME: ClassVar[str] = "institutions"
 
@@ -155,6 +160,10 @@ class Schedule(BaseModel):
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     status: ScheduleStatus = ScheduleStatus.DRAFT
     error_message: Optional[str] = None
+    # Human-facing label like "Schedule #4".  Auto-assigned at creation time
+    # from the institution's ``last_schedule_number`` counter.  ``None`` on
+    # legacy records created before this field existed.
+    name: Optional[str] = None
 
     COLLECTION_NAME: ClassVar[str] = "schedules"
 

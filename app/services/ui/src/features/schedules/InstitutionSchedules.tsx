@@ -50,13 +50,15 @@ function scheduleStatusColor(status?: string): 'success' | 'warning' | 'error' |
 
 function formatScheduleLabel(
   schedule: InstitutionSchedule,
-  index: number,
+  fallbackIndex: number,
 ): { primary: string; secondary?: string } {
-  const n = `Schedule #${index + 1}`;
+  // Prefer the server-assigned monotonic name; fall back to sort-index for
+  // legacy schedules that pre-date the name field.
+  const primary = schedule.name ?? `Schedule #${fallbackIndex + 1}`;
   if (schedule.timestamp) {
     // Parse as UTC — backend emits UTC and may omit trailing Z.
     const date = parseServerTimestamp(schedule.timestamp);
-    if (!date) return { primary: n };
+    if (!date) return { primary };
     const formatted = date.toLocaleString(undefined, {
       year: 'numeric',
       month: 'short',
@@ -64,9 +66,9 @@ function formatScheduleLabel(
       hour: '2-digit',
       minute: '2-digit',
     });
-    return { primary: n, secondary: formatted };
+    return { primary, secondary: formatted };
   }
-  return { primary: n };
+  return { primary };
 }
 
 export default function InstitutionSchedules() {

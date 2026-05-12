@@ -1139,9 +1139,12 @@ export default function InstitutionMainPage() {
     return sorted.map((schedule, index) => {
       const scheduleId = String(schedule.id ?? schedule._id ?? schedule.timestamp ?? 'schedule');
       const num = sorted.length - index;
+      // Prefer the server-assigned monotonic name; fall back to sort-index
+      // for legacy schedules that pre-date the name field.
+      const primary = schedule.name ?? `Schedule #${num}`;
       return {
         key: scheduleId,
-        primary: `Schedule #${num}`,
+        primary,
         secondary: formatCreatedAt(schedule.timestamp),
         to: scheduleRoute(scheduleId),
         rowAction: (

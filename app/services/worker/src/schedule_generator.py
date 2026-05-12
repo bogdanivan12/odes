@@ -63,6 +63,7 @@ fixes had become a tangle.
 import datetime
 import os
 import sys
+import threading
 import time
 from typing import Dict, List, Optional, Set, Tuple
 
@@ -309,6 +310,77 @@ def _make_optional_interval(
     return model.NewOptionalIntervalVar(start, duration, end, presence, name)
 
 
+class _StagnationStopper(cp_model.CpSolverSolutionCallback):
+    """CP-SAT solution callback that records the wall-clock time of the
+    last improving incumbent.  Pairs with ``_StagnationMonitor``: this
+    side only writes timestamps; the monitor thread reads them and
+    decides when to abort the search."""
+
+    def __init__(self, monitor: "_StagnationMonitor"):
+        super().__init__()
+        self._monitor = monitor
+
+    def on_solution_callback(self):
+        self._monitor.report_improvement(self.ObjectiveValue())
+
+
+class _StagnationMonitor:
+    """Background watchdog: aborts the CP-SAT search if no improving
+    incumbent has been found for ``max_idle_seconds`` consecutive seconds.
+
+    Runs in a daemon thread, polling every 2 s.  ``solver.StopSearch()``
+    is documented as thread-safe, so calling it from here cleanly
+    triggers ``Solve()`` to return in the main thread."""
+
+    def __init__(self, solver: cp_model.CpSolver, max_idle_seconds: float):
+        self._solver = solver
+        self._max_idle = max_idle_seconds
+        self._lock = threading.Lock()
+        self._last_improvement_at = time.time()
+        self._best_objective: Optional[float] = None
+        self._stop_event = threading.Event()
+        self._fired = False
+        self._thread: Optional[threading.Thread] = None
+
+    def start(self):
+        self._thread = threading.Thread(target=self._loop, daemon=True)
+        self._thread.start()
+
+    def stop(self):
+        self._stop_event.set()
+        if self._thread is not None:
+            self._thread.join(timeout=2.0)
+
+    def fired(self) -> bool:
+        """Whether the monitor actually triggered a stop (vs. natural exit)."""
+        return self._fired
+
+    def report_improvement(self, objective: float):
+        with self._lock:
+            if self._best_objective is None or objective < self._best_objective:
+                self._best_objective = objective
+                self._last_improvement_at = time.time()
+
+    def _loop(self):
+        while not self._stop_event.is_set():
+            # Check every 2 s; cheap.
+            if self._stop_event.wait(2.0):
+                return
+            with self._lock:
+                idle = time.time() - self._last_improvement_at
+                have_incumbent = self._best_objective is not None
+            if have_incumbent and idle >= self._max_idle:
+                logger.info(
+                    f"Early exit: no improvement for {idle:.1f}s "
+                    f"(stagnation limit = {self._max_idle:.0f}s); "
+                    f"current best = {self._best_objective}."
+                )
+                sys.stdout.flush()
+                self._fired = True
+                self._solver.StopSearch()
+                return
+
+
 def generate_schedule(institution_id: str, schedule_id: str, token: str):
     """Build the CP-SAT model, solve it, and persist the result."""
     db_update_schedule_status(schedule_id, models.ScheduleStatus.RUNNING, token)
@@ -450,25 +522,58 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
             room_indicator[(a.id, r.id)] for r in a.possible_rooms
         )
 
-        # Presence per week
+        # Presence per week — populated for every w in range(weeks) so we
+        # never KeyError downstream.  Semantics generalise via w % 2:
+        #   WEEKLY         → active in every week.
+        #   BIWEEKLY_ODD   → active on even-indexed weeks  (0, 2, 4, …).
+        #   BIWEEKLY_EVEN  → active on odd-indexed weeks   (1, 3, 5, …).
+        #   BIWEEKLY       → solver picks the phase (odd-week or even-week
+        #                    parity); a single ``phase`` BoolVar selects
+        #                    which side is active and the other becomes
+        #                    ``phase.Not()``.  This naturally handles
+        #                    weeks > 2 — e.g. with weeks=4 and phase=1,
+        #                    the activity is active in weeks 0 and 2.
         if a.frequency == models.Frequency.WEEKLY:
-            presence[(a.id, 0)] = 1
-            if weeks > 1: presence[(a.id, 1)] = 1
+            for w in range(weeks):
+                presence[(a.id, w)] = 1
         elif a.frequency == models.Frequency.BIWEEKLY_ODD:
-            presence[(a.id, 0)] = 1
-            if weeks > 1: presence[(a.id, 1)] = 0
+            for w in range(weeks):
+                presence[(a.id, w)] = 1 if w % 2 == 0 else 0
         elif a.frequency == models.Frequency.BIWEEKLY_EVEN:
-            presence[(a.id, 0)] = 0
-            if weeks > 1: presence[(a.id, 1)] = 1
-        else:   # plain BIWEEKLY — solver chooses
-            p0 = model.NewBoolVar(f"pres_{a.id}_w0")
-            p1 = model.NewBoolVar(f"pres_{a.id}_w1") if weeks > 1 else 1
-            presence[(a.id, 0)] = p0
-            if weeks > 1:
-                presence[(a.id, 1)] = p1
-                model.Add(p0 + p1 == 1)
+            for w in range(weeks):
+                presence[(a.id, w)] = 1 if w % 2 == 1 else 0
+        else:   # plain BIWEEKLY — solver picks the phase
+            if weeks <= 1:
+                # Only one week available; the activity must be in it.
+                presence[(a.id, 0)] = 1
             else:
-                model.Add(p0 == 1)
+                phase = model.NewBoolVar(f"pres_{a.id}_phase")
+                for w in range(weeks):
+                    presence[(a.id, w)] = phase if w % 2 == 0 else phase.Not()
+
+    # Sanity check: every activity must be active in at least one week,
+    # otherwise it's silently dropped from the schedule.  This catches
+    # configuration mistakes like ``BIWEEKLY_EVEN`` with ``weeks=1``.
+    for a in activities:
+        can_be_active = False
+        for w in range(weeks):
+            pv = presence[(a.id, w)]
+            if isinstance(pv, int):
+                if pv == 1:
+                    can_be_active = True
+                    break
+            else:
+                # Variable presence — could be 1
+                can_be_active = True
+                break
+        if not can_be_active:
+            msg = (
+                f"Activity {a.id} (frequency={a.frequency}) has no possible "
+                f"active week given institution weeks={weeks}."
+            )
+            logger.error(msg)
+            db_update_failed_schedule(schedule_id, msg, token)
+            raise Exception(msg)
 
     # ── Room no-overlap per (week, room) ─────────────────────────────────────
     activities_by_room: Dict[str, List] = {}
@@ -572,8 +677,11 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
     # Per-group per-day cap (institution config). Iterate ALL groups (not just
     # leaves) because each group's cap counts its own + ancestor activities,
     # which is a distinct set per internal group.
+    # Compare against tpd (not total_slots): the cap is per-day, so any value
+    # >= tpd is structurally unreachable and we'd just be emitting redundant
+    # constraints.
     group_cap = institution.time_grid_config.max_timeslots_per_day_per_group
-    if group_cap and group_cap < total_slots:
+    if group_cap and group_cap < tpd:
         for grp in groups:
             relevant = [
                 a for a in activities
@@ -723,19 +831,37 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
 
     # ── Solve ───────────────────────────────────────────────────────────────
     solver = cp_model.CpSolver()
-    solver.parameters.num_search_workers = 1
+    # Match Docker's cpus allocation (compose.yaml: cpus: 8.0).  CP-SAT
+    # runs multiple search strategies in parallel — one worker explores
+    # LP-based branching, another no-LP, others local search etc. — and
+    # the new interval-based model is small enough that 8 workers fit
+    # under the 12 GB memory limit.
+    solver.parameters.num_search_workers = 8
     solver.parameters.max_time_in_seconds = float(
         eta_helper.estimate_solver_seconds(len(activities))
     )
     solver.parameters.log_search_progress = True
 
+    # Watchdog: stop early if the incumbent hasn't improved for a while.
+    # The stagnation budget scales with activity count — small problems get
+    # 60 s of patience, bigger ones up to 180 s, with a power-law in between.
+    # We still keep ``max_time_in_seconds`` as a hard upper bound.
+    stagnation_seconds = eta_helper.estimate_stagnation_seconds(len(activities))
+    stagnation_monitor = _StagnationMonitor(solver, max_idle_seconds=stagnation_seconds)
+    stagnation_callback = _StagnationStopper(stagnation_monitor)
+
     logger.info(
         f"Starting CP-SAT solver "
-        f"(budget {solver.parameters.max_time_in_seconds:.0f}s)..."
+        f"(time budget {solver.parameters.max_time_in_seconds:.0f}s, "
+        f"stagnation limit {stagnation_seconds}s)..."
     )
     sys.stdout.flush()
     start_time = time.time()
-    result = solver.Solve(model)
+    stagnation_monitor.start()
+    try:
+        result = solver.Solve(model, stagnation_callback)
+    finally:
+        stagnation_monitor.stop()
     elapsed = time.time() - start_time
 
     if result not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
@@ -747,7 +873,12 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
     pref_cost = sum(w * solver.Value(v) for w, v in pref_terms) if pref_terms else 0
     span_total = sum(solver.Value(v) for v in span_vars) if span_vars else 0
     active_days = sum(solver.Value(v) for v in any_used_vars) if any_used_vars else 0
-    status = "OPTIMAL" if result == cp_model.OPTIMAL else "feasible (time limit)"
+    if result == cp_model.OPTIMAL:
+        status = "OPTIMAL"
+    elif stagnation_monitor.fired():
+        status = "feasible (stagnation)"
+    else:
+        status = "feasible (time limit)"
     logger.info(
         f"Solve ({elapsed:.1f}s): preferred-hours penalty = {pref_cost}, "
         f"span = {span_total}, active entity-days = {active_days}, "

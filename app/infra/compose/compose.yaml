@@ -19,8 +19,12 @@ services:
       - ../../.env
     depends_on:
       - rabbitmq
-    # CP-SAT schedule generation is memory-hungry (each search worker keeps
-    # its own copy of the model). Give the container plenty of room.
+    # CP-SAT scales near-linearly with search workers when the model fits
+    # in memory.  The new interval-based formulation is ~50× smaller than
+    # the old one, so 8 parallel CP-SAT workers fit comfortably under
+    # 12 GB.  Match Docker's CPU allocation to the CP-SAT parallelism so
+    # we actually use the cores we're requesting.
+    cpus: 8.0
     mem_limit: 12g
     memswap_limit: 12g
 

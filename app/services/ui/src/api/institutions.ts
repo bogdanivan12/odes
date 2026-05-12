@@ -54,6 +54,10 @@ export interface InstitutionSchedule {
   status?: string;
   timestamp?: string;
   error_message?: string | null;
+  // Server-assigned monotonic label (e.g. "Schedule #4").  Optional on
+  // legacy records created before this field existed — the UI falls back
+  // to a sort-index label for those.
+  name?: string | null;
 }
 
 export interface ScheduledActivityRecord {

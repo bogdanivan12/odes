@@ -653,7 +653,9 @@ export default function ScheduleViewPage() {
                 <CalendarMonthRoundedIcon sx={{ fontSize: '1.6rem' }} />
               </Box>
               <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>Schedule</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                  {schedule?.name ?? 'Schedule'}
+                </Typography>
                 {schedule?.timestamp && (
                   <Typography variant="body2" color="text.secondary">
                     {formatTimestamp(schedule.timestamp)}
