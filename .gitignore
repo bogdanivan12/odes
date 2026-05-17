@@ -137,6 +137,7 @@ celerybeat.pid
 # Environments
 .env
 .envrc
+app/infra/k8s/secret.yaml
 .venv
 env/
 venv/
