@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: odes
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      imagePullSecrets:
+        - name: registry-odes-app
+      containers:
+        - name: worker
+          image: registry.digitalocean.com/odes-app/odes-worker:latest
+          imagePullPolicy: Always
+          envFrom:
+            - secretRef:
+                name: odes-secret
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "2Gi"

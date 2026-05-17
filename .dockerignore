@@ -1,0 +1,7 @@
+# Local env overrides — never bake localhost URLs into production images
+**/.env.local
+**/.env.*.local
+
+# Dev dependencies and build artifacts
+**/node_modules
+**/.vite
