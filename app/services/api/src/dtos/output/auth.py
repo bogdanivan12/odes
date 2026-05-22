@@ -1,14 +1,11 @@
 from pydantic import BaseModel
 
 
-class Token(BaseModel):
-    """DTO returned on successful login — contains both tokens."""
-    access_token: str
-    refresh_token: str
-    token_type: str = "Bearer"
-
-
 class AccessToken(BaseModel):
-    """DTO returned by the refresh endpoint — new access token only."""
+    """Access token returned by login and refresh endpoints.
+
+    The refresh token is delivered via an HttpOnly cookie — it is never
+    included in the JSON response body.
+    """
     access_token: str
     token_type: str = "Bearer"

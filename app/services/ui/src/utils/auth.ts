@@ -1,30 +1,26 @@
 /**
  * Centralised auth-token helpers.
  *
- * Access token  — short-lived JWT (30 min), used as the Authorization header.
- * Refresh token — long-lived JWT (7 days), used to silently obtain new access tokens.
+ * Access token  — short-lived JWT (30 min), stored in localStorage, sent as
+ *                 the Authorization header on every API call.
+ * Refresh token — long-lived JWT (7 days), stored in an HttpOnly cookie set
+ *                 by the server.  JavaScript cannot read or steal it.
  *
- * The session is considered alive as long as a refresh token is present.
- * An expired (or missing) access token is transparently renewed by apiClient.ts
- * on the next API call without any user interaction.
+ * When the access token expires the API returns 401.  apiClient.ts intercepts
+ * this, POSTs to /auth/refresh (the browser attaches the cookie automatically
+ * via credentials:'include'), receives a new access token, stores it, and
+ * replays the original request — all transparently.
+ *
+ * isAuthenticated() is a UI gate only (not a security check).  It returns true
+ * as long as an access token sits in localStorage.  If the refresh cookie has
+ * also expired, the next API call will fail the silent refresh and redirect the
+ * user to /login.
  */
 
-const ACCESS_KEY  = 'accessToken';
-const REFRESH_KEY = 'refreshToken';
+const ACCESS_KEY = 'accessToken';
 
 export function getAccessToken(): string | null {
   try { return localStorage.getItem(ACCESS_KEY); } catch { return null; }
-}
-
-export function getRefreshToken(): string | null {
-  try { return localStorage.getItem(REFRESH_KEY); } catch { return null; }
-}
-
-export function setTokens(accessToken: string, refreshToken: string): void {
-  try {
-    localStorage.setItem(ACCESS_KEY, accessToken);
-    localStorage.setItem(REFRESH_KEY, refreshToken);
-  } catch { /* ignore */ }
 }
 
 export function setAccessToken(accessToken: string): void {
@@ -34,34 +30,23 @@ export function setAccessToken(accessToken: string): void {
 export function clearTokens(): void {
   try {
     localStorage.removeItem(ACCESS_KEY);
-    localStorage.removeItem(REFRESH_KEY);
-    // Remove the old key used before this refactor so stale sessions are cleared.
+    // Remove legacy keys from earlier versions so stale sessions are cleared.
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('authToken');
   } catch { /* ignore */ }
 }
 
-/** Decode a JWT payload without verifying the signature (UI-only, not security-critical). */
-function jwtExpiry(token: string): number | null {
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return typeof payload.exp === 'number' ? payload.exp : null;
-  } catch {
-    return null;
-  }
-}
-
 /**
- * The session is valid as long as a non-expired refresh token exists.
- * Expiry is checked client-side by decoding the JWT payload (no signature
- * verification — this is only used to gate the UI, not for security).
+ * Returns true when an access token is present in localStorage.
+ *
+ * This is a UI gate, not a cryptographic check.  The actual validity of the
+ * session is determined by the server on the next API call (which will trigger
+ * a silent refresh via the HttpOnly cookie if the access token is expired).
  */
 export function isAuthenticated(): boolean {
   if (typeof window === 'undefined') return false;
-  const t = getRefreshToken();
-  if (!t || !t.trim()) return false;
-  const exp = jwtExpiry(t);
-  if (exp === null) return true; // can't read expiry — assume valid
-  return Date.now() / 1000 < exp;
+  const t = getAccessToken();
+  return !!t && t.trim().length > 0;
 }
 
 /** Returns the Authorization header value, or empty string if not logged in. */

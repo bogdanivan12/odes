@@ -12,7 +12,7 @@ import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { SignInRequest } from './types';
 import { signIn } from '../../api/auth.ts';
 import { AuthToken } from '../../types/token.ts';
-import { setTokens, clearTokens } from '../../utils/auth.ts';
+import { setAccessToken, clearTokens } from '../../utils/auth.ts';
 import { USER_REGISTER_ROUTE } from '../../config/routes.ts';
 import { useTheme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
@@ -50,7 +50,7 @@ export function SignIn() {
     try {
       const data = await signIn(request);
       const token = AuthToken.fromApi(data);
-      setTokens(token.accessToken, token.refreshToken);
+      setAccessToken(token.accessToken);
       navigate('/', { replace: true });
     } catch (err) {
       setError((err as Error).message || 'Sign in failed');

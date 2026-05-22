@@ -1,6 +1,5 @@
 import { API_URL } from '../config/constants';
 import {
-  getRefreshToken,
   setAccessToken,
   clearTokens,
   getAuthorizationHeader,
@@ -74,26 +73,24 @@ export async function apiRequest<T = any>(opts: ApiRequestOptions): Promise<T> {
   // the refresh token for a new access token and replay the original request
   // exactly once. If the refresh itself fails the user is logged out.
   if (res.status === 401 && !_retried && !isAuthEndpoint) {
-    const refreshToken = getRefreshToken();
-    if (refreshToken) {
-      try {
-        const refreshRes = await fetch(`${API_URL}/api/v1/auth/refresh`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh_token: refreshToken }),
-        });
-        if (refreshRes.ok) {
-          const refreshData = await refreshRes.json();
-          const newAccessToken = refreshData.access_token;
-          if (newAccessToken) {
-            setAccessToken(newAccessToken);
-            // Replay the original request with the fresh token.
-            return apiRequest<T>({ ...opts, _retried: true });
-          }
+    try {
+      // The refresh token is an HttpOnly cookie — the browser attaches it
+      // automatically via credentials:'include'.  No body needed.
+      const refreshRes = await fetch(`${API_URL}/api/v1/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (refreshRes.ok) {
+        const refreshData = await refreshRes.json();
+        const newAccessToken = refreshData.access_token;
+        if (newAccessToken) {
+          setAccessToken(newAccessToken);
+          // Replay the original request with the fresh token.
+          return apiRequest<T>({ ...opts, _retried: true });
         }
-      } catch { /* fall through to logout */ }
-    }
-    // Refresh failed or no refresh token — end the session.
+      }
+    } catch { /* fall through to logout */ }
+    // Refresh failed — end the session.
     clearTokens();
     if (typeof window !== 'undefined') window.location.href = '/login';
   }
