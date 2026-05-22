@@ -1,0 +1,6 @@
+group: Grupa 252
+activities:
+  - { course: "Algoritmi fundamentali",                type: seminar,    duration_slots: 2, frequency: biweekly, professor: "Marius-Adrian Dumitran" }
+  - { course: "Programare functionala",                type: laboratory, duration_slots: 2, frequency: weekly,   professor: "Andrei Burdusa" }
+  - { course: "Sisteme de operare",                    type: laboratory, duration_slots: 2, frequency: weekly,   professor: "Mihai Murgan" }
+  - { course: "Probabilitati si statistica",           type: laboratory, duration_slots: 2, frequency: weekly,   professor: "Mihai Bucataru" }

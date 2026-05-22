@@ -901,7 +901,11 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
     # LP-based branching, another no-LP, others local search etc. — and
     # the new interval-based model is small enough that 8 workers fit
     # under the 12 GB memory limit.
-    solver.parameters.num_search_workers = 8
+    # Read worker count from env so compose (8 CPUs, 12 GB) and k8s (1 CPU,
+    # 2 GiB) can be tuned independently without changing code.  Default to 2
+    # — safe under the k8s 2 GiB limit; set NUM_SEARCH_WORKERS=8 in compose.
+    _num_workers = int(os.getenv("NUM_SEARCH_WORKERS", "2"))
+    solver.parameters.num_search_workers = _num_workers
     solver.parameters.max_time_in_seconds = float(
         eta_helper.estimate_solver_seconds(len(activities))
     )

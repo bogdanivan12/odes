@@ -1,0 +1,4 @@
+group: Sisteme Distribuite
+activities:
+  - { course: "Sisteme Distribuite", type: course,     duration_slots: 2, frequency: weekly, professor: "Andrei-Mihai Patrascu" }
+  - { course: "Sisteme Distribuite", type: laboratory, duration_slots: 2, frequency: weekly, professor: "Marius-Iulian Mihailescu" }

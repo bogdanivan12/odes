@@ -1,0 +1,3 @@
+group: Arheologia masinilor inteligente
+activities:
+  - { course: "Arheologia masinilor inteligente", type: course, duration_slots: 2, frequency: weekly, professor: "Sergiu Nisioi" }

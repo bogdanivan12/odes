@@ -97,8 +97,8 @@ export default function GlobalMySchedulePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [filterInstitutionId, setFilterInstitutionId] = useState<string | null>(null);
-  const [filterGroupId, setFilterGroupId] = useState<string | null>(null);
+  const [selectedInstIds, setSelectedInstIds] = useState<Set<string>>(new Set());
+  const [selectedGroupIds, setSelectedGroupIds] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState(0);
   const [studentWeek, setStudentWeek] = useState(1);
   const [professorWeek, setProfessorWeek] = useState(1);
@@ -173,12 +173,11 @@ export default function GlobalMySchedulePage() {
 
   // Which institution data to show (filtered or all)
   const selectedData = useMemo((): PerInstitutionData[] => {
-    if (filterInstitutionId) {
-      const d = dataMap.get(filterInstitutionId);
-      return d ? [d] : [];
+    if (selectedInstIds.size > 0) {
+      return [...selectedInstIds].flatMap((id) => { const d = dataMap.get(id); return d ? [d] : []; });
     }
     return [...dataMap.values()];
-  }, [dataMap, filterInstitutionId]);
+  }, [dataMap, selectedInstIds]);
 
   function gcd(a: number, b: number): number {
     return b === 0 ? a : gcd(b, a % b);
@@ -248,7 +247,7 @@ export default function GlobalMySchedulePage() {
   );
 
   // Reset group filter when institution filter changes
-  useEffect(() => { setFilterGroupId(null); }, [filterInstitutionId]);
+  useEffect(() => { setSelectedGroupIds(new Set()); }, [selectedInstIds]);
 
   // Reset week when it's out of range for the newly selected institution
   useEffect(() => {
@@ -403,33 +402,31 @@ export default function GlobalMySchedulePage() {
     [scheduledEntries, myGroupIds],
   );
 
-  // Direct group IDs the user belongs to, limited to the selected institution (for the group filter chips)
+  // Direct group IDs the user belongs to, scoped to the selected institutions (for the group filter chips)
   const myDirectGroupIds = useMemo((): Set<string> => {
     const userGroupIds = new Set(currentUser?.group_ids ?? []);
-    const sourceGroups = filterInstitutionId
-      ? (dataMap.get(filterInstitutionId)?.groups ?? [])
-      : selectedData.flatMap((d) => d.groups);
+    const sourceGroups = selectedData.flatMap((d) => d.groups);
     const direct = new Set<string>();
     sourceGroups.forEach((g) => {
       const gId = String(g.id ?? g._id ?? '');
       if (gId && userGroupIds.has(gId)) direct.add(gId);
     });
     return direct;
-  }, [currentUser, filterInstitutionId, dataMap, selectedData]);
+  }, [currentUser, selectedData]);
 
-  // Group filter: expand selected group to include all ancestor groups
+  // Group filter: union of all selected groups + their ancestors
   const filterGroupIds = useMemo((): Set<string> | null => {
-    if (!filterGroupId) return null;
-    const ids = new Set<string>([filterGroupId]);
+    if (selectedGroupIds.size === 0) return null;
+    const ids = new Set<string>();
     const walkUp = (gId: string) => {
       const g = combinedGroupsById.get(gId);
       if (!g || !g.parent_group_id) return;
       const parentId = String(g.parent_group_id);
       if (!ids.has(parentId)) { ids.add(parentId); walkUp(parentId); }
     };
-    walkUp(filterGroupId);
+    selectedGroupIds.forEach((gId) => { ids.add(gId); walkUp(gId); });
     return ids;
-  }, [filterGroupId, combinedGroupsById]);
+  }, [selectedGroupIds, combinedGroupsById]);
 
   const filteredStudentEntries = useMemo(
     () => filterGroupIds ? studentEntries.filter((e) => filterGroupIds.has(e.groupId)) : studentEntries,
@@ -509,7 +506,7 @@ export default function GlobalMySchedulePage() {
                   </Typography>
                   {activeInstIds.map((instId) => {
                     const inst = dataMap.get(instId)?.institution;
-                    const isSelected = filterInstitutionId === instId;
+                    const isSelected = selectedInstIds.has(instId);
                     return (
                       <Chip
                         key={instId}
@@ -517,23 +514,36 @@ export default function GlobalMySchedulePage() {
                         size="small"
                         color={isSelected ? 'primary' : 'default'}
                         variant={isSelected ? 'filled' : 'outlined'}
-                        onClick={() => setFilterInstitutionId(isSelected ? null : instId)}
+                        onClick={() => setSelectedInstIds((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(instId)) next.delete(instId); else next.add(instId);
+                          return next;
+                        })}
                         sx={{ borderRadius: 1.5, fontSize: '0.72rem', height: 24, cursor: 'pointer' }}
                       />
                     );
                   })}
+                  {selectedInstIds.size > 0 && (
+                    <Chip
+                      label="Clear"
+                      size="small"
+                      variant="outlined"
+                      onClick={() => setSelectedInstIds(new Set())}
+                      sx={{ borderRadius: 1.5, fontSize: '0.72rem', height: 24, cursor: 'pointer' }}
+                    />
+                  )}
                 </Stack>
               )}
 
-              {/* Group filter chips — shown when an institution is selected and user has direct groups */}
-              {filterInstitutionId && myDirectGroupIds.size > 0 && isStudent && (
+              {/* Group filter chips — shown whenever the user is a student with direct groups */}
+              {myDirectGroupIds.size > 0 && isStudent && (
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
                   <SchoolRoundedIcon sx={{ fontSize: '0.9rem', color: 'text.secondary' }} />
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
                     Group:
                   </Typography>
                   {[...myDirectGroupIds].map((gId) => {
-                    const isSelected = filterGroupId === gId;
+                    const isSelected = selectedGroupIds.has(gId);
                     return (
                       <Chip
                         key={gId}
@@ -541,51 +551,68 @@ export default function GlobalMySchedulePage() {
                         size="small"
                         color={isSelected ? 'secondary' : 'default'}
                         variant={isSelected ? 'filled' : 'outlined'}
-                        onClick={() => setFilterGroupId(isSelected ? null : gId)}
+                        onClick={() => setSelectedGroupIds((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(gId)) next.delete(gId); else next.add(gId);
+                          return next;
+                        })}
                         sx={{ borderRadius: 1.5, fontSize: '0.72rem', height: 24, cursor: 'pointer' }}
                       />
+                    );
+                  })}
+                  {selectedGroupIds.size > 0 && (
+                    <Chip
+                      label="Clear"
+                      size="small"
+                      variant="outlined"
+                      onClick={() => setSelectedGroupIds(new Set())}
+                      sx={{ borderRadius: 1.5, fontSize: '0.72rem', height: 24, cursor: 'pointer' }}
+                    />
+                  )}
+                </Stack>
+              )}
+
+              {/* Links to selected institutions' full schedules */}
+              {selectedInstIds.size > 0 && (
+                <Stack spacing={0.5}>
+                  {[...selectedInstIds].map((id) => {
+                    const d = dataMap.get(id);
+                    if (!d) return null;
+                    const instId = String(d.institution.id ?? (d.institution as any)._id ?? '');
+                    const schedId = d.institution.active_schedule_id;
+                    return (
+                      <Stack key={id} direction="row" spacing={1} alignItems="center">
+                        <Button
+                          size="small"
+                          variant="text"
+                          startIcon={<AccountBalanceRoundedIcon sx={{ fontSize: '0.9rem' }} />}
+                          onClick={() => navigate(institutionRoute(instId))}
+                          sx={{ borderRadius: 2, textTransform: 'none', color: 'text.secondary', fontSize: '0.78rem' }}
+                        >
+                          {d.institution.name}
+                        </Button>
+                        {schedId && (
+                          <Button
+                            size="small"
+                            variant="text"
+                            startIcon={<CalendarMonthRoundedIcon sx={{ fontSize: '0.9rem' }} />}
+                            onClick={() => navigate(scheduleRoute(schedId))}
+                            sx={{ borderRadius: 2, textTransform: 'none', color: 'text.secondary', fontSize: '0.78rem' }}
+                          >
+                            Full schedule
+                          </Button>
+                        )}
+                      </Stack>
                     );
                   })}
                 </Stack>
               )}
 
-              {/* Link to the selected institution's full schedule (when filtered) */}
-              {filterInstitutionId && (() => {
-                const d = dataMap.get(filterInstitutionId);
-                if (!d) return null;
-                const instId = String(d.institution.id ?? (d.institution as any)._id ?? '');
-                const schedId = d.institution.active_schedule_id;
-                return (
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Button
-                      size="small"
-                      variant="text"
-                      startIcon={<AccountBalanceRoundedIcon sx={{ fontSize: '0.9rem' }} />}
-                      onClick={() => navigate(institutionRoute(instId))}
-                      sx={{ borderRadius: 2, textTransform: 'none', color: 'text.secondary', fontSize: '0.78rem' }}
-                    >
-                      {d.institution.name}
-                    </Button>
-                    {schedId && (
-                      <Button
-                        size="small"
-                        variant="text"
-                        startIcon={<CalendarMonthRoundedIcon sx={{ fontSize: '0.9rem' }} />}
-                        onClick={() => navigate(scheduleRoute(schedId))}
-                        sx={{ borderRadius: 2, textTransform: 'none', color: 'text.secondary', fontSize: '0.78rem' }}
-                      >
-                        Full schedule
-                      </Button>
-                    )}
-                  </Stack>
-                );
-              })()}
-
               {/* No roles in selected institutions */}
               {!hasRoles && (
                 <Alert severity="info" sx={{ borderRadius: 2 }}>
                   You don't have a student or professor role in{' '}
-                  {filterInstitutionId ? 'this institution' : 'any of your institutions'}.
+                  {selectedInstIds.size > 0 ? 'the selected institutions' : 'any of your institutions'}.
                   Ask an admin to assign you a role.
                 </Alert>
               )}

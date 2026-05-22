@@ -1,0 +1,14 @@
+name: UniBuc FMI
+admin:
+  name: Admin FMI
+  email: admin@fmi.unibuc.ro
+  password: Admin1234!
+time_grid:
+  weeks: 2
+  days: 5
+  timeslots_per_day: 12
+  max_timeslots_per_day_per_group: 8
+  start_hour: 8
+  start_minute: 0
+  timeslot_duration_minutes: 60
+  start_day: 0  # 0 = Monday

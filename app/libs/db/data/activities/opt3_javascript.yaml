@@ -1,0 +1,4 @@
+group: "Java Script server side: Node.js + GraphQL"
+activities:
+  - { course: "Java Script server side: Node.js + GraphQL", type: course,      duration_slots: 2, frequency: weekly, professor: "Java Script server side: Node.js + GraphQL" }
+  - { course: "Java Script server side: Node.js + GraphQL", type: laboratory,  duration_slots: 2, frequency: weekly, professor: "Java Script server side: Node.js + GraphQL" }

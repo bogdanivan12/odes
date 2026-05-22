@@ -1,0 +1,4 @@
+group: Grupa 334
+activities:
+  - { course: "Calculabilitate si complexitate", type: seminar,    duration_slots: 2, frequency: biweekly, professor: "Gabriel Istrate" }
+  - { course: "Inginerie software",              type: laboratory, duration_slots: 2, frequency: biweekly, professor: "Rares Cristea" }

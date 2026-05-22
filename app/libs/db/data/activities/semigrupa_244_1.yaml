@@ -1,0 +1,4 @@
+group: Semigrupa 244_1
+activities:
+  - { course: "Algoritmi fundamentali",                    type: laboratory, duration_slots: 2, frequency: biweekly, professor: "Adrian Miclaus" }
+  - { course: "Sisteme de gestiune a bazelor de date",     type: laboratory, duration_slots: 2, frequency: weekly,   professor: "Eduard-Mihai Selea" }

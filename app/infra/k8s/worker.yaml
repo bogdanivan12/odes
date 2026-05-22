@@ -4,7 +4,7 @@ metadata:
   name: worker
   namespace: odes
 spec:
-  replicas: 1
+  # replicas is managed by KEDA (0 when idle, 1 during generation)
   selector:
     matchLabels:
       app: worker
@@ -24,8 +24,8 @@ spec:
                 name: odes-secret
           resources:
             requests:
-              cpu: "500m"
-              memory: "512Mi"
+              cpu: "1200m"
+              memory: "1Gi"
             limits:
-              cpu: "1"
-              memory: "2Gi"
+              cpu: "2"
+              memory: "4Gi"

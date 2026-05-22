@@ -1,0 +1,3 @@
+group: Concepte si aplicatii in Vederea Artificiala
+activities:
+  - { course: "Concepte si aplicatii in Vederea Artificiala", type: course, duration_slots: 2, frequency: weekly, professor: "Bogdan Alexe" }

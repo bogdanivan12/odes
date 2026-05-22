@@ -1,0 +1,3 @@
+group: Grafica pe calculator
+activities:
+  - { course: "Grafica pe calculator", type: course, duration_slots: 2, frequency: weekly, professor: "Sorin Stupariu" }

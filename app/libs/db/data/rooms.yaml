@@ -1,0 +1,55 @@
+rooms:
+  # ── Floor 0 ────────────────────────────────────────────────────────────────
+  - { name: "0 (Amf. Haret)",    capacity: 130 }
+  - { name: "001",  capacity: 30 }
+  - { name: "003",  capacity: 30 }
+  - { name: "005",  capacity: 30 }
+  - { name: "008",  capacity: 30 }
+  - { name: "009",  capacity: 30 }
+  - { name: "010",  capacity: 30 }
+  - { name: "012",  capacity: 30 }
+
+  # ── Floor 1 ────────────────────────────────────────────────────────────────
+  - { name: "1 (Amf. Stoilow)",  capacity: 130 }
+  - { name: "101",  capacity: 30, features: [laborator] }
+  - { name: "102",  capacity: 30, features: [laborator] }
+  - { name: "103",  capacity: 30, features: [laborator] }
+  - { name: "104",  capacity: 30, features: [laborator] }
+  - { name: "116",  capacity: 30 }
+  - { name: "120",  capacity: 30 }
+  - { name: "122",  capacity: 30 }
+
+  # ── Floor 2 ────────────────────────────────────────────────────────────────
+  - { name: "2 (Amf. Pompeiu)",  capacity: 130 }
+  - { name: "201",  capacity: 30, features: [laborator] }
+  - { name: "202",  capacity: 30, features: [laborator] }
+  - { name: "204",  capacity: 30, features: [laborator] }
+  - { name: "214",  capacity: 30 }
+  - { name: "215",  capacity: 30 }
+  - { name: "216",  capacity: 30 }
+  - { name: "217",  capacity: 30 }
+  - { name: "218",  capacity: 30 }
+  - { name: "219",  capacity: 30 }
+  - { name: "220",  capacity: 30 }
+  - { name: "221A", capacity: 30, features: [laborator] }
+  - { name: "221C", capacity: 30, features: [laborator] }
+
+  # ── Floor 3 ────────────────────────────────────────────────────────────────
+  - { name: "3 (Amf. Titeica)",  capacity: 130 }
+  - { name: "302",  capacity: 30, features: [laborator] }
+  - { name: "303",  capacity: 30, features: [laborator] }
+  - { name: "305",  capacity: 30, features: [laborator] }
+  - { name: "307",  capacity: 30, features: [laborator] }
+  - { name: "308",  capacity: 30, features: [laborator] }
+  - { name: "310",  capacity: 30, features: [laborator] }
+  - { name: "321",  capacity: 30, features: [laborator] }
+  - { name: "322",  capacity: 30, features: [laborator] }
+
+  # ── Floor 4 ────────────────────────────────────────────────────────────────
+  - { name: "402",  capacity: 30, features: [laborator] }
+  - { name: "403",  capacity: 30, features: [laborator] }
+  - { name: "413",  capacity: 30, features: [laborator] }
+  - { name: "415",  capacity: 30, features: [laborator] }
+  - { name: "416",  capacity: 30, features: [laborator] }
+  - { name: "417",  capacity: 30, features: [laborator] }
+  - { name: "420",  capacity: 30, features: [laborator] }

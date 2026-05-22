@@ -1,0 +1,166 @@
+- name: Licenta
+  children:
+
+    - name: Informatica
+      children:
+
+        - name: INFO Anul 1
+          children:
+            - name: Seria 13
+              children:
+                - name: Grupa 131
+                  children: [Semigrupa 131_1, Semigrupa 131_2]
+                - name: Grupa 132
+                  children: [Semigrupa 132_1, Semigrupa 132_2]
+                - name: Grupa 133
+                  children: [Semigrupa 133_1, Semigrupa 133_2]
+                - name: Grupa 134
+                  children: [Semigrupa 134_1, Semigrupa 134_2]
+            - name: Seria 14
+              children:
+                - name: Grupa 141
+                  children: [Semigrupa 141_1, Semigrupa 141_2]
+                - name: Grupa 142
+                  children: [Semigrupa 142_1, Semigrupa 142_2]
+                - name: Grupa 143
+                  children: [Semigrupa 143_1, Semigrupa 143_2]
+                - name: Grupa 144
+                  children: [Semigrupa 144_1, Semigrupa 144_2]
+            - name: Seria 15
+              children:
+                - name: Grupa 151
+                  children: [Semigrupa 151_1, Semigrupa 151_2]
+                - name: Grupa 152
+                  children: [Semigrupa 152_1, Semigrupa 152_2]
+
+        - name: INFO Anul 2
+          children:
+            - name: Optionale Anul 2 INFO
+              children:
+                - name: Dezvoltarea Aplicatiilor Web PHP
+                  children: [PHP_1, PHP_2]
+                - name: Dezvoltarea Aplicatiilor Web ASP.NET
+                  children: [ASP.NET_1, ASP.NET_2, ASP.NET_3, ASP.NET_4]
+                - name: Dezvoltarea Aplicatiilor Web Django
+                  children: [Django_1, Django_2, Django_3, Django_4]
+            - name: Seria 23
+              children:
+                - name: Grupa 231
+                  children: [Semigrupa 231_1, Semigrupa 231_2]
+                - name: Grupa 232
+                  children: [Semigrupa 232_1, Semigrupa 232_2]
+                - name: Grupa 233
+                  children: [Semigrupa 233_1, Semigrupa 233_2]
+                - name: Grupa 234
+                  children: [Semigrupa 234_1, Semigrupa 234_2]
+            - name: Seria 24
+              children:
+                - name: Grupa 241
+                  children: [Semigrupa 241_1, Semigrupa 241_2]
+                - name: Grupa 242
+                  children: [Semigrupa 242_1, Semigrupa 242_2]
+                - name: Grupa 243
+                  children: [Semigrupa 243_1, Semigrupa 243_2]
+                - name: Grupa 244
+                  children: [Semigrupa 244_1, Semigrupa 244_2]
+            - name: Seria 25
+              children:
+                - name: Grupa 251
+                  children: [Semigrupa 251_1, Semigrupa 251_2]
+                - name: Grupa 252
+                  children: [Semigrupa 252_1, Semigrupa 252_2]
+
+        - name: INFO Anul 3
+          children:
+            - name: Optionale Anul 3 INFO
+              children:
+                - name: Calcul numeric in informatica
+                  children: [CalcNum_1, CalcNum_2]
+                - name: Concepte si aplicatii in Vederea Artificiala
+                  children: [VedArtif_1, VedArtif_2, VedArtif_3, VedArtif_4]
+                - name: Grafica pe calculator
+                  children: [Grafica_1, Grafica_2, Grafica_3]
+                - name: Introducere in programarea jocurilor pe calculator
+                  children: [ProgrJoc_1, ProgrJoc_2, ProgrJoc_3]
+                - name: Introducere in Reinforcement Learning
+                  children: [IntrReinfLearn_1, IntrReinfLearn_2, IntrReinfLearn_3, IntrReinfLearn_4]
+                - name: "Java Script server side: Node.js + GraphQL"
+                - name: Prelucrarea Semnalelor
+                - name: Robotic Process Automation (RPA) folosind platforma UiPath
+                  children: [RPA_1, RPA_2]
+                - name: Tehnici de simulare
+                - name: Arheologia masinilor inteligente
+                  children: [ArhMasini_1, ArhMasini_2]
+                - name: Dezvoltarea jocurilor 3D folosind Unreal Engine
+                  children: [DezvJoc3D_1, DezvJoc3D_2, DezvJoc3D_3, DezvJoc3D_4]
+                - name: Structuri de date avansate
+                - name: Tehnologii Cloud Computing Aplicate in Machine Learning
+                  children: [CloudML_1, CloudML_2]
+                - name: Blockchain–concepte, tehnologii si aplicatii
+                  children: [Blockchain_1, Blockchain_2, Blockchain_3, Blockchain_4]
+                - name: Sisteme Distribuite
+                - name: Implementarea concurentei in limbaje de programare
+                - name: Managementul Amenintarilor Cibernetice
+            - name: Seria 33
+              children: [Grupa 331, Grupa 332, Grupa 333, Grupa 334]
+            - name: Seria 34
+              children: [Grupa 341, Grupa 342, Grupa 343, Grupa 344]
+            - name: Seria 35
+              children: [Grupa 351, Grupa 352]
+
+    - name: Matematica
+      children:
+
+        - name: MATE Anul 1
+          children:
+            - name: Seria 10
+              children: [Grupa 101, Grupa 102, Grupa 103, Grupa 104, Grupa 105]
+
+        - name: MATE Anul 2
+          children:
+            - name: Seria 20 (MATE)
+              children: [Grupa 201]
+            - name: Seria 21 (MATE-INFO)
+              children: [Grupa 211, Grupa 212]
+            - name: Seria 22 (MATE APLICATE)
+              children: [Grupa 221]
+
+        - name: MATE Anul 3
+          children:
+            - name: Seria 30 (MATE)
+              children: [Grupa 301]
+            - name: Seria 31 (MATE-INFO)
+              children: [Grupa 311]
+            - name: Seria 32 (MATE APLICATE)
+              children: [Grupa 321]
+
+    - name: CTI
+      children:
+
+        - name: CTI Anul 1
+          children:
+            - name: Seria 16
+              children: [Grupa 161, Grupa 162, Grupa 163, Grupa 164]
+
+        - name: CTI Anul 2
+          children:
+            - name: Seria 26
+              children: [Grupa 261, Grupa 262, Grupa 263, Grupa 264]
+
+        - name: CTI Anul 3
+          children:
+            - name: Seria 36
+              children:
+                - name: Grupa 361
+                  children: [Semigrupa 361_1, Semigrupa 361_2]
+                - name: Grupa 362
+                  children: [Semigrupa 362_1, Semigrupa 362_2]
+                - name: Grupa 363
+                  children: [Semigrupa 363_1, Semigrupa 363_2]
+                - name: Grupa 364
+                  children: [Semigrupa 364_1, Semigrupa 364_2]
+
+        - name: CTI Anul 4
+          children:
+            - name: Seria 46
+              children: [Grupa 461, Grupa 462, Grupa 463, Grupa 464]

@@ -1,0 +1,4 @@
+group: Semigrupa 133_2
+activities:
+  - { course: "Tehnici web",              type: laboratory, duration_slots: 2, frequency: biweekly, professor: "Carmen Chirita" }
+  - { course: "Programarea algoritmilor", type: laboratory, duration_slots: 2, frequency: biweekly, professor: "Maria Negru" }

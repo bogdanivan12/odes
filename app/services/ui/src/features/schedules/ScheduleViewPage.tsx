@@ -60,7 +60,7 @@ import { parseServerTimestamp, parseServerTimestampMs, formatDuration } from '..
 import type { Institution as InstitutionClass } from '../../types/institution';
 import type { TimeGridConfig } from '../../types/institution';
 import { institutionSchedulesRoute, scheduleEditRoute } from '../../config/routes';
-import { toTitleLabel, compareAlphabetical } from '../../utils/text';
+import { toTitleLabel, compareAlphabetical, abbreviateCourse } from '../../utils/text';
 import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionAdmin';
 import { useInstitutionSync } from '../../utils/useInstitutionSync';
 import { useTheme } from '@mui/material/styles';
@@ -514,7 +514,7 @@ export default function ScheduleViewPage() {
               const span = Math.max(1, entry.durationSlots);
               for (let s = 1; s < span; s++) occupied.add(slot + s);
               const { fill, text } = getActivityColor(entry.activityType);
-              const courseName = coursesById.get(entry.courseId)?.name ?? '';
+              const courseName = abbreviateCourse(coursesById.get(entry.courseId)?.name ?? '');
               const typeName = toTitleLabel(entry.activityType);
               const extraLines: string[] = [];
               if (pdfMode === 'groups') {

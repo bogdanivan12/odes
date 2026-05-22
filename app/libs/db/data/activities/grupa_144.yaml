@@ -1,0 +1,7 @@
+group: Grupa 144
+activities:
+  - { course: "Structuri algebrice in informatica",             type: seminar,    duration_slots: 2, frequency: weekly, professor: ~ }
+  - { course: "Calcul diferential si integral",                 type: seminar,    duration_slots: 2, frequency: weekly, professor: ~ }
+  - { course: "Arhitectura sistemelor de calcul",               type: laboratory, duration_slots: 2, frequency: weekly, professor: ~ }
+  - { course: "Programarea algoritmilor",                       type: seminar,    duration_slots: 2, frequency: biweekly, professor: ~ }
+  - { course: "Instrumente si tehnici de baza in Informatica",  type: laboratory, duration_slots: 2, frequency: weekly, professor: ~ }

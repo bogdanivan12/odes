@@ -1,0 +1,8 @@
+group: Seria 15
+activities:
+  - { course: "Structuri algebrice in informatica",            type: course, duration_slots: 2, frequency: weekly, professor: "Cornel Baetica" }
+  - { course: "Calcul diferential si integral",               type: course, duration_slots: 3, frequency: weekly, professor: "Alexandru Mihail" }
+  - { course: "Tehnici web",                                  type: course, duration_slots: 2, frequency: weekly, professor: "Claudia-Elena Chirita" }
+  - { course: "Programarea algoritmilor",                     type: course, duration_slots: 2, frequency: weekly, professor: "Radu Boriga" }
+  - { course: "Arhitectura sistemelor de calcul",             type: course, duration_slots: 2, frequency: weekly, professor: "Cristian Rusu" }
+  - { course: "Instrumente si tehnici de baza in Informatica", type: course, duration_slots: 1, frequency: weekly, professor: "Vlad Olaru" }

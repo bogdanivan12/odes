@@ -5,7 +5,7 @@ import { useTheme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import { activityRoute } from '../../config/routes';
-import { toTitleLabel } from '../../utils/text';
+import { toTitleLabel, abbreviateCourse } from '../../utils/text';
 import type {
   InstitutionCourse,
   InstitutionGroup,
@@ -279,8 +279,8 @@ export default function CalendarGrid({
                         '&:hover': { bgcolor: alpha(typeColor, 0.2) },
                       }}
                     >
-                      <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', lineHeight: 1.25, fontSize: '0.68rem', mb: 0.25 }}>
-                        {courseName}
+                      <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', lineHeight: 1.25, fontSize: '0.68rem', mb: 0.25, whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                        {abbreviateCourse(courseName)}
                       </Typography>
                       {laneH > 30 && (
                         <Typography variant="caption" sx={{ display: 'block', fontSize: '0.60rem', color: 'text.secondary', lineHeight: 1.3 }}>

@@ -113,7 +113,7 @@ export default function MySchedulePage() {
   const [activeTab, setActiveTab] = useState(0);
   const [studentWeek, setStudentWeek] = useState(1);
   const [professorWeek, setProfessorWeek] = useState(1);
-  const [filterGroupId, setFilterGroupId] = useState<string | null>(null);
+  const [selectedGroupIds, setSelectedGroupIds] = useState<Set<string>>(new Set());
 
   // ── Data loading ───────────────────────────────────────────────────────────
 
@@ -308,19 +308,23 @@ export default function MySchedulePage() {
     [scheduledEntries, myGroupIds],
   );
 
-  // When a chip filter is selected, compute that group + all its ancestors
+  // Expand each selected group to include all its ancestors, then union them.
+  // When nothing is selected show all entries for the user's groups.
   const filterGroupIds = useMemo((): Set<string> | null => {
-    if (!filterGroupId) return null;
-    const ids = new Set<string>([filterGroupId]);
+    if (selectedGroupIds.size === 0) return null;
+    const ids = new Set<string>();
     const walkUp = (gId: string) => {
       const g = groupsById.get(gId);
       if (!g || !g.parent_group_id) return;
       const parentId = String(g.parent_group_id);
       if (!ids.has(parentId)) { ids.add(parentId); walkUp(parentId); }
     };
-    walkUp(filterGroupId);
+    selectedGroupIds.forEach((gId) => {
+      ids.add(gId);
+      walkUp(gId);
+    });
     return ids;
-  }, [filterGroupId, groupsById]);
+  }, [selectedGroupIds, groupsById]);
 
   const filteredStudentEntries = useMemo(
     () => filterGroupIds ? studentEntries.filter((e) => filterGroupIds.has(e.groupId)) : studentEntries,
@@ -465,7 +469,7 @@ export default function MySchedulePage() {
                             Your groups:
                           </Typography>
                           {[...myDirectGroupIds].map((gId) => {
-                            const isSelected = filterGroupId === gId;
+                            const isSelected = selectedGroupIds.has(gId);
                             return (
                               <Chip
                                 key={gId}
@@ -473,11 +477,24 @@ export default function MySchedulePage() {
                                 size="small"
                                 color={isSelected ? 'primary' : 'default'}
                                 variant={isSelected ? 'filled' : 'outlined'}
-                                onClick={() => setFilterGroupId(isSelected ? null : gId)}
+                                onClick={() => setSelectedGroupIds((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(gId)) next.delete(gId); else next.add(gId);
+                                  return next;
+                                })}
                                 sx={{ borderRadius: 1.5, fontSize: '0.72rem', height: 22, cursor: 'pointer' }}
                               />
                             );
                           })}
+                          {selectedGroupIds.size > 0 && (
+                            <Chip
+                              label="Clear"
+                              size="small"
+                              variant="outlined"
+                              onClick={() => setSelectedGroupIds(new Set())}
+                              sx={{ borderRadius: 1.5, fontSize: '0.72rem', height: 22, cursor: 'pointer' }}
+                            />
+                          )}
                         </Stack>
                         <WeekSelector weekNumbers={weekNumbers} selectedWeek={studentWeek} onSelect={setStudentWeek} />
                         <CalendarGrid
