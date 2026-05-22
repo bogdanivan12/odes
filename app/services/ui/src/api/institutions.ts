@@ -98,13 +98,6 @@ export interface UpdateInstitutionRequest {
   };
 }
 
-function buildAuthHeaders(): Record<string, string> {
-  const authToken = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-  const headers: Record<string, string> = {};
-  if (authToken) headers['Authorization'] = authToken;
-  return headers;
-}
-
 function normalizeCollection<T>(res: unknown, key: string): T[] {
   if (Array.isArray(res)) return res as T[];
   if (res && typeof res === 'object' && Array.isArray((res as Record<string, unknown>)[key])) {
@@ -115,9 +108,8 @@ function normalizeCollection<T>(res: unknown, key: string): T[] {
 
 export async function getInstitutions(): Promise<InstitutionClass[]> {
   const url = `${API_URL}${API_INSTITUTIONS_PATH}`;
-  const headers = buildAuthHeaders();
 
-  const res = await apiGet<any>(url, headers);
+  const res = await apiGet<any>(url);
 
   // normalize array vs { institutions: [...] }
   const items: InstitutionData[] = Array.isArray(res)
@@ -131,15 +123,13 @@ export async function getInstitutions(): Promise<InstitutionClass[]> {
 
 export async function getInstitutionUsers(institutionId: string) {
   const url = `${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/users`;
-  const headers = buildAuthHeaders();
-  const res = await apiGet<unknown>(url, headers);
+  const res = await apiGet<unknown>(url);
   return normalizeCollection<InstitutionUser>(res, 'users');
 }
 
 export async function getInstitutionById(institutionId: string): Promise<InstitutionClass> {
   const url = `${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}`;
-  const headers = buildAuthHeaders();
-  const res = await apiGet<any>(url, headers);
+  const res = await apiGet<any>(url);
   const institutionData: InstitutionData = res?.institution ?? res;
   return InstitutionClass.from(institutionData);
 }
@@ -151,109 +141,93 @@ export interface ScheduleEta {
 
 export async function getScheduleEta(institutionId: string): Promise<ScheduleEta> {
   const url = `${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/schedule-eta`;
-  const headers = buildAuthHeaders();
-  const res = await apiGet<ScheduleEta>(url, headers);
+  const res = await apiGet<ScheduleEta>(url);
   return res;
 }
 
 export async function getInstitutionGroups(institutionId: string): Promise<InstitutionGroup[]> {
   const url = `${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/groups`;
-  const headers = buildAuthHeaders();
-  const res = await apiGet<unknown>(url, headers);
+  const res = await apiGet<unknown>(url);
   return normalizeCollection<InstitutionGroup>(res, 'groups');
 }
 
 export async function getInstitutionCourses(institutionId: string): Promise<InstitutionCourse[]> {
   const url = `${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/courses`;
-  const headers = buildAuthHeaders();
-  const res = await apiGet<unknown>(url, headers);
+  const res = await apiGet<unknown>(url);
   return normalizeCollection<InstitutionCourse>(res, 'courses');
 }
 
 export async function getInstitutionRooms(institutionId: string): Promise<InstitutionRoom[]> {
   const url = `${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/rooms`;
-  const headers = buildAuthHeaders();
-  const res = await apiGet<unknown>(url, headers);
+  const res = await apiGet<unknown>(url);
   return normalizeCollection<InstitutionRoom>(res, 'rooms');
 }
 
 export async function getInstitutionActivities(institutionId: string): Promise<InstitutionActivity[]> {
   const url = `${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/activities`;
-  const headers = buildAuthHeaders();
-  const res = await apiGet<unknown>(url, headers);
+  const res = await apiGet<unknown>(url);
   return normalizeCollection<InstitutionActivity>(res, 'activities');
 }
 
 export async function triggerScheduleGeneration(institutionId: string): Promise<InstitutionSchedule> {
   const url = `${API_URL}/api/v1/schedules/`;
-  const headers = buildAuthHeaders();
-  const res = await apiPost<any>(url, { institution_id: institutionId }, headers);
+  const res = await apiPost<any>(url, { institution_id: institutionId });
   return (res?.schedule ?? res) as InstitutionSchedule;
 }
 
 export async function deleteSchedule(scheduleId: string): Promise<void> {
   const url = `${API_URL}/api/v1/schedules/${scheduleId}`;
-  const headers = buildAuthHeaders();
-  await apiDelete<void>(url, headers);
+  await apiDelete<void>(url);
 }
 
 export async function getScheduleById(scheduleId: string): Promise<InstitutionSchedule> {
   const url = `${API_URL}/api/v1/schedules/${scheduleId}`;
-  const headers = buildAuthHeaders();
-  const res = await apiGet<any>(url, headers);
+  const res = await apiGet<any>(url);
   return (res?.schedule ?? res) as InstitutionSchedule;
 }
 
 export async function getInstitutionSchedules(institutionId: string): Promise<InstitutionSchedule[]> {
   const url = `${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/schedules`;
-  const headers = buildAuthHeaders();
-  const res = await apiGet<unknown>(url, headers);
+  const res = await apiGet<unknown>(url);
   return normalizeCollection<InstitutionSchedule>(res, 'schedules');
 }
 
 export async function getScheduleActivities(scheduleId: string): Promise<ScheduledActivityRecord[]> {
   const url = `${API_URL}/api/v1/schedules/${scheduleId}/scheduled-activities`;
-  const headers = buildAuthHeaders();
-  const res = await apiGet<unknown>(url, headers);
+  const res = await apiGet<unknown>(url);
   return normalizeCollection<ScheduledActivityRecord>(res, 'scheduled_activities');
 }
 
 export async function createInstitution(payload: CreateInstitutionRequest): Promise<InstitutionClass> {
   const url = `${API_URL}${API_INSTITUTIONS_PATH}/`;
-  const headers = buildAuthHeaders();
-  const res = await apiPost<any>(url, payload, headers);
+  const res = await apiPost<any>(url, payload);
   const institutionData: InstitutionData = res?.institution ?? res;
   return InstitutionClass.from(institutionData);
 }
 
 export async function deleteInstitution(institutionId: string): Promise<void> {
   const url = `${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}`;
-  const headers = buildAuthHeaders();
-  await apiDelete<void>(url, headers);
+  await apiDelete<void>(url);
 }
 
 export async function removeUserFromInstitution(institutionId: string, userId: string): Promise<void> {
   const url = `${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/users/${userId}`;
-  const headers = buildAuthHeaders();
-  await apiDelete<void>(url, headers);
+  await apiDelete<void>(url);
 }
 
 export async function assignRoleToUser(institutionId: string, userId: string, role: InstitutionRole): Promise<void> {
   const url = `${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/users/${userId}/roles/${role}`;
-  const headers = buildAuthHeaders();
-  await apiPost<void>(url, undefined, headers);
+  await apiPost<void>(url, undefined);
 }
 
 export async function removeRoleFromUser(institutionId: string, userId: string, role: InstitutionRole): Promise<void> {
   const url = `${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/users/${userId}/roles/${role}`;
-  const headers = buildAuthHeaders();
-  await apiDelete<void>(url, headers);
+  await apiDelete<void>(url);
 }
 
 export async function setActiveSchedule(institutionId: string, scheduleId: string | null): Promise<InstitutionClass> {
   const url = `${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/active-schedule`;
-  const headers = buildAuthHeaders();
-  const res = await apiPut<any>(url, { schedule_id: scheduleId }, headers);
+  const res = await apiPut<any>(url, { schedule_id: scheduleId });
   const institutionData: InstitutionData = res?.institution ?? res;
   return InstitutionClass.from(institutionData);
 }
@@ -284,8 +258,7 @@ export async function checkScheduleConflicts(
   changes: ScheduleChangeItem[],
 ): Promise<RecordConflicts[]> {
   const url = `${API_URL}${API_SCHEDULES_PATH}/${scheduleId}/check-conflicts`;
-  const headers = buildAuthHeaders();
-  const res = await apiPost<{ results: RecordConflicts[] }>(url, { changes }, headers);
+  const res = await apiPost<{ results: RecordConflicts[] }>(url, { changes });
   return res?.results ?? [];
 }
 
@@ -295,8 +268,7 @@ export async function batchUpdateScheduleRecords(
   force: boolean,
 ): Promise<ScheduledActivityRecord[]> {
   const url = `${API_URL}${API_SCHEDULES_PATH}/${scheduleId}/records`;
-  const headers = buildAuthHeaders();
-  const res = await apiPatch<{ scheduled_activities: any[] }>(url, { changes, force }, headers);
+  const res = await apiPatch<{ scheduled_activities: any[] }>(url, { changes, force });
   return (res?.scheduled_activities ?? []) as ScheduledActivityRecord[];
 }
 

@@ -1,11 +1,6 @@
 import MainLayout from '../layout/MainLayout';
 import { LandingPage } from './Home';
-
-function isAuthenticated(): boolean {
-  if (typeof window === 'undefined') return false;
-  const t = localStorage.getItem('authToken');
-  return !!t && t.trim().length > 0;
-}
+import { isAuthenticated } from '../../utils/auth';
 
 /**
  * Root route component for "/".

@@ -38,6 +38,8 @@ import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import CircularProgress from '@mui/material/CircularProgress';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { INSTITUTIONS_ROUTE, INSTITUTIONS_CREATE_ROUTE } from '../../config/routes';
+import { clearTokens } from '../../utils/auth';
+import { API_URL } from '../../config/constants';
 
 type Institution = InstitutionClass;
 
@@ -102,7 +104,11 @@ export default function ResponsiveAppBar() {
   };
 
   const handleLogout = () => {
-    try { localStorage.removeItem('authToken'); } catch (e) { /* ignore */ }
+    // Tell the server to clear the HttpOnly refresh-token cookie.
+    // Fire-and-forget — we don't wait for the response so the UI stays snappy
+    // even if the network is slow or the server is unreachable.
+    fetch(`${API_URL}/api/v1/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {});
+    try { clearTokens(); } catch (e) { /* ignore */ }
     setSelectedInstitution(null);
     setInstitutions([]);
     setSearchQuery('');

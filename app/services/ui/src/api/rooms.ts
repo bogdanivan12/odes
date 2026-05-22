@@ -16,13 +16,6 @@ export interface UpdateRoomRequest {
   features?: string[];
 }
 
-function buildAuthHeaders(): Record<string, string> {
-  const authToken = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-  const headers: Record<string, string> = {};
-  if (authToken) headers.Authorization = authToken;
-  return headers;
-}
-
 function normalizeRooms(res: unknown): RoomData[] {
   if (Array.isArray(res)) return res as RoomData[];
   if (res && typeof res === 'object' && Array.isArray((res as Record<string, unknown>).rooms)) {
@@ -33,38 +26,33 @@ function normalizeRooms(res: unknown): RoomData[] {
 
 export async function getRooms(): Promise<RoomClass[]> {
   const url = `${API_URL}/api/v1/rooms/`;
-  const headers = buildAuthHeaders();
-  const res = await apiGet<unknown>(url, headers);
+  const res = await apiGet<unknown>(url);
   return normalizeRooms(res).map((room) => RoomClass.from(room));
 }
 
 export async function getRoomById(roomId: string): Promise<RoomClass> {
   const url = `${API_URL}/api/v1/rooms/${roomId}`;
-  const headers = buildAuthHeaders();
-  const res = await apiGet<any>(url, headers);
+  const res = await apiGet<any>(url);
   const roomData: RoomData = res?.room ?? res;
   return RoomClass.from(roomData);
 }
 
 export async function createRoom(payload: CreateRoomRequest): Promise<RoomClass> {
   const url = `${API_URL}/api/v1/rooms/`;
-  const headers = buildAuthHeaders();
-  const res = await apiPost<any>(url, payload, headers);
+  const res = await apiPost<any>(url, payload);
   const roomData: RoomData = res?.room ?? res;
   return RoomClass.from(roomData);
 }
 
 export async function updateRoom(roomId: string, payload: UpdateRoomRequest): Promise<RoomClass> {
   const url = `${API_URL}/api/v1/rooms/${roomId}`;
-  const headers = buildAuthHeaders();
-  const res = await apiPut<any>(url, payload, headers);
+  const res = await apiPut<any>(url, payload);
   const roomData: RoomData = res?.room ?? res;
   return RoomClass.from(roomData);
 }
 
 export async function deleteRoom(roomId: string): Promise<void> {
   const url = `${API_URL}/api/v1/rooms/${roomId}`;
-  const headers = buildAuthHeaders();
-  await apiDelete<void>(url, headers);
+  await apiDelete<void>(url);
 }
 

@@ -93,7 +93,7 @@ import type {
 } from '../../api/institutions';
 import { Institution } from '../../types/institution';
 import { API_INSTITUTIONS_PATH, API_URL } from '../../config/constants';
-import { apiGet, apiPost, apiPut } from '../../utils/apiClient';
+import { apiGet, apiPost, apiPut, apiDelete } from '../../utils/apiClient';
 import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionAdmin';
 import { parseServerTimestamp, parseServerTimestampMs } from '../../utils/time';
 import { alpha, useTheme } from '@mui/material/styles';
@@ -117,27 +117,12 @@ type InstitutionRole = 'student' | 'professor' | 'admin';
 
 const ALL_INSTITUTION_ROLES: InstitutionRole[] = ['admin', 'professor', 'student'];
 
-function getAuthHeaders(): Record<string, string> {
-  const authToken = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-  const headers: Record<string, string> = {};
-  if (authToken) headers.Authorization = authToken;
-  return headers;
-}
-
 async function assignRoleToUser(institutionId: string, userId: string, role: InstitutionRole): Promise<void> {
-  await apiPost<void>(`${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/users/${userId}/roles/${role}`, undefined, getAuthHeaders());
+  await apiPost<void>(`${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/users/${userId}/roles/${role}`, undefined);
 }
 
 async function removeRoleFromUser(institutionId: string, userId: string, role: InstitutionRole): Promise<void> {
-  await fetch(`${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/users/${userId}/roles/${role}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(),
-  }).then(async (res) => {
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(text || 'Failed to remove role.');
-    }
-  });
+  await apiDelete<void>(`${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}/users/${userId}/roles/${role}`);
 }
 
 type ScheduleType = '2' | '5' | '7';
@@ -235,7 +220,7 @@ async function updateInstitutionData(
   institutionId: string,
   payload: { name: string; time_grid_config: { weeks: number; days: number; timeslots_per_day: number; max_timeslots_per_day_per_group: number; start_hour: number; start_minute: number; timeslot_duration_minutes: number; start_day: number } },
 ) {
-  const res = await apiPut<any>(`${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}`, payload, getAuthHeaders());
+  const res = await apiPut<any>(`${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}`, payload);
   return (res?.institution ?? res) as Institution;
 }
 
@@ -1318,7 +1303,7 @@ export default function InstitutionMainPage() {
     setIsMemberRolesDialogOpen(true);
     setAvailableUsersLoading(true);
     try {
-      const res = await apiGet<any>(`${API_URL}/api/v1/users`, getAuthHeaders());
+      const res = await apiGet<any>(`${API_URL}/api/v1/users`);
       const users = Array.isArray(res?.users) ? (res.users as InstitutionUser[]) : [];
       const existingIds = new Set(usersState.data.map((u) => String(u.id ?? u._id ?? '')));
       const candidates = users

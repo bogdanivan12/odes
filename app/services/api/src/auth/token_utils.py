@@ -10,6 +10,7 @@ import datetime
 
 DEFAULT_ALGORITHM = os.getenv('DEFAULT_ALGORITHM', 'HS256')
 EXPIRES_DELTA = int(os.getenv('EXPIRES_DELTA', 30))
+REFRESH_EXPIRES_DELTA = int(os.getenv('REFRESH_EXPIRES_DELTA', 10080))  # 7 days
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 
@@ -24,12 +25,29 @@ def create_jwt_token(
         algorithm: str = DEFAULT_ALGORITHM,
         expires_delta: int = EXPIRES_DELTA
 ) -> str:
-    """Create a JWT token"""
+    """Create a short-lived access JWT token."""
     to_encode = data.copy()
     expire = datetime.datetime.now(datetime.UTC) + datetime.timedelta(minutes=expires_delta)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, secret_key, algorithm=algorithm)
     return encoded_jwt
+
+
+def create_refresh_token(
+        data: dict,
+        secret_key: str = SECRET_KEY,
+        algorithm: str = DEFAULT_ALGORITHM,
+        expires_delta: int = REFRESH_EXPIRES_DELTA
+) -> str:
+    """Create a long-lived refresh JWT token (7 days by default).
+
+    The token carries a ``type: "refresh"`` claim so the refresh endpoint
+    can reject access tokens that are passed by mistake.
+    """
+    to_encode = data.copy()
+    expire = datetime.datetime.now(datetime.UTC) + datetime.timedelta(minutes=expires_delta)
+    to_encode.update({"exp": expire, "type": "refresh"})
+    return jwt.encode(to_encode, secret_key, algorithm=algorithm)
 
 
 def decode_jwt_token(

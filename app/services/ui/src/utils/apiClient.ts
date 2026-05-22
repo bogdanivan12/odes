@@ -1,3 +1,10 @@
+import { API_URL } from '../config/constants';
+import {
+  setAccessToken,
+  clearTokens,
+  getAuthorizationHeader,
+} from './auth';
+
 export type ApiMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 export interface ApiRequestOptions {
@@ -6,6 +13,7 @@ export interface ApiRequestOptions {
   body?: any;
   headers?: Record<string, string>;
   raw?: boolean; // If true, return raw text even if JSON parse succeeds
+  _retried?: boolean; // Internal flag — prevents infinite refresh loops
 }
 
 export interface ApiError extends Error {
@@ -14,16 +22,37 @@ export interface ApiError extends Error {
 }
 
 export async function apiRequest<T = any>(opts: ApiRequestOptions): Promise<T> {
-  const { method = "GET", url, body, headers = {}, raw = false } = opts;
+  const { method = "GET", url, body, headers = {}, raw = false, _retried = false } = opts;
 
   // Detect if caller already provided a Content-Type (case-insensitive).
   // If so, do not add/overwrite it. This prevents accidental overwrites
   // and respects user-specified header casing/values.
   const hasContentType = Object.keys(headers).some(k => k.toLowerCase() === "content-type");
 
+  // Auto-inject Authorization header when the caller hasn't provided one and a
+  // token is available. Skip for auth endpoints (login / refresh) to avoid
+  // sending a stale token where it's irrelevant.
+  const hasAuth = Object.keys(headers).some(k => k.toLowerCase() === "authorization");
+  const isAuthEndpoint = url.includes('/auth/');
+  const authHeader: Record<string, string> = {};
+  if (!hasAuth && !isAuthEndpoint) {
+    const authValue = getAuthorizationHeader();
+    if (authValue) authHeader['Authorization'] = authValue;
+  }
+
   const fetchOptions: RequestInit = {
     method,
-    headers: { ...(body && !hasContentType ? { "Content-Type": "application/json" } : {}), ...headers },
+    // 'include' is required for the browser to store and resend the HttpOnly
+    // refresh-token cookie when VITE_API_URL is set (cross-origin dev).
+    // In production (same-origin) this has no effect.
+    // The cookie's path=/api/v1/auth limits which requests it is actually
+    // attached to, so there is no unintended cookie leakage.
+    credentials: 'include',
+    headers: {
+      ...(body && !hasContentType ? { "Content-Type": "application/json" } : {}),
+      ...authHeader,
+      ...headers,
+    },
   };
 
   if (body !== undefined) {
@@ -43,6 +72,33 @@ export async function apiRequest<T = any>(opts: ApiRequestOptions): Promise<T> {
     } catch (e) {
       parsed = text;
     }
+  }
+
+  // ── Silent token refresh on 401 ────────────────────────────────────────────
+  // When the access token has expired the API returns 401. We try to exchange
+  // the refresh token for a new access token and replay the original request
+  // exactly once. If the refresh itself fails the user is logged out.
+  if (res.status === 401 && !_retried && !isAuthEndpoint) {
+    try {
+      // The refresh token is an HttpOnly cookie — the browser attaches it
+      // automatically via credentials:'include'.  No body needed.
+      const refreshRes = await fetch(`${API_URL}/api/v1/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (refreshRes.ok) {
+        const refreshData = await refreshRes.json();
+        const newAccessToken = refreshData.access_token;
+        if (newAccessToken) {
+          setAccessToken(newAccessToken);
+          // Replay the original request with the fresh token.
+          return apiRequest<T>({ ...opts, _retried: true });
+        }
+      }
+    } catch { /* fall through to logout */ }
+    // Refresh failed — end the session.
+    clearTokens();
+    if (typeof window !== 'undefined') window.location.href = '/login';
   }
 
   if (!res.ok) {

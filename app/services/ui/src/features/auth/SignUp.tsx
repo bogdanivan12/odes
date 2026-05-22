@@ -12,6 +12,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import { SignUpRequest } from './types';
 import { signUp } from '../../api/auth.ts';
 import { USER_LOGIN_ROUTE } from '../../config/routes.ts';
+import { clearTokens } from '../../utils/auth.ts';
 import { useTheme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
 
@@ -23,7 +24,7 @@ export function SignUp() {
 
   useEffect(() => {
     try {
-      localStorage.removeItem('authToken');
+      clearTokens();
       localStorage.removeItem('selectedInstitutionId');
     } catch { /* ignore */ }
   }, []);

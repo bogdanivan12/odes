@@ -8,8 +8,8 @@ from app.services.api.src.repositories import users as users_repo
 from app.services.api.src.auth import token_utils
 
 
-def get_login_token(db: Database, email: str, password: str) -> str:
-    """Authenticate user and return access token"""
+def get_login_token(db: Database, email: str, password: str) -> tuple[str, str]:
+    """Authenticate user and return an (access_token, refresh_token) tuple."""
     try:
         user_data = users_repo.find_user_by_email(db, str(email))
     except Exception as e:
@@ -33,5 +33,7 @@ def get_login_token(db: Database, email: str, password: str) -> str:
             headers={"WWW-Authenticate": "Bearer"}
         )
 
-    token = token_utils.create_jwt_token({"sub": str(user.id), "email": user.email})
-    return token
+    payload = {"sub": str(user.id), "email": user.email}
+    access_token = token_utils.create_jwt_token(payload)
+    refresh_token = token_utils.create_refresh_token(payload)
+    return access_token, refresh_token
