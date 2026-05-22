@@ -42,6 +42,12 @@ export async function apiRequest<T = any>(opts: ApiRequestOptions): Promise<T> {
 
   const fetchOptions: RequestInit = {
     method,
+    // 'include' is required for the browser to store and resend the HttpOnly
+    // refresh-token cookie when VITE_API_URL is set (cross-origin dev).
+    // In production (same-origin) this has no effect.
+    // The cookie's path=/api/v1/auth limits which requests it is actually
+    // attached to, so there is no unintended cookie leakage.
+    credentials: 'include',
     headers: {
       ...(body && !hasContentType ? { "Content-Type": "application/json" } : {}),
       ...authHeader,
