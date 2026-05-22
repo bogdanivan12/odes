@@ -120,13 +120,6 @@ type FormValues = {
   maxTimeslotsPerDayPerGroup: string;
 };
 
-function getAuthHeaders(): Record<string, string> {
-  const authToken = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-  const headers: Record<string, string> = {};
-  if (authToken) headers.Authorization = authToken;
-  return headers;
-}
-
 async function updateInstitutionData(institutionId: string, payload: {
   name: string;
   time_grid_config: {
@@ -135,7 +128,7 @@ async function updateInstitutionData(institutionId: string, payload: {
     timeslot_duration_minutes: number; start_day: number;
   };
 }) {
-  const res = await apiPut<any>(`${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}`, payload, getAuthHeaders());
+  const res = await apiPut<any>(`${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}`, payload);
   return (res?.institution ?? res) as { name?: string };
 }
 

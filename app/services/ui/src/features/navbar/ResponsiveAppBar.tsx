@@ -38,6 +38,7 @@ import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import CircularProgress from '@mui/material/CircularProgress';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { INSTITUTIONS_ROUTE, INSTITUTIONS_CREATE_ROUTE } from '../../config/routes';
+import { clearTokens } from '../../utils/auth';
 
 type Institution = InstitutionClass;
 
@@ -102,7 +103,7 @@ export default function ResponsiveAppBar() {
   };
 
   const handleLogout = () => {
-    try { localStorage.removeItem('authToken'); } catch (e) { /* ignore */ }
+    try { clearTokens(); } catch (e) { /* ignore */ }
     setSelectedInstitution(null);
     setInstitutions([]);
     setSearchQuery('');

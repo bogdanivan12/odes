@@ -26,13 +26,6 @@ export interface UpdateActivityRequest {
   selected_timeslot?: ActivitySelectedTimeslot | null;
 }
 
-function buildAuthHeaders(): Record<string, string> {
-  const authToken = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-  const headers: Record<string, string> = {};
-  if (authToken) headers.Authorization = authToken;
-  return headers;
-}
-
 function normalizeActivities(res: unknown): ActivityData[] {
   if (Array.isArray(res)) return res as ActivityData[];
   if (res && typeof res === 'object' && Array.isArray((res as Record<string, unknown>).activities)) {
@@ -43,38 +36,33 @@ function normalizeActivities(res: unknown): ActivityData[] {
 
 export async function getActivities(): Promise<ActivityClass[]> {
   const url = `${API_URL}/api/v1/activities/`;
-  const headers = buildAuthHeaders();
-  const res = await apiGet<unknown>(url, headers);
+  const res = await apiGet<unknown>(url);
   return normalizeActivities(res).map((activity) => ActivityClass.from(activity));
 }
 
 export async function getActivityById(activityId: string): Promise<ActivityClass> {
   const url = `${API_URL}/api/v1/activities/${activityId}`;
-  const headers = buildAuthHeaders();
-  const res = await apiGet<any>(url, headers);
+  const res = await apiGet<any>(url);
   const activityData: ActivityData = res?.activity ?? res;
   return ActivityClass.from(activityData);
 }
 
 export async function createActivity(payload: CreateActivityRequest): Promise<ActivityClass> {
   const url = `${API_URL}/api/v1/activities/`;
-  const headers = buildAuthHeaders();
-  const res = await apiPost<any>(url, payload, headers);
+  const res = await apiPost<any>(url, payload);
   const activityData: ActivityData = res?.activity ?? res;
   return ActivityClass.from(activityData);
 }
 
 export async function updateActivity(activityId: string, payload: UpdateActivityRequest): Promise<ActivityClass> {
   const url = `${API_URL}/api/v1/activities/${activityId}`;
-  const headers = buildAuthHeaders();
-  const res = await apiPut<any>(url, payload, headers);
+  const res = await apiPut<any>(url, payload);
   const activityData: ActivityData = res?.activity ?? res;
   return ActivityClass.from(activityData);
 }
 
 export async function deleteActivity(activityId: string): Promise<void> {
   const url = `${API_URL}/api/v1/activities/${activityId}`;
-  const headers = buildAuthHeaders();
-  await apiDelete<void>(url, headers);
+  await apiDelete<void>(url);
 }
 

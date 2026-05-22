@@ -33,5 +33,7 @@ def get_login_token(db: Database, email: str, password: str) -> str:
             headers={"WWW-Authenticate": "Bearer"}
         )
 
-    token = token_utils.create_jwt_token({"sub": str(user.id), "email": user.email})
-    return token
+    payload = {"sub": str(user.id), "email": user.email}
+    access_token = token_utils.create_jwt_token(payload)
+    refresh_token = token_utils.create_refresh_token(payload)
+    return access_token, refresh_token
