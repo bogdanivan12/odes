@@ -1,0 +1,7 @@
+group: Grupa 133
+activities:
+  - { course: "Structuri algebrice in informatica",             type: seminar,    duration_slots: 2, frequency: weekly,   professor: "Gabriela-Camelia Petcu" }
+  - { course: "Calcul diferential si integral",                 type: seminar,    duration_slots: 2, frequency: weekly,   professor: "Petre Ilias" }
+  - { course: "Arhitectura sistemelor de calcul",               type: laboratory, duration_slots: 2, frequency: weekly,   professor: "Radu-Gabriel Buzas" }
+  - { course: "Programarea algoritmilor",                       type: seminar,    duration_slots: 2, frequency: biweekly, professor: "Radu Boriga" }
+  - { course: "Instrumente si tehnici de baza in Informatica",  type: laboratory, duration_slots: 2, frequency: weekly,   professor: "Mara-Cristina Sterian" }

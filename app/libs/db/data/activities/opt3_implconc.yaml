@@ -1,0 +1,4 @@
+group: Implementarea concurentei in limbaje de programare
+activities:
+  - { course: "Implementarea concurentei in limbaje de programare", type: course,     duration_slots: 2, frequency: weekly, professor: "Ioana Leustean" }
+  - { course: "Implementarea concurentei in limbaje de programare", type: laboratory, duration_slots: 2, frequency: weekly, professor: "Bogdan Macovei" }

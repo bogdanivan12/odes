@@ -1,0 +1,3 @@
+group: Introducere in Reinforcement Learning
+activities:
+  - { course: "Introducere in Reinforcement Learning", type: course, duration_slots: 2, frequency: weekly, professor: "Ciprian Paduraru" }

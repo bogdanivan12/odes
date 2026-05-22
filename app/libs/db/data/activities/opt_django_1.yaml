@@ -1,0 +1,3 @@
+group: Django_1
+activities:
+  - { course: "Dezvoltarea Aplicatiilor Web Django", type: laboratory, duration_slots: 2, frequency: weekly, professor: "Irina Ciocan" }

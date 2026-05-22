@@ -1,0 +1,48 @@
+# ── RabbitMQ management URL for KEDA ─────────────────────────────────────────
+# HTTP protocol lets KEDA count ready + unacknowledged messages together,
+# so the worker is never scaled to 0 while a generation is still running.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rabbitmq-keda-secret
+  namespace: odes
+type: Opaque
+stringData:
+  host: "http://guest:guest@rabbitmq.odes.svc.cluster.local:15672/"
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: rabbitmq-auth
+  namespace: odes
+spec:
+  secretTargetRef:
+    - parameter: host
+      name: rabbitmq-keda-secret
+      key: host
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: worker-scaler
+  namespace: odes
+spec:
+  scaleTargetRef:
+    name: worker
+  minReplicaCount: 0   # idle → 0 pods → node 2 eventually removed
+  maxReplicaCount: 1   # one generation at a time
+  # Wait 60 s of empty queue before scaling to 0.
+  # The worker pod must be gone before the autoscaler can reclaim node 2.
+  cooldownPeriod: 60
+  triggers:
+    - type: rabbitmq
+      metadata:
+        protocol: http
+        queueName: schedule_generator_queue
+        mode: QueueLength
+        value: "1"          # scale up as soon as 1 message appears
+        vhostName: /
+      authenticationRef:
+        name: rabbitmq-auth

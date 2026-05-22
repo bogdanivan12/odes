@@ -1,0 +1,3 @@
+group: Calcul numeric in informatica
+activities:
+  - { course: "Calcul numeric in informatica", type: course, duration_slots: 2, frequency: weekly, professor: "Paul Irofti" }

@@ -1,0 +1,4 @@
+group: Semigrupa 241_2
+activities:
+  - { course: "Algoritmi fundamentali",                    type: laboratory, duration_slots: 2, frequency: biweekly, professor: "Adela Corbeanu" }
+  - { course: "Sisteme de gestiune a bazelor de date",     type: laboratory, duration_slots: 2, frequency: weekly,   professor: "Natalia Ozunu" }

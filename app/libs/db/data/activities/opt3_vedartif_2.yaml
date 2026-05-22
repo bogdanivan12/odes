@@ -1,0 +1,3 @@
+group: VedArtif_2
+activities:
+  - { course: "Concepte si aplicatii in Vederea Artificiala", type: laboratory, duration_slots: 2, frequency: weekly, professor: "Alexandra Diaconu" }

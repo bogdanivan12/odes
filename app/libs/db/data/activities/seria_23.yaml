@@ -1,0 +1,7 @@
+group: Seria 23
+activities:
+  - { course: "Probabilitati si statistica",               type: course, duration_slots: 3, frequency: weekly, professor: "Cristian Niculescu" }
+  - { course: "Algoritmi fundamentali",                    type: course, duration_slots: 2, frequency: weekly, professor: "Ruxandra Marinescu" }
+  - { course: "Sisteme de gestiune a bazelor de date",     type: course, duration_slots: 2, frequency: weekly, professor: "Gabriela Mihai" }
+  - { course: "Programare functionala",                    type: course, duration_slots: 2, frequency: weekly, professor: "Claudia-Elena Chirita" }
+  - { course: "Sisteme de operare",                        type: course, duration_slots: 2, frequency: weekly, professor: "Paul Irofti" }

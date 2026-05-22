@@ -9,7 +9,16 @@ CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
 worker_app = Celery("worker", broker=CELERY_BROKER_URL)
 
 
-@worker_app.task(queue="schedule_generator_queue", name="generate_schedule")
+@worker_app.task(
+    queue="schedule_generator_queue",
+    name="generate_schedule",
+    # Acknowledge only after the task finishes (not when it's picked up).
+    # This keeps the message "unacknowledged" in RabbitMQ throughout the
+    # entire generation so KEDA sees queue_length=1 and never scales the
+    # worker to 0 while a generation is still running.
+    acks_late=True,
+    reject_on_worker_lost=True,
+)
 def generate_schedule(institution_id: str, schedule_id: str, token: str) -> None:
     """Generate schedule"""
     # Replace the user's short-lived token (default 30 min) with a 4-hour

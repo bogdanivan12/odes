@@ -1,0 +1,6 @@
+group: Grupa 231
+activities:
+  - { course: "Algoritmi fundamentali",                type: seminar,    duration_slots: 2, frequency: biweekly, professor: "Bogdan-Ioan Popa" }
+  - { course: "Programare functionala",                type: laboratory, duration_slots: 2, frequency: weekly,   professor: "George-Mihai Radu" }
+  - { course: "Sisteme de operare",                    type: laboratory, duration_slots: 2, frequency: weekly,   professor: "Horatiu Cheval" }
+  - { course: "Probabilitati si statistica",           type: laboratory, duration_slots: 2, frequency: weekly,   professor: "Andreea Grecu" }

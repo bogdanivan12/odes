@@ -1,0 +1,4 @@
+group: Seria 35
+activities:
+  - { course: "Calculabilitate si complexitate", type: course, duration_slots: 2, frequency: weekly, professor: "Mihai Prunescu" }
+  - { course: "Inginerie software",              type: course, duration_slots: 2, frequency: weekly, professor: "Rares Cristea" }
