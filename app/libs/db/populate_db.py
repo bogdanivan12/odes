@@ -22,13 +22,23 @@ def _load(filename: str):
         return yaml.safe_load(f)
 
 
-def insert_admin(institution_id: str) -> str:
-    """Create the institution owner admin account defined in institution.yaml."""
+def insert_admin(institution_id: str, restored_emails: set) -> Optional[str]:
+    """Create the institution owner admin account defined in institution.yaml.
+
+    Skips insertion when the email was already restored from a previous run
+    (to avoid a duplicate-key error on the unique email index).
+    """
     data = _load("institution.yaml")
     admin_data = data["admin"]
+    email = admin_data["email"]
+
+    if email in restored_emails:
+        print(f"Admin '{email}' already restored — skipping insert.")
+        return None
+
     admin = models.User(
         name=admin_data["name"],
-        email=admin_data["email"],
+        email=email,
         user_roles={institution_id: [models.UserRole.ADMIN]},
     )
     users_coll = db.get_collection(models.User.COLLECTION_NAME)
@@ -36,7 +46,7 @@ def insert_admin(institution_id: str) -> str:
         **admin.model_dump(by_alias=True),
         "hashed_password": stringproc.hash_password(admin_data["password"]),
     })
-    print(f"Inserted admin '{admin_data['email']}'.")
+    print(f"Inserted admin '{email}'.")
     return result.inserted_id
 
 
@@ -198,7 +208,8 @@ def insert_activities(
     for filename in sorted(os.listdir(activities_dir)):
         if not filename.endswith(".yaml"):
             continue
-        data = yaml.safe_load(open(os.path.join(activities_dir, filename)))
+        with open(os.path.join(activities_dir, filename)) as f:
+            data = yaml.safe_load(f)
         group_name = data["group"]
         for act in data.get("activities", []):
             professor_name = act.get("professor")
@@ -303,7 +314,8 @@ def populate_db_with_sample_data():
     students = insert_students(institution_id=institution_id, groups=groups)
 
     restore_admins(institution_id=institution_id, admins=admins)
-    insert_admin(institution_id=institution_id)
+    restored_emails = {a["email"] for a in admins}
+    insert_admin(institution_id=institution_id, restored_emails=restored_emails)
     _ensure_indexes()
 
     return institution_id, rooms, professors, groups, courses, activities, students

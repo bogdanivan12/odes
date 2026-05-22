@@ -1,14 +1,15 @@
-# ── RabbitMQ management URL for KEDA ─────────────────────────────────────────
+# ── KEDA RabbitMQ scaler ──────────────────────────────────────────────────────
+# The Secret that holds the RabbitMQ management URL (rabbitmq-keda-secret) is
+# NOT stored here — it contains credentials and must be created separately:
+#
+#   kubectl create secret generic rabbitmq-keda-secret \
+#     --namespace odes \
+#     --from-literal=host='http://<user>:<password>@rabbitmq.odes.svc.cluster.local:15672/'
+#
+# See keda-secret.yaml.example for the full template.
+#
 # HTTP protocol lets KEDA count ready + unacknowledged messages together,
 # so the worker is never scaled to 0 while a generation is still running.
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rabbitmq-keda-secret
-  namespace: odes
-type: Opaque
-stringData:
-  host: "http://guest:guest@rabbitmq.odes.svc.cluster.local:15672/"
 
 ---
 apiVersion: keda.sh/v1alpha1

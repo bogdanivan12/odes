@@ -137,7 +137,9 @@ celerybeat.pid
 # Environments
 .env
 .envrc
+.claude/
 app/infra/k8s/secret.yaml
+app/infra/k8s/keda-secret.yaml
 .venv
 env/
 venv/
