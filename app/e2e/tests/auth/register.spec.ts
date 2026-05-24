@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { apiCall, login } from '../../helpers/api';
 
 test.describe('Register', () => {
   test('shows register form', async ({ page }) => {
@@ -22,12 +23,16 @@ test.describe('Register', () => {
 
   test('registers successfully', async ({ page }) => {
     const uniqueEmail = `e2e-newuser-${Date.now()}@test.odes`;
+    const password = 'NewUser1234!';
     await page.goto('/register');
     await page.getByLabel('Full name').fill('New E2E User');
     await page.getByLabel('Email address').fill(uniqueEmail);
-    await page.locator('input[name="password"]').fill('NewUser1234!');
-    await page.locator('input[name="confirmPassword"]').fill('NewUser1234!');
+    await page.locator('input[name="password"]').fill(password);
+    await page.locator('input[name="confirmPassword"]').fill(password);
     await page.getByRole('button', { name: 'Create account' }).click();
     await expect(page.getByText('Account created successfully!')).toBeVisible({ timeout: 15_000 });
+
+    const token = await login(uniqueEmail, password);
+    await apiCall('DELETE', '/api/v1/users/me', undefined, token);
   });
 });
