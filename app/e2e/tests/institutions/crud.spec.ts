@@ -10,7 +10,7 @@ function loadFixtures(): Record<string, string> {
 
 test.describe('Institutions CRUD', () => {
   test('creates an institution', async ({ adminPage }) => {
-    const uniqueName = `E2E Institution ${Date.now()}`;
+    const uniqueName = 'E2E CRUD Institution';
     await adminPage.goto('/institutions');
     await adminPage.getByRole('button', { name: 'New institution' }).click();
     await adminPage.waitForURL(/\/institutions\/new/, { timeout: 10_000 });

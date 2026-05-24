@@ -60,7 +60,7 @@ async function login(email: string, password: string): Promise<string> {
 // Runs before every setup to remove leftovers from a previous failed run.
 // All errors are swallowed — if nothing exists yet, that's fine.
 
-const TEST_INSTITUTION_NAMES = ['E2E Test University', 'E2E Complex University'];
+const TEST_INSTITUTION_NAMES = ['E2E Test University', 'E2E Complex University', 'E2E CRUD Institution'];
 
 const TEST_USERS: { email: string; password: string }[] = [
   { email: 'e2e-admin@test.odes',        password: 'E2eAdmin1234!'       },
