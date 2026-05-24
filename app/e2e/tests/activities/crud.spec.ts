@@ -40,7 +40,8 @@ test.describe('Activities', () => {
     // Wait for data to load first (Tabs only render when activities.length > 0).
     await expect(adminPage.getByRole('tab', { name: 'By group' })).toBeVisible({ timeout: 30_000 });
 
-    // Group B has a CS laboratory activity — expand it and verify the type label.
+    // Group B has a CS laboratory activity (created in global-setup).
+    // Expand the accordion and verify the type label is visible.
     const groupBSummary = adminPage
       .locator('[class*="MuiAccordionSummary"]')
       .filter({ hasText: 'Group B' })

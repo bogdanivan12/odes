@@ -268,9 +268,15 @@ async function globalSetup(): Promise<void> {
     adminToken, simpleInstitutionId, mathId,
     'course', groupAId, professorId, 2, 'weekly', []
   );
+  // Group A also gets a seminar so the tab content is richer
+  await createActivity(
+    adminToken, simpleInstitutionId, csId,
+    'seminar', groupAId, professorId, 2, 'weekly', []
+  );
+  // Group B gets a laboratory activity so it appears in the "By group" view
   const csLabId = await createActivity(
     adminToken, simpleInstitutionId, csId,
-    'laboratory', groupAId, professorId, 2, 'weekly', ['laborator']
+    'laboratory', groupBId, professorId, 2, 'weekly', ['laborator']
   );
   console.log('[global-setup] Activities created');
 
