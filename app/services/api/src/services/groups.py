@@ -73,7 +73,14 @@ def get_groups(db: Database, current_user_id: str) -> List[models.Group]:
             detail=f"Error retrieving groups: {str(e)}"
         )
 
-    user = models.User(**users_repo.find_user_by_id(db, current_user_id))
+    user_data = users_repo.find_user_by_id(db, current_user_id)
+    if not user_data:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    user = models.User(**user_data)
     groups = [models.Group(**group) for group in groups_data
               if group['institution_id'] in user.user_roles]
     logger.info(f"Fetched {len(groups)} groups")
@@ -357,7 +364,13 @@ def add_student_to_group(
             f"ancestor group(s) of {group_id}."
         )
 
-    return models.User(**users_repo.find_user_by_id(db, user_id))
+    updated_user_data = users_repo.find_user_by_id(db, user_id)
+    if not updated_user_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with id {user_id} not found."
+        )
+    return models.User(**updated_user_data)
 
 
 def remove_student_from_group(

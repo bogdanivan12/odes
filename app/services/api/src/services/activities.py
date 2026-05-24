@@ -31,7 +31,14 @@ def get_activities(db: Database, current_user_id: str) -> List[models.Activity]:
             detail=f"Error retrieving activities: {str(e)}"
         )
 
-    user = models.User(**users_repo.find_user_by_id(db, current_user_id))
+    user_data = users_repo.find_user_by_id(db, current_user_id)
+    if not user_data:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    user = models.User(**user_data)
     activities = [models.Activity(**activity) for activity in activities_data
                   if activity['institution_id'] in user.user_roles]
     logger.info(f"Fetched {len(activities)} activities")

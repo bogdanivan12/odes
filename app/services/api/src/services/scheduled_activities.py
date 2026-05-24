@@ -32,7 +32,14 @@ def get_scheduled_activities(db: Database, current_user_id: str) -> List[models.
             detail=f"Error retrieving scheduled_activities: {str(e)}"
         )
 
-    user = models.User(**users_repo.find_user_by_id(db, current_user_id))
+    user_data = users_repo.find_user_by_id(db, current_user_id)
+    if not user_data:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    user = models.User(**user_data)
 
     # Filter scheduled activities by checking if their schedule's institution is accessible to user
     filtered_scheduled_activities = []
