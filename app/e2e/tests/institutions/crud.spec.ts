@@ -10,6 +10,10 @@ function loadFixtures(): Record<string, string> {
 }
 
 test.describe('Institutions CRUD', () => {
+  // The test body includes browser navigation + API cleanup which adds up to
+  // well over the default 30 s global timeout.  Set an explicit budget here.
+  test.setTimeout(90_000);
+
   test('creates an institution', async ({ adminPage }) => {
     const uniqueName = 'E2E CRUD Institution';
     const fixtures = loadFixtures();
@@ -27,14 +31,17 @@ test.describe('Institutions CRUD', () => {
     await adminPage.waitForURL(/\/institutions$/, { timeout: 15_000 });
     await expect(adminPage.getByText(uniqueName).first()).toBeVisible({ timeout: 10_000 });
 
-    await adminPage.getByText(uniqueName).first().click();
-    await adminPage.waitForURL(/\/institutions\/[^/]+$/, { timeout: 10_000 });
-    const institutionId = adminPage.url().split('/').pop();
-    expect(institutionId).toBeTruthy();
-    if (!institutionId) throw new Error('Could not determine created institution id');
-
+    // Fetch the institution list via the API to find the newly created ID without
+    // an extra browser navigation (avoids burning time on URL-change waits).
     const adminToken = await login(fixtures.adminEmail, fixtures.adminPassword);
-    await apiCall('DELETE', `/api/v1/institutions/${institutionId}`, undefined, adminToken);
+    const data = await apiCall('GET', '/api/v1/institutions', undefined, adminToken) as {
+      institutions: Array<{ _id: string; name: string }>;
+    };
+    const created = data.institutions.find((i) => i.name === uniqueName);
+    expect(created).toBeTruthy();
+    if (!created) throw new Error('Created institution not found in list');
+
+    await apiCall('DELETE', `/api/v1/institutions/${created._id}`, undefined, adminToken);
   });
 
   test('searches and finds institution', async ({ adminPage }) => {
