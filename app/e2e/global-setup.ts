@@ -56,9 +56,12 @@ async function login(email: string, password: string): Promise<string> {
   return data.access_token;
 }
 
+// All API responses are wrapped: POST /users → { user: {...} }, etc.
+// Each helper unwraps the relevant nested object to return the entity id.
+
 async function registerUser(name: string, email: string, password: string): Promise<string> {
-  const data = await apiCall('POST', '/api/v1/users', { name, email, password }) as { id: string };
-  return data.id;
+  const data = await apiCall('POST', '/api/v1/users', { name, email, password }) as { user: { id: string } };
+  return data.user.id;
 }
 
 async function createInstitution(
@@ -85,28 +88,27 @@ async function createInstitution(
       timeslot_duration_minutes: timeslotDurationMinutes,
       start_day: startDay,
     },
-  }, token) as { id: string };
-  return data.id;
+  }, token) as { institution: { id: string } };
+  return data.institution.id;
 }
 
 async function getUserId(token: string): Promise<string> {
-  const data = await apiCall('GET', '/api/v1/users/me', undefined, token) as { id: string };
-  return data.id;
+  const data = await apiCall('GET', '/api/v1/users/me', undefined, token) as { user: { id: string } };
+  return data.user.id;
 }
 
 async function addUserToInstitution(token: string, institutionId: string, userId: string, role: string): Promise<void> {
-  // First add the user to the institution by adding a role
   await apiCall('POST', `/api/v1/institutions/${institutionId}/users/${userId}/roles/${role}`, undefined, token);
 }
 
 async function createCourse(token: string, institutionId: string, name: string): Promise<string> {
-  const data = await apiCall('POST', '/api/v1/courses', { institution_id: institutionId, name }, token) as { id: string };
-  return data.id;
+  const data = await apiCall('POST', '/api/v1/courses', { institution_id: institutionId, name }, token) as { course: { id: string } };
+  return data.course.id;
 }
 
 async function createGroup(token: string, institutionId: string, name: string): Promise<string> {
-  const data = await apiCall('POST', '/api/v1/groups', { institution_id: institutionId, name }, token) as { id: string };
-  return data.id;
+  const data = await apiCall('POST', '/api/v1/groups', { institution_id: institutionId, name }, token) as { group: { id: string } };
+  return data.group.id;
 }
 
 async function addStudentToGroup(token: string, groupId: string, userId: string): Promise<void> {
@@ -119,8 +121,8 @@ async function createRoom(token: string, institutionId: string, name: string, ca
     name,
     capacity,
     features,
-  }, token) as { id: string };
-  return data.id;
+  }, token) as { room: { id: string } };
+  return data.room.id;
 }
 
 async function createActivity(
@@ -143,8 +145,8 @@ async function createActivity(
     duration_slots: durationSlots,
     required_room_features: requiredRoomFeatures,
     frequency,
-  }, token) as { id: string };
-  return data.id;
+  }, token) as { activity: { id: string } };
+  return data.activity.id;
 }
 
 async function globalSetup(): Promise<void> {
