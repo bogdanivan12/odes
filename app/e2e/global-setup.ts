@@ -56,6 +56,57 @@ async function login(email: string, password: string): Promise<string> {
   return data.access_token;
 }
 
+// ── Pre-cleanup ───────────────────────────────────────────────────────────────
+// Runs before every setup to remove leftovers from a previous failed run.
+// All errors are swallowed — if nothing exists yet, that's fine.
+
+const TEST_INSTITUTION_NAMES = ['E2E Test University', 'E2E Complex University'];
+
+const TEST_USERS: { email: string; password: string }[] = [
+  { email: 'e2e-admin@test.odes',        password: 'E2eAdmin1234!'       },
+  { email: 'e2e-prof@test.odes',         password: 'E2eProf1234!'        },
+  { email: 'e2e-student@test.odes',      password: 'E2eStudent1234!'     },
+  { email: 'e2e-prof-alpha@test.odes',   password: 'E2eProfAlpha1234!'   },
+  { email: 'e2e-prof-beta@test.odes',    password: 'E2eProfBeta1234!'    },
+  { email: 'e2e-prof-gamma@test.odes',   password: 'E2eProfGamma1234!'   },
+  { email: 'e2e-student-y1a@test.odes',  password: 'E2eStudentY1a1234!'  },
+  { email: 'e2e-student-y1b@test.odes',  password: 'E2eStudentY1b1234!'  },
+  { email: 'e2e-student-y2a@test.odes',  password: 'E2eStudentY2a1234!'  },
+  { email: 'e2e-student-y3a@test.odes',  password: 'E2eStudentY3a1234!'  },
+];
+
+async function preCleanup(): Promise<void> {
+  console.log('[global-setup] Pre-cleanup: removing any leftover test data...');
+
+  // Delete test institutions (requires admin token — do this first, before
+  // deleting the admin user).
+  try {
+    const adminToken = await login('e2e-admin@test.odes', 'E2eAdmin1234!');
+    const data = await apiCall('GET', '/api/v1/institutions', undefined, adminToken) as {
+      institutions: Array<{ id: string; name: string }>;
+    };
+    for (const inst of data.institutions) {
+      if (TEST_INSTITUTION_NAMES.includes(inst.name)) {
+        try {
+          await apiCall('DELETE', `/api/v1/institutions/${inst.id}`, undefined, adminToken);
+          console.log(`[global-setup] Deleted institution: ${inst.name}`);
+        } catch { /* ignore */ }
+      }
+    }
+  } catch { /* admin doesn't exist yet — nothing to clean up */ }
+
+  // Delete every test user (each must be deleted via their own token).
+  for (const { email, password } of TEST_USERS) {
+    try {
+      const token = await login(email, password);
+      await apiCall('DELETE', '/api/v1/users/me', undefined, token);
+      console.log(`[global-setup] Deleted user: ${email}`);
+    } catch { /* user doesn't exist — nothing to do */ }
+  }
+
+  console.log('[global-setup] Pre-cleanup done.');
+}
+
 // All API responses are wrapped: POST /users → { user: {...} }, etc.
 // Each helper unwraps the relevant nested object to return the entity id.
 
@@ -150,6 +201,7 @@ async function createActivity(
 }
 
 async function globalSetup(): Promise<void> {
+  await preCleanup();
   console.log('[global-setup] Starting fixture creation...');
 
   // ── Register users ──────────────────────────────────────────────────────────
