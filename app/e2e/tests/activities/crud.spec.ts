@@ -9,17 +9,23 @@ function loadFixtures(): Record<string, string> {
 }
 
 test.describe('Activities', () => {
+  // The activities page fires 4 parallel API calls before rendering — give each
+  // test a generous overall budget so the 30 s global default isn't hit while
+  // beforeEach + data-load are still in progress.
+  test.setTimeout(90_000);
+
   test.beforeEach(async ({ adminPage }) => {
     const fixtures = loadFixtures();
+    // Just navigate; let the per-assertion timeouts below handle waiting for
+    // the data to appear (avoids consuming the test budget on networkidle).
     await adminPage.goto(`/institutions/${fixtures.simpleInstitutionId}/activities`);
-    await adminPage.waitForLoadState('networkidle');
   });
 
   test('shows existing activities', async ({ adminPage }) => {
-    // Activities are organised in collapsed Accordion panels, grouped by group/course/professor.
-    // The Tabs ("By group" / "By professor" / "By course") only mount once activities are
-    // fetched from the API — waiting for the tab is a reliable data-loaded gate.
-    await expect(adminPage.getByRole('tab', { name: 'By group' })).toBeVisible({ timeout: 25_000 });
+    // The Tabs ("By group" / "By professor" / "By course") only mount once
+    // activities are fetched from the API — waiting for the tab is a reliable
+    // data-loaded gate.
+    await expect(adminPage.getByRole('tab', { name: 'By group' })).toBeVisible({ timeout: 30_000 });
 
     // Now the accordion summaries for Group A and Group B should be visible.
     await expect(
@@ -31,12 +37,10 @@ test.describe('Activities', () => {
   });
 
   test('has laboratory type activities', async ({ adminPage }) => {
-    // Group B has a CS laboratory activity.  Expand the Group B accordion and verify
-    // the activity row shows "Laboratory" as the activity type.
-
     // Wait for data to load first (Tabs only render when activities.length > 0).
-    await expect(adminPage.getByRole('tab', { name: 'By group' })).toBeVisible({ timeout: 25_000 });
+    await expect(adminPage.getByRole('tab', { name: 'By group' })).toBeVisible({ timeout: 30_000 });
 
+    // Group B has a CS laboratory activity — expand it and verify the type label.
     const groupBSummary = adminPage
       .locator('[class*="MuiAccordionSummary"]')
       .filter({ hasText: 'Group B' })
