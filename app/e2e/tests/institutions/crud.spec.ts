@@ -20,9 +20,10 @@ test.describe('Institutions CRUD', () => {
     await adminPage.getByLabel('Week rotation').fill('2');
     await adminPage.getByRole('button', { name: 'Create institution' }).click();
 
-    // Should redirect to institutions list and show the new institution
+    // Should redirect to institutions list and show the new institution.
+    // Use .first() because the name can also appear in the app-bar institution picker.
     await adminPage.waitForURL(/\/institutions$/, { timeout: 15_000 });
-    await expect(adminPage.getByText(uniqueName)).toBeVisible({ timeout: 10_000 });
+    await expect(adminPage.getByText(uniqueName).first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('searches and finds institution', async ({ adminPage }) => {

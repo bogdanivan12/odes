@@ -45,9 +45,15 @@ test.describe('Groups CRUD', () => {
     await expect(adminPage.getByRole('dialog')).not.toBeVisible({ timeout: 5_000 });
     await expect(adminPage.getByText(deleteName)).toBeVisible({ timeout: 10_000 });
 
-    // Delete it
-    const groupRow = adminPage.locator('li, [role="listitem"], [class*="MuiListItem"]').filter({ hasText: deleteName }).first();
-    await groupRow.getByRole('button', { name: /delete/i }).click();
+    // Group items are plain div rows (not list items or Paper).
+    // Find the innermost div that contains the group name AND has action buttons,
+    // then click the last button (Delete — Open/Edit/Delete order).
+    const groupRow = adminPage
+      .locator('div')
+      .filter({ has: adminPage.getByText(deleteName, { exact: true }) })
+      .filter({ has: adminPage.locator('button') })
+      .last();
+    await groupRow.locator('button').last().click();
 
     await expect(adminPage.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
     await adminPage.getByRole('button', { name: 'Delete' }).click();

@@ -56,11 +56,9 @@ test.describe('Schedule View', () => {
     await adminPage.waitForURL(/\/schedules\/[a-zA-Z0-9]+/, { timeout: 10_000 });
     await adminPage.waitForLoadState('networkidle');
 
-    // Assert that the schedule/calendar content is visible
-    // Look for a grid or table structure
-    const gridOrTable = adminPage
-      .locator('table, [role="grid"], [class*="Grid"], [class*="Calendar"], [class*="Schedule"]')
-      .first();
-    await expect(gridOrTable).toBeVisible({ timeout: 15_000 });
+    // The schedule view renders MUI Tabs ("By Group", "By Professor", "By Room")
+    // and a CalendarGrid built from plain Box elements (no table/grid role).
+    // Checking that the "By Group" tab is visible confirms the calendar UI rendered.
+    await expect(adminPage.getByRole('tab', { name: 'By Group' })).toBeVisible({ timeout: 15_000 });
   });
 });

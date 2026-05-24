@@ -369,6 +369,7 @@ export default function InstitutionSchedules() {
                           <IconButton
                             size="small"
                             color={isActive ? 'primary' : 'default'}
+                            aria-label={isActive ? 'Unset as active' : 'Set as active'}
                             sx={{ borderRadius: 1.5, flexShrink: 0 }}
                             disabled={isToggling}
                             onClick={(e) => { e.stopPropagation(); handleToggleActive(schedule); }}

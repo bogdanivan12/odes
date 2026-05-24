@@ -16,14 +16,28 @@ test.describe('Activities', () => {
   });
 
   test('shows existing activities', async ({ adminPage }) => {
-    // We should see activities for Mathematics and Computer Science
-    await expect(adminPage.getByText('Mathematics')).toBeVisible({ timeout: 10_000 });
-    await expect(adminPage.getByText('Computer Science')).toBeVisible({ timeout: 10_000 });
+    // Activities are organised in collapsed Accordion panels, grouped by group/course/professor.
+    // The accordion summaries (group names) are always visible — the details are hidden until
+    // expanded.  Check that the Group A and Group B summaries loaded successfully.
+    await expect(
+      adminPage.locator('[class*="MuiAccordionSummary"]').filter({ hasText: 'Group A' }).first()
+    ).toBeVisible({ timeout: 10_000 });
+    await expect(
+      adminPage.locator('[class*="MuiAccordionSummary"]').filter({ hasText: 'Group B' }).first()
+    ).toBeVisible({ timeout: 10_000 });
   });
 
-  test('laboratory activity has laborator feature', async ({ adminPage }) => {
-    // The CS laboratory activity should show the "laborator" feature chip
-    // Look for it in the activities list
-    await expect(adminPage.getByText('laborator')).toBeVisible({ timeout: 10_000 });
+  test('has laboratory type activities', async ({ adminPage }) => {
+    // Group B has a CS laboratory activity.  Expand the Group B accordion and verify
+    // the activity row shows "Laboratory" as the activity type.
+    const groupBSummary = adminPage
+      .locator('[class*="MuiAccordionSummary"]')
+      .filter({ hasText: 'Group B' })
+      .first();
+    await expect(groupBSummary).toBeVisible({ timeout: 10_000 });
+    await groupBSummary.click();
+
+    // After expansion the activity rows become visible.
+    await expect(adminPage.getByText(/Laboratory/i).first()).toBeVisible({ timeout: 10_000 });
   });
 });

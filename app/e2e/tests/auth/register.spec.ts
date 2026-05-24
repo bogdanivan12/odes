@@ -14,8 +14,8 @@ test.describe('Register', () => {
     await page.goto('/register');
     await page.getByLabel('Full name').fill('Test User');
     await page.getByLabel('Email address').fill(`test-mismatch-${Date.now()}@example.com`);
-    await page.getByLabel('Password', { exact: true }).fill('Password123!');
-    await page.getByLabel('Confirm password').fill('DifferentPassword123!');
+    await page.locator('input[name="password"]').fill('Password123!');
+    await page.locator('input[name="confirmPassword"]').fill('DifferentPassword123!');
     await page.getByRole('button', { name: 'Create account' }).click();
     await expect(page.getByText('Passwords do not match')).toBeVisible({ timeout: 10_000 });
   });
@@ -25,8 +25,8 @@ test.describe('Register', () => {
     await page.goto('/register');
     await page.getByLabel('Full name').fill('New E2E User');
     await page.getByLabel('Email address').fill(uniqueEmail);
-    await page.getByLabel('Password', { exact: true }).fill('NewUser1234!');
-    await page.getByLabel('Confirm password').fill('NewUser1234!');
+    await page.locator('input[name="password"]').fill('NewUser1234!');
+    await page.locator('input[name="confirmPassword"]').fill('NewUser1234!');
     await page.getByRole('button', { name: 'Create account' }).click();
     await expect(page.getByText('Account created successfully!')).toBeVisible({ timeout: 15_000 });
   });

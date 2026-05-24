@@ -49,9 +49,9 @@ test.describe('Courses CRUD', () => {
     await expect(adminPage.getByRole('dialog')).not.toBeVisible({ timeout: 5_000 });
     await expect(adminPage.getByText(originalName)).toBeVisible({ timeout: 10_000 });
 
-    // Find and click the edit button for this course
-    const courseRow = adminPage.locator('li, [role="listitem"], [class*="MuiListItem"]').filter({ hasText: originalName }).first();
-    await courseRow.getByRole('button', { name: /edit/i }).click();
+    // Find the course card (Paper) and click its first action button (Edit)
+    const courseRow = adminPage.locator('[class*="MuiPaper"]').filter({ hasText: originalName }).first();
+    await courseRow.locator('button').first().click();
 
     // Edit dialog
     await expect(adminPage.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
@@ -76,9 +76,9 @@ test.describe('Courses CRUD', () => {
     await expect(adminPage.getByRole('dialog')).not.toBeVisible({ timeout: 5_000 });
     await expect(adminPage.getByText(deleteName)).toBeVisible({ timeout: 10_000 });
 
-    // Click the delete button
-    const courseRow = adminPage.locator('li, [role="listitem"], [class*="MuiListItem"]').filter({ hasText: deleteName }).first();
-    await courseRow.getByRole('button', { name: /delete/i }).click();
+    // Find the course card (Paper) and click its last action button (Delete)
+    const courseRow = adminPage.locator('[class*="MuiPaper"]').filter({ hasText: deleteName }).first();
+    await courseRow.locator('button').last().click();
 
     // Confirm dialog
     await expect(adminPage.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
