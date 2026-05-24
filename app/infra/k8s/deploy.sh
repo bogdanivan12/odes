@@ -33,10 +33,10 @@ if [ -n "$EXISTING" ]; then
 fi
 
 echo "==> Waiting for rollout..."
-kubectl rollout status deployment/rabbitmq -n odes --timeout=120s
-kubectl rollout status deployment/api      -n odes --timeout=120s
-kubectl rollout status deployment/worker   -n odes --timeout=120s
-kubectl rollout status deployment/ui       -n odes --timeout=120s
+kubectl rollout status statefulset/rabbitmq -n odes --timeout=120s
+kubectl rollout status deployment/api       -n odes --timeout=120s
+kubectl rollout status deployment/worker    -n odes --timeout=120s
+kubectl rollout status deployment/ui        -n odes --timeout=120s
 
 echo ""
 echo "==> Done. Services:"
