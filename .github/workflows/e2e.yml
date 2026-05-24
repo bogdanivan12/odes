@@ -8,8 +8,11 @@ on:
 
 jobs:
   e2e:
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout

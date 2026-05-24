@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 import { test } from '../../fixtures/auth.fixture';
+import { apiCall, login } from '../../helpers/api';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -11,6 +12,7 @@ function loadFixtures(): Record<string, string> {
 test.describe('Institutions CRUD', () => {
   test('creates an institution', async ({ adminPage }) => {
     const uniqueName = 'E2E CRUD Institution';
+    const fixtures = loadFixtures();
     await adminPage.goto('/institutions');
     await adminPage.getByRole('button', { name: 'New institution' }).click();
     await adminPage.waitForURL(/\/institutions\/new/, { timeout: 10_000 });
@@ -24,6 +26,15 @@ test.describe('Institutions CRUD', () => {
     // Use .first() because the name can also appear in the app-bar institution picker.
     await adminPage.waitForURL(/\/institutions$/, { timeout: 15_000 });
     await expect(adminPage.getByText(uniqueName).first()).toBeVisible({ timeout: 10_000 });
+
+    await adminPage.getByText(uniqueName).first().click();
+    await adminPage.waitForURL(/\/institutions\/[^/]+$/, { timeout: 10_000 });
+    const institutionId = adminPage.url().split('/').pop();
+    expect(institutionId).toBeTruthy();
+    if (!institutionId) throw new Error('Could not determine created institution id');
+
+    const adminToken = await login(fixtures.adminEmail, fixtures.adminPassword);
+    await apiCall('DELETE', `/api/v1/institutions/${institutionId}`, undefined, adminToken);
   });
 
   test('searches and finds institution', async ({ adminPage }) => {

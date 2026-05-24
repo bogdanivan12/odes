@@ -301,7 +301,7 @@ export default function InstitutionSchedules() {
                 const isToggling = activeLoading === scheduleId;
                 const isCompleted = schedule.status?.toLowerCase() === 'completed';
                 const isRunning = schedule.status?.toLowerCase() === 'running';
-                const isDraft = schedule.status?.toLowerCase() === 'draft' || schedule.status?.toLowerCase() === 'pending';
+                const isDraft = schedule.status?.toLowerCase() === 'draft';
                 const isFailed = schedule.status?.toLowerCase() === 'failed';
 
                 // Compute progress + remaining time for running schedules.
