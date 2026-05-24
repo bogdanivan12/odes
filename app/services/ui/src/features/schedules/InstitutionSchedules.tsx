@@ -142,7 +142,7 @@ export default function InstitutionSchedules() {
   const hasInProgressSchedule = useMemo(
     () => schedules.some((s) => {
       const st = s.status?.toLowerCase();
-      return st === 'running' || st === 'draft' || st === 'pending';
+      return st === 'running' || st === 'draft';
     }),
     [schedules],
   );
