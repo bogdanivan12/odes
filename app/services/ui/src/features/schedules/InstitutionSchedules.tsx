@@ -134,15 +134,21 @@ export default function InstitutionSchedules() {
     return () => { mounted = false; };
   }, [institutionId]);
 
-  // While at least one schedule is running, tick once per second (for the
-  // progress bar) and poll the schedule list every 5 s (to detect completion).
-  const hasRunningSchedule = useMemo(
-    () => schedules.some((s) => s.status?.toLowerCase() === 'running'),
+  // While at least one schedule is in a transient state (draft → running →
+  // completed/failed), tick once per second (for the progress bar) and poll
+  // the schedule list every 5 s to pick up status transitions.
+  // 'draft' is the initial state before the solver picks up the job, so we
+  // must poll then too — otherwise the UI stays stale until a manual refresh.
+  const hasInProgressSchedule = useMemo(
+    () => schedules.some((s) => {
+      const st = s.status?.toLowerCase();
+      return st === 'running' || st === 'draft';
+    }),
     [schedules],
   );
 
   useEffect(() => {
-    if (!hasRunningSchedule) return;
+    if (!hasInProgressSchedule) return;
     const tick = setInterval(() => setNowMs(Date.now()), 1000);
     const poll = setInterval(() => {
       if (!institutionId) return;
@@ -158,7 +164,7 @@ export default function InstitutionSchedules() {
       }).catch(() => {});
     }, 5000);
     return () => { clearInterval(tick); clearInterval(poll); };
-  }, [hasRunningSchedule, institutionId]);
+  }, [hasInProgressSchedule, institutionId]);
 
   const canManage = useMemo(() => isInstitutionAdmin(currentUser, institutionId), [currentUser, institutionId]);
 
@@ -295,6 +301,7 @@ export default function InstitutionSchedules() {
                 const isToggling = activeLoading === scheduleId;
                 const isCompleted = schedule.status?.toLowerCase() === 'completed';
                 const isRunning = schedule.status?.toLowerCase() === 'running';
+                const isDraft = schedule.status?.toLowerCase() === 'draft';
                 const isFailed = schedule.status?.toLowerCase() === 'failed';
 
                 // Compute progress + remaining time for running schedules.
@@ -369,6 +376,7 @@ export default function InstitutionSchedules() {
                           <IconButton
                             size="small"
                             color={isActive ? 'primary' : 'default'}
+                            aria-label={isActive ? 'Unset as active' : 'Set as active'}
                             sx={{ borderRadius: 1.5, flexShrink: 0 }}
                             disabled={isToggling}
                             onClick={(e) => { e.stopPropagation(); handleToggleActive(schedule); }}
@@ -400,7 +408,7 @@ export default function InstitutionSchedules() {
                     <ChevronRightRoundedIcon sx={{ fontSize: '1.1rem', color: 'text.disabled', flexShrink: 0 }} />
                   </Box>
 
-                  {isRunning && (
+                  {(isRunning || isDraft) && (
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.25 }} onClick={(e) => e.stopPropagation()}>
                       <LinearProgress
                         variant={progressPct === null ? 'indeterminate' : 'determinate'}
@@ -408,8 +416,10 @@ export default function InstitutionSchedules() {
                         sx={{ height: 4, borderRadius: 2 }}
                       />
                       <Typography variant="caption" color="text.secondary">
-                        {remainingLabel ?? 'Generating…'}
-                        {eta && ` · estimated total ${formatDuration(eta.eta_seconds)} (${eta.num_activities} activities)`}
+                        {isDraft
+                          ? 'Queued — waiting for solver…'
+                          : (remainingLabel ?? 'Generating…')}
+                        {isRunning && eta && ` · estimated total ${formatDuration(eta.eta_seconds)} (${eta.num_activities} activities)`}
                       </Typography>
                     </Box>
                   )}

@@ -12,6 +12,19 @@ from app.services.api.src.repositories import (
 logger = get_logger()
 
 
+def _get_user_or_401(db: Database, user_id: str) -> models.User:
+    """Look up a user by ID; raise 401 (not a bare crash) if not found."""
+    user_data = users_repo.find_user_by_id(db, user_id)
+    if user_data is None:
+        logger.error(f"User not found for access check: {user_id}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return models.User(**user_data)
+
+
 def raise_activity_forbidden(
         db: Database,
         current_user_id: str,
@@ -19,7 +32,7 @@ def raise_activity_forbidden(
         admin_only: bool = False
 ) -> None:
     """Raise HTTP 403 if the user does not have access to the activity"""
-    user = models.User(**users_repo.find_user_by_id(db, current_user_id))
+    user = _get_user_or_401(db, current_user_id)
 
     if activity.institution_id not in user.user_roles:
         logger.error(f"User {current_user_id} forbidden from accessing activity {activity.id}")
@@ -45,7 +58,7 @@ def raise_course_forbidden(
         admin_only: bool = False
 ) -> None:
     """Raise HTTP 403 if the user does not have access to the course"""
-    user = models.User(**users_repo.find_user_by_id(db, current_user_id))
+    user = _get_user_or_401(db, current_user_id)
 
     if course.institution_id not in user.user_roles:
         logger.error(f"User {current_user_id} forbidden from accessing course {course.id}")
@@ -70,7 +83,7 @@ def raise_group_forbidden(
         admin_only: bool = False
 ) -> None:
     """Raise HTTP 403 if the user does not have access to the group"""
-    user = models.User(**users_repo.find_user_by_id(db, current_user_id))
+    user = _get_user_or_401(db, current_user_id)
 
     if group.institution_id not in user.user_roles:
         logger.error(f"User {current_user_id} forbidden from accessing group {group.id}")
@@ -95,7 +108,7 @@ def raise_institution_forbidden(
         admin_only: bool = False
 ) -> None:
     """Raise HTTP 403 Forbidden for institution access"""
-    current_user = models.User(**users_repo.find_user_by_id(db, current_user_id))
+    current_user = _get_user_or_401(db, current_user_id)
     if admin_only:
         if models.UserRole.ADMIN not in current_user.user_roles.get(institution_id, []):
             error_message = (
@@ -126,7 +139,7 @@ def raise_room_forbidden(
         admin_only: bool = False
 ) -> None:
     """Raise HTTP 403 if the user does not have access to the room"""
-    user = models.User(**users_repo.find_user_by_id(db, current_user_id))
+    user = _get_user_or_401(db, current_user_id)
 
     if room.institution_id not in user.user_roles:
         logger.error(f"User {current_user_id} forbidden from accessing room {room.id}")
@@ -160,7 +173,7 @@ def raise_scheduled_activity_forbidden(
         )
 
     schedule = models.Schedule(**schedule_data)
-    user = models.User(**users_repo.find_user_by_id(db, current_user_id))
+    user = _get_user_or_401(db, current_user_id)
 
     if schedule.institution_id not in user.user_roles:
         logger.error(f"User {current_user_id} forbidden from accessing"
@@ -188,7 +201,7 @@ def raise_schedule_forbidden(
         admin_only: bool = False
 ) -> None:
     """Raise HTTP 403 if the user does not have access to the schedule"""
-    user = models.User(**users_repo.find_user_by_id(db, current_user_id))
+    user = _get_user_or_401(db, current_user_id)
 
     if schedule.institution_id not in user.user_roles:
         logger.error(f"User {current_user_id} forbidden from accessing schedule {schedule.id}")

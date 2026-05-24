@@ -34,7 +34,14 @@ def get_institutions(db: Database, current_user_id: str) -> List[models.Institut
             detail=f"Error retrieving institutions: {str(e)}"
         )
 
-    current_user = models.User(**users_repo.find_user_by_id(db, current_user_id))
+    current_user_data = users_repo.find_user_by_id(db, current_user_id)
+    if not current_user_data:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    current_user = models.User(**current_user_data)
 
     institutions = [
         models.Institution(**institution)
@@ -95,7 +102,14 @@ def create_institution(
             detail=f"Error creating institution: {str(e)}"
         )
 
-    current_user = models.User(**users_repo.find_user_by_id(db, current_user_id))
+    current_user_data = users_repo.find_user_by_id(db, current_user_id)
+    if not current_user_data:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    current_user = models.User(**current_user_data)
     current_user.user_roles[institution.id] = [models.UserRole.ADMIN]
     try:
         users_repo.update_user_by_id(
@@ -144,9 +158,9 @@ def delete_institution(db: Database, institution_id: str, current_user_id: str) 
         schedules_repo.delete_schedules_by_institution_id(db, institution_id)
 
         for user in institution_users:
-            if "institution_id" not in user["user_roles"]:
+            if institution_id not in user["user_roles"]:
                 continue
-            user["user_roles"].pop("institution_id")
+            user["user_roles"].pop(institution_id)
             update_data = {"user_roles": user["user_roles"]}
             users_repo.update_user_by_id(db, user["_id"], update_data)
     except Exception as e:

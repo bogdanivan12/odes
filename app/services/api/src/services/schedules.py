@@ -116,7 +116,14 @@ def get_schedules(db: Database, current_user_id: str) -> List[models.Schedule]:
             detail=f"Error retrieving schedules: {str(e)}"
         )
 
-    user = models.User(**users_repo.find_user_by_id(db, current_user_id))
+    user_data = users_repo.find_user_by_id(db, current_user_id)
+    if not user_data:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    user = models.User(**user_data)
     schedules = [models.Schedule(**schedule) for schedule in schedules_data
                  if schedule['institution_id'] in user.user_roles]
     logger.info(f"Fetched {len(schedules)} schedules")

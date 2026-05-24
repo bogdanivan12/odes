@@ -1,0 +1,99 @@
+name: E2E Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  e2e:
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Create .env file
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        run: |
+          # Use printf so there is no leading whitespace on any line.
+          # A heredoc inside a YAML run block inherits the YAML indentation,
+          # which causes Docker's env_file parser to treat the spaces as part
+          # of the key name — breaking every env var lookup in the API.
+          printf 'MONGODB_URI=%s\n' "${MONGODB_URI}"          > app/.env
+          printf 'DB_NAME=odes_e2e\n'                        >> app/.env
+          printf 'CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672/\n' >> app/.env
+          printf 'API_URL=http://api:8080\n'                 >> app/.env
+          printf 'SECRET_KEY=%s\n' "${SECRET_KEY}"           >> app/.env
+          printf 'DEFAULT_ALGORITHM=HS256\n'                 >> app/.env
+          printf 'EXPIRES_DELTA=30\n'                        >> app/.env
+          printf 'REFRESH_EXPIRES_DELTA=10080\n'             >> app/.env
+
+      - name: Start services
+        run: |
+          docker compose \
+            -f app/infra/compose/compose.yaml \
+            -f app/infra/compose/compose.ci.yml \
+            up -d --build
+
+      - name: Wait for API to be healthy
+        run: |
+          # --retry-all-errors retries on ANY curl error (including exit 56
+          # "connection reset"), not just connection refused (exit 7).
+          # This handles the window where the API container is starting up
+          # or still connecting to MongoDB Atlas.
+          curl --retry 40 --retry-delay 5 \
+            --retry-all-errors \
+            --max-time 10 \
+            --silent --show-error \
+            http://localhost:8080/docs
+
+      - name: Wait for UI to be healthy
+        run: |
+          curl --retry 20 --retry-delay 3 \
+            --retry-all-errors \
+            --max-time 10 \
+            --silent --show-error \
+            http://localhost
+
+      - name: Install E2E dependencies
+        working-directory: app/e2e
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: app/e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        working-directory: app/e2e
+        run: npx playwright test
+
+      - name: Dump container logs on failure
+        if: failure()
+        run: |
+          echo "=== API logs ===" && \
+            docker compose -f app/infra/compose/compose.yaml logs api --tail 100
+          echo "=== Worker logs ===" && \
+            docker compose -f app/infra/compose/compose.yaml logs worker --tail 50
+          echo "=== RabbitMQ logs ===" && \
+            docker compose -f app/infra/compose/compose.yaml logs rabbitmq --tail 30
+
+      - name: Upload test report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: app/e2e/playwright-report/
+          retention-days: 30

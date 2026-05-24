@@ -30,7 +30,14 @@ def get_courses(db: Database, current_user_id: str) -> List[models.Course]:
             detail=f"Error retrieving courses: {str(e)}"
         )
 
-    user = models.User(**users_repo.find_user_by_id(db, current_user_id))
+    user_data = users_repo.find_user_by_id(db, current_user_id)
+    if not user_data:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    user = models.User(**user_data)
     courses = [models.Course(**course) for course in courses_data
                if course['institution_id'] in user.user_roles]
     logger.info(f"Fetched {len(courses)} courses")
