@@ -9,9 +9,51 @@ interface Fixtures {
   studentPage: Page;
 }
 
-function loadFixtures(): Record<string, string> {
+interface AuthFixturesData {
+  adminEmail: string;
+  adminPassword: string;
+  professorEmail: string;
+  professorPassword: string;
+  studentEmail: string;
+  studentPassword: string;
+  [key: string]: unknown;
+}
+
+function loadFixtures(): AuthFixturesData {
   const fixturesPath = path.join(__dirname, '..', '.fixtures.json');
-  return JSON.parse(fs.readFileSync(fixturesPath, 'utf-8'));
+  const rawData: unknown = JSON.parse(fs.readFileSync(fixturesPath, 'utf-8'));
+
+  if (!rawData || typeof rawData !== 'object') {
+    throw new Error('Invalid fixtures format: expected an object');
+  }
+
+  const fixtures = rawData as Partial<AuthFixturesData>;
+  const requiredFields: Array<
+    keyof Pick<
+      AuthFixturesData,
+      | 'adminEmail'
+      | 'adminPassword'
+      | 'professorEmail'
+      | 'professorPassword'
+      | 'studentEmail'
+      | 'studentPassword'
+    >
+  > = [
+    'adminEmail',
+    'adminPassword',
+    'professorEmail',
+    'professorPassword',
+    'studentEmail',
+    'studentPassword',
+  ];
+
+  for (const field of requiredFields) {
+    if (typeof fixtures[field] !== 'string') {
+      throw new Error(`Invalid fixtures format: expected "${field}" to be a string`);
+    }
+  }
+
+  return fixtures as AuthFixturesData;
 }
 
 async function loginAndInjectToken(page: Page, email: string, password: string): Promise<Page> {
