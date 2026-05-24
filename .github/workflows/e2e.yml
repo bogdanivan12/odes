@@ -25,18 +25,18 @@ jobs:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
         run: |
-          # Use a dedicated e2e database so tests never touch production data.
-          # RabbitMQ runs inside compose — use the default guest credentials.
-          cat > app/.env << EOF
-          MONGODB_URI=${MONGODB_URI}
-          DB_NAME=odes_e2e
-          CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672/
-          API_URL=http://api:8080
-          SECRET_KEY=${SECRET_KEY}
-          DEFAULT_ALGORITHM=HS256
-          EXPIRES_DELTA=30
-          REFRESH_EXPIRES_DELTA=10080
-          EOF
+          # Use printf so there is no leading whitespace on any line.
+          # A heredoc inside a YAML run block inherits the YAML indentation,
+          # which causes Docker's env_file parser to treat the spaces as part
+          # of the key name — breaking every env var lookup in the API.
+          printf 'MONGODB_URI=%s\n' "${MONGODB_URI}"          > app/.env
+          printf 'DB_NAME=odes_e2e\n'                        >> app/.env
+          printf 'CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672/\n' >> app/.env
+          printf 'API_URL=http://api:8080\n'                 >> app/.env
+          printf 'SECRET_KEY=%s\n' "${SECRET_KEY}"           >> app/.env
+          printf 'DEFAULT_ALGORITHM=HS256\n'                 >> app/.env
+          printf 'EXPIRES_DELTA=30\n'                        >> app/.env
+          printf 'REFRESH_EXPIRES_DELTA=10080\n'             >> app/.env
 
       - name: Start services
         run: |

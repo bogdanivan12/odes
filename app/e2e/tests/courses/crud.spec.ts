@@ -13,9 +13,7 @@ test.describe('Courses CRUD', () => {
 
   test.beforeEach(async ({ adminPage }) => {
     const fixtures = loadFixtures();
-    await adminPage.goto(`/institutions/${fixtures.simpleInstitutionId}`);
-    await adminPage.waitForLoadState('networkidle');
-    await adminPage.getByRole('tab', { name: 'Courses' }).click();
+    await adminPage.goto(`/institutions/${fixtures.simpleInstitutionId}/courses`);
     await adminPage.waitForLoadState('networkidle');
   });
 

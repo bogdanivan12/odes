@@ -11,11 +11,7 @@ function loadFixtures(): Record<string, string> {
 test.describe('Institution Members', () => {
   test.beforeEach(async ({ adminPage }) => {
     const fixtures = loadFixtures();
-    await adminPage.goto(`/institutions/${fixtures.simpleInstitutionId}`);
-    await adminPage.waitForLoadState('networkidle');
-
-    // Navigate to the Members tab
-    await adminPage.getByRole('tab', { name: 'Members' }).click();
+    await adminPage.goto(`/institutions/${fixtures.simpleInstitutionId}/members`);
     await adminPage.waitForLoadState('networkidle');
   });
 

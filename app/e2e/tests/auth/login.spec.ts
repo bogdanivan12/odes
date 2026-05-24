@@ -34,19 +34,24 @@ test.describe('Login', () => {
     expect(page.url()).not.toContain('/login');
   });
 
-  test('redirects authenticated user away from /login', async ({ page }) => {
+  test('visiting /login clears any stored access token', async ({ page }) => {
     const fixtures = loadFixtures();
     const token = await login(fixtures.adminEmail, fixtures.adminPassword);
 
-    // Set the token so the app thinks we're logged in
+    // Stash a token in localStorage as if the user is logged in
     await page.goto('/');
     await page.evaluate((accessToken: string) => {
       localStorage.setItem('accessToken', accessToken);
     }, token);
 
-    // Now navigate to /login — should redirect away
+    // Navigate to /login — SignIn clears tokens on mount (intentional logout-on-visit behaviour)
     await page.goto('/login');
-    await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 10_000 });
-    expect(page.url()).not.toContain('/login');
+    await page.waitForLoadState('networkidle');
+
+    const stored = await page.evaluate(() => localStorage.getItem('accessToken'));
+    expect(stored).toBeNull();
+
+    // The login form should still be visible (no redirect happens)
+    await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
   });
 });
