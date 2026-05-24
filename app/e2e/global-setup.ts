@@ -266,7 +266,7 @@ async function globalSetup(): Promise<void> {
   console.log('[global-setup] Creating activities...');
   const mathLectureId = await createActivity(
     adminToken, simpleInstitutionId, mathId,
-    'lecture', groupAId, professorId, 2, 'weekly', []
+    'course', groupAId, professorId, 2, 'weekly', []
   );
   const csLabId = await createActivity(
     adminToken, simpleInstitutionId, csId,
@@ -354,42 +354,42 @@ async function globalSetup(): Promise<void> {
   console.log('[global-setup] Creating complex activities...');
 
   // Year 1 - Mathematics I
-  await createActivity(adminToken, complexInstitutionId, cMathIId, 'lecture', year1aId, profAlphaId, 2, 'weekly', []);
-  await createActivity(adminToken, complexInstitutionId, cMathIId, 'lecture', year1bId, profAlphaId, 2, 'weekly', []);
+  await createActivity(adminToken, complexInstitutionId, cMathIId, 'course', year1aId, profAlphaId, 2, 'weekly', []);
+  await createActivity(adminToken, complexInstitutionId, cMathIId, 'course', year1bId, profAlphaId, 2, 'weekly', []);
   await createActivity(adminToken, complexInstitutionId, cMathIId, 'seminar', year1aId, profAlphaId, 2, 'biweekly', []);
   await createActivity(adminToken, complexInstitutionId, cMathIId, 'seminar', year1bId, profAlphaId, 2, 'biweekly', []);
 
   // Year 1 - Physics I
-  await createActivity(adminToken, complexInstitutionId, cPhysicsIId, 'lecture', year1aId, profBetaId, 2, 'weekly', []);
-  await createActivity(adminToken, complexInstitutionId, cPhysicsIId, 'lecture', year1bId, profBetaId, 2, 'weekly', []);
+  await createActivity(adminToken, complexInstitutionId, cPhysicsIId, 'course', year1aId, profBetaId, 2, 'weekly', []);
+  await createActivity(adminToken, complexInstitutionId, cPhysicsIId, 'course', year1bId, profBetaId, 2, 'weekly', []);
   await createActivity(adminToken, complexInstitutionId, cPhysicsIId, 'laboratory', year1aId, profBetaId, 2, 'biweekly', ['laborator']);
   await createActivity(adminToken, complexInstitutionId, cPhysicsIId, 'laboratory', year1bId, profBetaId, 2, 'biweekly', ['laborator']);
 
   // Year 1 - Programming I
-  await createActivity(adminToken, complexInstitutionId, cProgIId, 'lecture', year1aId, profGammaId, 2, 'weekly', []);
-  await createActivity(adminToken, complexInstitutionId, cProgIId, 'lecture', year1bId, profGammaId, 2, 'weekly', []);
+  await createActivity(adminToken, complexInstitutionId, cProgIId, 'course', year1aId, profGammaId, 2, 'weekly', []);
+  await createActivity(adminToken, complexInstitutionId, cProgIId, 'course', year1bId, profGammaId, 2, 'weekly', []);
   await createActivity(adminToken, complexInstitutionId, cProgIId, 'laboratory', year1aId, profGammaId, 2, 'weekly', ['laborator']);
   await createActivity(adminToken, complexInstitutionId, cProgIId, 'laboratory', year1bId, profGammaId, 2, 'weekly', ['laborator']);
 
   // Year 2 - Mathematics II
-  await createActivity(adminToken, complexInstitutionId, cMathIIId, 'lecture', year2aId, profAlphaId, 2, 'weekly', []);
-  await createActivity(adminToken, complexInstitutionId, cMathIIId, 'lecture', year2bId, profAlphaId, 2, 'weekly', []);
+  await createActivity(adminToken, complexInstitutionId, cMathIIId, 'course', year2aId, profAlphaId, 2, 'weekly', []);
+  await createActivity(adminToken, complexInstitutionId, cMathIIId, 'course', year2bId, profAlphaId, 2, 'weekly', []);
 
   // Year 2 - Algorithms
-  await createActivity(adminToken, complexInstitutionId, cAlgoId, 'lecture', year2aId, profGammaId, 2, 'weekly', []);
-  await createActivity(adminToken, complexInstitutionId, cAlgoId, 'lecture', year2bId, profGammaId, 2, 'weekly', []);
+  await createActivity(adminToken, complexInstitutionId, cAlgoId, 'course', year2aId, profGammaId, 2, 'weekly', []);
+  await createActivity(adminToken, complexInstitutionId, cAlgoId, 'course', year2bId, profGammaId, 2, 'weekly', []);
   await createActivity(adminToken, complexInstitutionId, cAlgoId, 'seminar', year2aId, profGammaId, 2, 'biweekly', []);
   await createActivity(adminToken, complexInstitutionId, cAlgoId, 'seminar', year2bId, profGammaId, 2, 'biweekly', []);
 
   // Year 2 - Databases
-  await createActivity(adminToken, complexInstitutionId, cDbId, 'lecture', year2aId, profBetaId, 2, 'weekly', []);
-  await createActivity(adminToken, complexInstitutionId, cDbId, 'lecture', year2bId, profBetaId, 2, 'weekly', []);
+  await createActivity(adminToken, complexInstitutionId, cDbId, 'course', year2aId, profBetaId, 2, 'weekly', []);
+  await createActivity(adminToken, complexInstitutionId, cDbId, 'course', year2bId, profBetaId, 2, 'weekly', []);
   await createActivity(adminToken, complexInstitutionId, cDbId, 'laboratory', year2aId, profBetaId, 2, 'weekly', ['laborator']);
   await createActivity(adminToken, complexInstitutionId, cDbId, 'laboratory', year2bId, profBetaId, 2, 'weekly', ['laborator']);
 
   // Year 3 - Software Engineering
-  await createActivity(adminToken, complexInstitutionId, cSEId, 'lecture', year3aId, profAlphaId, 2, 'weekly', []);
-  await createActivity(adminToken, complexInstitutionId, cSEId, 'lecture', year3bId, profAlphaId, 2, 'weekly', []);
+  await createActivity(adminToken, complexInstitutionId, cSEId, 'course', year3aId, profAlphaId, 2, 'weekly', []);
+  await createActivity(adminToken, complexInstitutionId, cSEId, 'course', year3bId, profAlphaId, 2, 'weekly', []);
   await createActivity(adminToken, complexInstitutionId, cSEId, 'seminar', year3aId, profGammaId, 2, 'biweekly', []);
   await createActivity(adminToken, complexInstitutionId, cSEId, 'seminar', year3bId, profGammaId, 2, 'biweekly', []);
 
