@@ -209,6 +209,11 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
+### Playwright E2E
+app/e2e/.fixtures.json
+app/e2e/playwright-report/
+app/e2e/test-results/
+
 ### React
 # Logs
 logs
