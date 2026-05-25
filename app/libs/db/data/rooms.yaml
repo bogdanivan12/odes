@@ -1,4 +1,11 @@
 rooms:
+  # ── Robotica ─────────────────────────────────────────────────────────────────
+  - { name: "L.315 Robotica", capacity: 30, features: [laborator, robotica] }
+
+  # ── Magurele (Facultatea de Fizica) ─────────────────────────────────────────
+  - { name: "Fac.Fizica-Magurele", capacity: 150, features: [magurele] }
+  - { name: "Magurele lab",        capacity: 30,  features: [laborator, magurele] }
+
   # ── Floor 0 ────────────────────────────────────────────────────────────────
   - { name: "0(Haret)",    capacity: 130 }
   - { name: "001",  capacity: 30 }
@@ -12,6 +19,8 @@ rooms:
   # ── Floor 1 ────────────────────────────────────────────────────────────────
   - { name: "1(Stoilow)",  capacity: 130 }
   - { name: "101",  capacity: 30, features: [laborator] }
+  - { name: "119",  capacity: 30, features: [laborator] }
+  - { name: "121D", capacity: 30, features: [laborator] }
   - { name: "102",  capacity: 30, features: [laborator] }
   - { name: "103",  capacity: 30, features: [laborator] }
   - { name: "104",  capacity: 30, features: [laborator] }
@@ -41,6 +50,7 @@ rooms:
   - { name: "305",  capacity: 30, features: [laborator] }
   - { name: "307",  capacity: 30, features: [laborator] }
   - { name: "308",  capacity: 30, features: [laborator] }
+  - { name: "309",  capacity: 30, features: [laborator] }
   - { name: "310",  capacity: 30, features: [laborator] }
   - { name: "321",  capacity: 30, features: [laborator] }
   - { name: "322",  capacity: 30, features: [laborator] }

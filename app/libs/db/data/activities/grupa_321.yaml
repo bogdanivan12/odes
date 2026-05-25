@@ -2,6 +2,6 @@ group: Grupa 321
 activities:
   - { course: "Analiza numerica si metode numerice I",          type: laboratory, duration_slots: 2, frequency: weekly,   professor: "Raisa Pascan" }
   - { course: "Ecuatii cu derivate partiale I",                 type: seminar,    duration_slots: 2, frequency: weekly,   professor: "Cristian-Mihai Cazacu" }
-  - { course: "Modelarea matematica a sistemelor materiale II", type: seminar,    duration_slots: 2, frequency: biweekly, professor: "Raisa Pascan" }
+  - { course: "Modelarea matematica a sistemelor materiale II", type: seminar,    duration_slots: 2, frequency: biweekly,  professor: "Raisa Pascan" }
   - { course: "Modelarea matematica a sistemelor materiale II", type: laboratory, duration_slots: 2, frequency: biweekly, professor: "Raisa Pascan" }
   - { course: "Statistica",                                     type: laboratory, duration_slots: 2, frequency: weekly,   professor: "Simona Cojocea" }

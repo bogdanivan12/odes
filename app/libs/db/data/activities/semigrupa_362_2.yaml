@@ -1,0 +1,3 @@
+group: Semigrupa 362_2
+activities:
+  - { course: "Introducere in robotica", type: laboratory, duration_slots: 3, frequency: weekly, professor: "Radu-Gabriel Buzas", required_room_features: [robotica] }

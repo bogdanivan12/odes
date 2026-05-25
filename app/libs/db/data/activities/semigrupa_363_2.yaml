@@ -1,0 +1,3 @@
+group: Semigrupa 363_2
+activities:
+  - { course: "Introducere in robotica", type: laboratory, duration_slots: 3, frequency: weekly, professor: "Radu-Ioan Nedelcu", required_room_features: [robotica] }

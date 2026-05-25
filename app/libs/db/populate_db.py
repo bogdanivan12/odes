@@ -225,6 +225,13 @@ def insert_activities(
             required_features = act.get("required_room_features", [])
             if activity_type == models.ActivityType.LABORATORY and "laborator" not in required_features:
                 required_features = list(required_features) + ["laborator"]
+            sel_ts_data = act.get("selected_timeslot")
+            selected_timeslot = None
+            if sel_ts_data is not None:
+                selected_timeslot = models.SelectedTimeslot(
+                    start_timeslot=sel_ts_data["start"],
+                    active_weeks=sel_ts_data["weeks"],
+                )
             all_activities.append(models.Activity(
                 institution_id=institution_id,
                 course_id=courses[act["course"]],
@@ -234,6 +241,7 @@ def insert_activities(
                 group_id=groups[group_name],
                 professor_id=profs.get(professor_name) if professor_name else None,
                 required_room_features=required_features,
+                selected_timeslot=selected_timeslot,
             ))
 
     collection = db.get_collection(models.Activity.COLLECTION_NAME)

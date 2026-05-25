@@ -1,0 +1,8 @@
+group: Seria 26
+activities:
+  - { course: "Structuri de date si algoritmi",          type: course, duration_slots: 2, frequency: weekly, professor: "Radu-Stefan Mincu" }
+  - { course: "Fundamente ale retelelor de calculatoare", type: course, duration_slots: 2, frequency: weekly, professor: "Mihaita Dragan" }
+  - { course: "Programare orientata pe obiecte I",       type: course, duration_slots: 2, frequency: weekly, professor: "Anca-Madalina Dobrovat" }
+  - { course: "Baze de date",                            type: course, duration_slots: 2, frequency: weekly, professor: "Silviu-Laurentiu Vasile" }
+  - { course: "Elemente de electronica analogica", type: course, duration_slots: 2, frequency: weekly, professor: "Adrian Radu",  required_room_features: [magurele], selected_timeslot: { start: 40, weeks: [0, 1] } }
+  - { course: "Teoria sistemelor",                 type: course, duration_slots: 2, frequency: weekly, professor: "Mihai Dinca", required_room_features: [magurele], selected_timeslot: { start: 42, weeks: [0, 1] } }

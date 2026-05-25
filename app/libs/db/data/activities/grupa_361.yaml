@@ -1,0 +1,8 @@
+group: Grupa 361
+activities:
+  - { course: "Compilatoare",                    type: laboratory, duration_slots: 2, frequency: weekly,       professor: "Gianina Georgescu" }
+  - { course: "Sisteme avansate de baze de date", type: laboratory, duration_slots: 2, frequency: weekly,       professor: "Marius Micluta-Campeanu" }
+  - { course: "Inteligenta Artificiala",          type: laboratory, duration_slots: 2, frequency: weekly,       professor: "Irina Ciocan" }
+  - { course: "Sisteme de operare",              type: laboratory, duration_slots: 2, frequency: weekly,       professor: "Dumitru-Daniel Dragulici" }
+  - { course: "Sisteme avansate de baze de date", type: seminar,    duration_slots: 2, frequency: biweekly, professor: "Radu Bobe" }
+  - { course: "Procesarea semnalelor",            type: laboratory, duration_slots: 2, frequency: weekly,       professor: "Rebeca Oprea" }
