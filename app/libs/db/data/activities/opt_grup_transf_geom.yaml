@@ -1,0 +1,4 @@
+group: Grupuri de transformari in geometrie
+activities:
+  - { course: "Grupuri de transformari in geometrie I", type: course,  duration_slots: 2, frequency: weekly, professor: "Miron-Ion Stanciu" }
+  - { course: "Grupuri de transformari in geometrie I", type: seminar, duration_slots: 2, frequency: weekly, professor: "Miron-Ion Stanciu" }

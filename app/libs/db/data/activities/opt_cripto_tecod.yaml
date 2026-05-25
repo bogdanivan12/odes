@@ -1,0 +1,4 @@
+group: Criptografie si teoria codurilor
+activities:
+  - { course: "Criptografie si teoria codurilor", type: course,  duration_slots: 2, frequency: weekly, professor: "Catalin Gherghe" }
+  - { course: "Criptografie si teoria codurilor", type: seminar, duration_slots: 2, frequency: weekly, professor: "Catalin Gherghe" }

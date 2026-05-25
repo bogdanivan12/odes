@@ -1,0 +1,3 @@
+group: IA_1
+activities:
+  - { course: "Inteligenta Artificiala", type: laboratory, duration_slots: 2, frequency: weekly, professor: "Ana-Sabina Uban" }

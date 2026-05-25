@@ -148,7 +148,15 @@ def insert_courses(institution_id: str) -> Dict[str, str]:
     return result_dict
 
 
-_OPTIONAL_GROUP_NAMES = {"Optionale Anul 2 INFO", "Optionale Anul 3 INFO"}
+_OPTIONAL_GROUP_NAMES = {
+    "Optionale Anul 2 INFO",
+    "Optionale Anul 3 INFO",
+    "Optionale Comune An 2 MATE",
+    "Optionale Anul 2 MATE-INFO",
+    "Optionale Anul 2 MATE APLICATE",
+    "Optionale Anul 3 MATE",
+    "Optionale Anul 3 MATE APLICATE",
+}
 
 
 def insert_students(institution_id: str, groups: Dict[str, str]) -> List[str]:

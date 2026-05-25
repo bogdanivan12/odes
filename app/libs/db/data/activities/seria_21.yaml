@@ -1,0 +1,3 @@
+group: Seria 21 (MATE-INFO)
+activities:
+  - { course: "Programare orientata pe obiecte", type: course, duration_slots: 2, frequency: weekly, professor: "Anca-Madalina Dobrovat" }

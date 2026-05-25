@@ -1,6 +1,6 @@
 rooms:
   # ── Floor 0 ────────────────────────────────────────────────────────────────
-  - { name: "0 (Amf. Haret)",    capacity: 130 }
+  - { name: "0(Haret)",    capacity: 130 }
   - { name: "001",  capacity: 30 }
   - { name: "003",  capacity: 30 }
   - { name: "005",  capacity: 30 }
@@ -10,7 +10,7 @@ rooms:
   - { name: "012",  capacity: 30 }
 
   # ── Floor 1 ────────────────────────────────────────────────────────────────
-  - { name: "1 (Amf. Stoilow)",  capacity: 130 }
+  - { name: "1(Stoilow)",  capacity: 130 }
   - { name: "101",  capacity: 30, features: [laborator] }
   - { name: "102",  capacity: 30, features: [laborator] }
   - { name: "103",  capacity: 30, features: [laborator] }
@@ -20,7 +20,7 @@ rooms:
   - { name: "122",  capacity: 30 }
 
   # ── Floor 2 ────────────────────────────────────────────────────────────────
-  - { name: "2 (Amf. Pompeiu)",  capacity: 130 }
+  - { name: "2(Pompeiu)",  capacity: 130 }
   - { name: "201",  capacity: 30, features: [laborator] }
   - { name: "202",  capacity: 30, features: [laborator] }
   - { name: "204",  capacity: 30, features: [laborator] }
@@ -35,7 +35,7 @@ rooms:
   - { name: "221C", capacity: 30, features: [laborator] }
 
   # ── Floor 3 ────────────────────────────────────────────────────────────────
-  - { name: "3 (Amf. Titeica)",  capacity: 130 }
+  - { name: "3(Titeica)",  capacity: 130 }
   - { name: "302",  capacity: 30, features: [laborator] }
   - { name: "303",  capacity: 30, features: [laborator] }
   - { name: "305",  capacity: 30, features: [laborator] }

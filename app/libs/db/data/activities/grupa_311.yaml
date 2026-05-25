@@ -1,0 +1,6 @@
+group: Grupa 311
+activities:
+  - { course: "Cercetari operationale",            type: seminar,    duration_slots: 2, frequency: weekly, professor: "Cristian Niculescu" }
+  - { course: "Ecuatii cu derivate partiale I",    type: seminar,    duration_slots: 2, frequency: weekly, professor: "Cristian-Mihai Cazacu" }
+  - { course: "Analiza numerica si metode numerice I", type: laboratory, duration_slots: 2, frequency: weekly, professor: "Raisa Pascan" }
+  - { course: "Statistica",                        type: laboratory, duration_slots: 2, frequency: weekly, professor: "Simona Cojocea" }

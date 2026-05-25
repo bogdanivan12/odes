@@ -1,0 +1,7 @@
+group: Grupa 101
+activities:
+  - { course: "Algebra liniara",        type: seminar,    duration_slots: 3, frequency: weekly, professor: "Miron-Ion Stanciu" }
+  - { course: "Geometrie I",            type: seminar,    duration_slots: 2, frequency: weekly, professor: "Victor Vuletescu" }
+  - { course: "Algebra I",              type: seminar,    duration_slots: 2, frequency: weekly, professor: "Miron-Ion Stanciu" }
+  - { course: "Programare procedurala", type: laboratory, duration_slots: 2, frequency: weekly, professor: "Vlad Furdui" }
+  - { course: "Analiza matematica I",   type: seminar,    duration_slots: 3, frequency: weekly, professor: "Liliana Mitre" }

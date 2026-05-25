@@ -1,0 +1,4 @@
+group: Grupuri Finite si Elemente de Teorie Galois
+activities:
+  - { course: "Grupuri Finite si Elemente de Teorie Galois I", type: course,  duration_slots: 2, frequency: weekly, professor: "Dragos Stefan" }
+  - { course: "Grupuri Finite si Elemente de Teorie Galois I", type: seminar, duration_slots: 2, frequency: weekly, professor: "Dragos Stefan" }

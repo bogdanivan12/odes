@@ -118,21 +118,48 @@
 
         - name: MATE Anul 2
           children:
+            - name: Optionale Comune An 2 MATE
+              children:
+                - name: Inteligenta Artificiala
+                  children: [IA_1, IA_2]
             - name: Seria 20 (MATE)
               children: [Grupa 201]
             - name: Seria 21 (MATE-INFO)
-              children: [Grupa 211, Grupa 212]
+              children:
+                - name: Optionale Anul 2 MATE-INFO
+                  children:
+                    - name: Arhitectura sistemelor de calcul
+                    - name: Sisteme de operare
+                - name: Grupa 211
+                - name: Grupa 212
             - name: Seria 22 (MATE APLICATE)
-              children: [Grupa 221]
+              children:
+                - name: Optionale Anul 2 MATE APLICATE
+                  children:
+                    - name: Software matematic
+                - name: Grupa 221
 
         - name: MATE Anul 3
           children:
+            - name: Optionale Anul 3 MATE
+              children:
+                - name: Elemente de analiza clasica
+                - name: Criptografie si teoria codurilor
+                - name: Grupuri Finite si Elemente de Teorie Galois
+                - name: Grupuri de transformari in geometrie
             - name: Seria 30 (MATE)
-              children: [Grupa 301]
+              children:
+                - name: Grupa 301
             - name: Seria 31 (MATE-INFO)
-              children: [Grupa 311]
+              children:
+                - name: Grupa 311
             - name: Seria 32 (MATE APLICATE)
-              children: [Grupa 321]
+              children:
+                - name: Optionale Anul 3 MATE APLICATE
+                  children:
+                    - name: Modele markoviene si aplicatii in simulare
+                    - name: Modele si metode in cercetarea operationala
+                - name: Grupa 321
 
     - name: CTI
       children:

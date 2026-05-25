@@ -1,0 +1,3 @@
+group: Seria 20 (MATE)
+activities:
+  - { course: "Teoria numerelor", type: course, duration_slots: 2, frequency: weekly, professor: "Gabriel Mincu" }

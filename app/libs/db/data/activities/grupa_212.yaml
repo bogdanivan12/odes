@@ -1,0 +1,8 @@
+group: Grupa 212
+activities:
+  - { course: "Programare orientata pe obiecte",  type: seminar,    duration_slots: 2, frequency: biweekly, professor: "Eduard Szmeteanca" }
+  - { course: "Programare orientata pe obiecte",  type: laboratory, duration_slots: 2, frequency: weekly, professor: "Eduard Szmeteanca" }
+  - { course: "Algebra III",                      type: seminar,    duration_slots: 2, frequency: weekly, professor: "Mihai Epure" }
+  - { course: "Teoria masurarii si a integrarii", type: seminar,    duration_slots: 2, frequency: weekly, professor: "Radu-Bogdan Munteanu" }
+  - { course: "Geometrie diferentiala I",         type: seminar,    duration_slots: 2, frequency: weekly, professor: "Valentin Ghisoiu" }
+  - { course: "Ecuatii diferentiale",             type: seminar,    duration_slots: 2, frequency: weekly, professor: "Aurelian Cernea" }
