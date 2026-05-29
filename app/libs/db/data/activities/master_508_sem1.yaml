@@ -1,0 +1,5 @@
+group: Semigrupa 508_1
+activities:
+  - { course: "Programare Paralela si Concurenta Avansata", type: laboratory, duration_slots: 2, frequency: biweekly, professor: "Ciprian Paduraru",     additional_groups: ["ProgParConcAv_1"] }
+  - { course: "Algoritmi Paraleli si Distribuiti",          type: laboratory, duration_slots: 2, frequency: biweekly, professor: "Andrei-Mihai Patrascu", additional_groups: ["AlgParDistrib_1"] }
+  - { course: "Cloud Computing",                           type: laboratory, duration_slots: 2, frequency: biweekly, professor: "Cristian Kevorchian",   additional_groups: ["CloudComp_4"] }

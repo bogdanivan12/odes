@@ -1,0 +1,7 @@
+group: 401 ASM
+activities:
+  - { course: "Lectures on Rings and Algebras",         type: course, duration_slots: 2, frequency: weekly, professor: "Marius Vladoiu"  }
+  - { course: "Introduction to Algebraic Topology",     type: course, duration_slots: 2, frequency: weekly, professor: "Liviu Ornea"     }
+  - { course: "Introduction to Module Theory",          type: course, duration_slots: 2, frequency: weekly, professor: "Gigel Militaru"  }
+  - { course: "Riemannian Geometry",                    type: course, duration_slots: 2, frequency: weekly, professor: "Sergiu Moroianu" }
+  - { course: "Complex Analysis and Riemann Surfaces",  type: course, duration_slots: 2, frequency: weekly, professor: "Sergiu Moroianu" }

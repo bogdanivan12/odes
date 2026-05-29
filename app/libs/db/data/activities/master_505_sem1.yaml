@@ -1,0 +1,5 @@
+group: Semigrupa 505_1
+activities:
+  - { course: "Securitatea bazelor de date",               type: laboratory, duration_slots: 2, frequency: biweekly, professor: "Letitia Marin",  additional_groups: ["SecuritateBD_1"] }
+  - { course: "Data Warehousing and Business Intelligence", type: laboratory, duration_slots: 2, frequency: biweekly, professor: "Gabriela Mihai", additional_groups: ["DataWareh_1"] }
+  - { course: "Cloud Computing",                           type: laboratory, duration_slots: 2, frequency: weekly,   professor: "Bogdan Ghimis",  additional_groups: ["CloudComp_1"] }

@@ -191,3 +191,141 @@
           children:
             - name: Seria 46
               children: [Grupa 461, Grupa 462, Grupa 463, Grupa 464]
+
+- name: Master
+  children:
+
+    - name: Informatica Master
+      children:
+
+        - name: Informatica Master Anul 1
+          children:
+            - name: Optionale Master INFO Anul 1
+              children:
+                - name: Sisteme de baze de date
+                  children: [SistDB_1, SistDB_2, SistDB_3, SistDB_4]
+                - name: Programare Web utilizand tehnologii Java
+                  children: [ProgWebJava_1, ProgWebJava_2, ProgWebJava_3, ProgWebJava_4]
+                - name: Data Mining si Knowledge Discovery
+                  children: [DataMining_1, DataMining_2]
+                - name: Proiectarea algoritmilor eficienti
+                  children: [PrAlgEf_1, PrAlgEf_2, PrAlgEf_3, PrAlgEf_4]
+                - name: Analiza si modelarea sistemelor software
+                  children: [AnModSist_1, AnModSist_2]
+                - name: Managementul si organizarea proiectelor software
+                  children: [MngOrgPr_1, MngOrgPr_2, MngOrgPr_3, MngOrgPr_4]
+                - name: Invatare automata aplicata
+                  children: [InvAutApl_1, InvAutApl_2, InvAutApl_3, InvAutApl_4, InvAutApl_5, InvAutApl_6]
+                - name: Programare probabilista
+                  children: [ProgProb_1, ProgProb_2, ProgProb_3, ProgProb_4]
+                - name: Reprezentarea cunostintelor si inferenta
+                  children: [RepCunInf_1, RepCunInf_2, RepCunInf_3]
+                - name: Programare paralela si concurenta
+                  children: [ProgPar_1, ProgPar_2]
+                - name: "Sisteme de operare: proiectare si securitate"
+                  children: [SistOper_1, SistOper_2, SistOper_3]
+                - name: Criptografie avansata
+                  children: [Cripto_1, Cripto_2]
+                - name: Logica pentru sisteme multi-agent
+                  children: [LogicMA_1, LogicMA_2]
+                - name: Analiza exploratorie a datelor
+                  children: [AnExpDate_1, AnExpDate_2]
+                - name: Fundamentele procesarii limbajului natural
+                  children: [FundPLN_1, FundPLN_2]
+                - name: Elemente de lingvistica aplicata pentru informatica
+                  children: [LingvApl_1, LingvApl_2]
+                - name: Anomaly Detection
+                  children: [AnomalyDet_1, AnomalyDet_2]
+                - name: Datasets and Benchmarks for LLMs
+                  children: [DataBenchLLM_1]
+                - name: Asociatii operationale de securitate cibernetica
+                  children: [AsocOperSec_1]
+                - name: LLMs and Cognition
+                  children: [LLMsCogn_1, LLMsCogn_2]
+            - name: 405 BDTS
+              children: [Semigrupa 405_1, Semigrupa 405_2, Semigrupa 405_3, Semigrupa 405_4]
+            - name: 406 IS
+              children: [Semigrupa 406_1, Semigrupa 406_2, Semigrupa 406_3, Semigrupa 406_4]
+            - name: 407 AI
+              children: [Semigrupa 407_1, Semigrupa 407_2]
+            - name: 408 SD
+              children: [Semigrupa 408_1, Semigrupa 408_2, Semigrupa 408_3, Semigrupa 408_4]
+            - name: 410 SAL
+              children: [Semigrupa 410_1, Semigrupa 410_2]
+            - name: 411 DS
+              children: [Semigrupa 411_1, Semigrupa 411_2]
+            - name: 412 NLP
+              children: [Semigrupa 412_1, Semigrupa 412_2]
+
+        - name: Informatica Master Anul 2
+          children:
+            - name: Optionale Master INFO Anul 2
+              children:
+                - name: Securitatea bazelor de date
+                  children: [SecuritateBD_1, SecuritateBD_2]
+                - name: Data Warehousing and Business Intelligence
+                  children: [DataWareh_1, DataWareh_2]
+                - name: Cloud Computing
+                  children: [CloudComp_1, CloudComp_2, CloudComp_3, CloudComp_4]
+                - name: Optionale Master INFO Anul 2 IS
+                  children:
+                    - name: Testarea Sistemelor Software
+                      children: [TestSistSoft_1, TestSistSoft_2, TestSistSoft_3, TestSistSoft_4]
+                    - name: Teme Speciale in Inginerie Software I
+                      children: [TopSpIngSoft_1, TopSpIngSoft_2, TopSpIngSoft_3, TopSpIngSoft_4]
+                    - name: Managementul Echipelor de Dezvoltare Software
+                      children: [MngEchipDezvSoft_1, MngEchipDezvSoft_2, MngEchipDezvSoft_3, MngEchipDezvSoft_4]
+                - name: Optionale Master INFO Anul 2 AI
+                  children:
+                    - name: Natural Language Processing 2
+                      children: [NatLangProc2_1, NatLangProc2_2, NatLangProc2_3]
+                    - name: Information Retrieval and Text Mining
+                      children: [InfRetrTextMining_1, InfRetrTextMining_2, InfRetrTextMining_3]
+                    - name: Deep Learning
+                      children: [DeepLearning_1, DeepLearning_2, DeepLearning_3]
+                - name: Optionale Master INFO Anul 2 SD
+                  children:
+                    - name: Programare Paralela si Concurenta Avansata
+                      children: [ProgParConcAv_1]
+                    - name: Algoritmi Paraleli si Distribuiti
+                      children: [AlgParDistrib_1]
+                - name: Optionale Master INFO Anul 2 SAL
+                  children:
+                    - name: Database Security
+                      children: [DBSecurity_1]
+                    - name: Modele si Tehnici in Securitatea Informatiei
+                      children: [ModTechInfoSec_1]
+                    - name: Special Topics in Security and Applied Logic I
+                      children: [SpTopSec_1]
+                - name: Optionale Master INFO Anul 2 DS
+                  children:
+                    - name: Distributed Data Engineering
+                      children: [DistribDataEng_1, DistribDataEng_2]
+                - name: Optionale Master INFO Anul 2 NLP
+                  children:
+                    - name: Special Topics in Computational Linguistics
+                    - name: Machine Translation
+                      children: [MachTrans_1, MachTrans_2, MachTrans_3]
+            - name: 505 BDTS
+              children: [Semigrupa 505_1, Semigrupa 505_2, Semigrupa 505_3]
+            - name: 506 IS
+              children: [Semigrupa 506_1, Semigrupa 506_2, Semigrupa 506_3, Semigrupa 506_4]
+            - name: 507 AI
+              children: [Semigrupa 507_1, Semigrupa 507_2, Semigrupa 507_3]
+            - name: 508 SD
+              children: [Semigrupa 508_1, Semigrupa 508_2]
+            - name: 510 SAL
+              children: [Semigrupa 510_1, Semigrupa 510_2]
+            - name: 511 DS
+              children: [Semigrupa 511_1, Semigrupa 511_2]
+            - name: 512 NLP
+              children: [Semigrupa 512_1, Semigrupa 512_2, Semigrupa 512_3]
+
+    - name: Matematica Master
+      children:
+
+        - name: Matematica Master Anul 1
+          children: [401 ASM, 402 MD, 403 PSFS]
+
+        - name: Matematica Master Anul 2
+          children: [501 ASM, 502 MD, 503 PSFS]

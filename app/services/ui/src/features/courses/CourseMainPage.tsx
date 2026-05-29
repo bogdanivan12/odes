@@ -154,7 +154,7 @@ export default function CourseMainPage() {
     return map;
   }, [users]);
 
-  const relatedGroups = useMemo(() => Array.from(new Set(activities.map((a) => String(a.group_id))))
+  const relatedGroups = useMemo(() => Array.from(new Set(activities.map((a) => String(a.group_ids?.[0] ?? ''))))
     .map((gId) => ({ id: gId, name: groupsById.get(gId)?.name ?? 'Unknown group' }))
     .sort((a, b) => compareAlphabetical(a.name, b.name)), [activities, groupsById]);
 
@@ -175,7 +175,7 @@ export default function CourseMainPage() {
       if (!map.has(type)) map.set(type, new Map());
       const byProfessor = map.get(type)!;
       if (!byProfessor.has(profId)) byProfessor.set(profId, { professorName, professorEmail: u?.email, groupIds: new Set() });
-      byProfessor.get(profId)!.groupIds.add(String(activity.group_id));
+      byProfessor.get(profId)!.groupIds.add(String(activity.group_ids?.[0] ?? ''));
     });
     return Array.from(map.entries())
       .sort(([a], [b]) => compareActivityTypes(a, b))
@@ -195,7 +195,7 @@ export default function CourseMainPage() {
   const groupActivities = useMemo(() => {
     const map = new Map<string, CourseActivity[]>();
     activities.forEach((activity) => {
-      const key = String(activity.group_id);
+      const key = String(activity.group_ids?.[0] ?? '');
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(activity);
     });
@@ -264,7 +264,7 @@ export default function CourseMainPage() {
     ) : (
       <Stack spacing={1}>
         {groupRows.map((activity) => {
-          const activityId = String(activity.id ?? activity._id ?? `${activity.group_id}-${activity.activity_type}`);
+          const activityId = String(activity.id ?? activity._id ?? `${activity.group_ids?.[0] ?? ''}-${activity.activity_type}`);
           const prof = activity.professor_id ? usersById.get(String(activity.professor_id)) : undefined;
           const professorName = prof?.name ?? 'Unassigned';
           const professorId = activity.professor_id ? String(activity.professor_id) : '';

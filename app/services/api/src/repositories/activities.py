@@ -45,7 +45,8 @@ def find_activities_by_institution_id(db: Database, institution_id: str):
 
 def find_activities_by_group_id(db: Database, group_id: str):
     collection = db.get_collection(models.Activity.COLLECTION_NAME)
-    return collection.find({"group_id": group_id}).to_list()
+    # group_ids is a list — MongoDB matches if group_id appears anywhere in it.
+    return collection.find({"group_ids": group_id}).to_list()
 
 
 def find_activities_by_professor_id(db: Database, professor_id: str):
@@ -60,4 +61,4 @@ def delete_activities_by_institution_id(db: Database, institution_id: str):
 
 def delete_activities_by_group_id(db: Database, group_id: str):
     collection = db.get_collection(models.Activity.COLLECTION_NAME)
-    return collection.delete_many({"group_id": group_id})
+    return collection.delete_many({"group_ids": group_id})

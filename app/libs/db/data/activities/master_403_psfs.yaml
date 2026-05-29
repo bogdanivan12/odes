@@ -1,0 +1,6 @@
+group: 403 PSFS
+activities:
+  - { course: "Metode numerice pentru sisteme neliniare si optimizare", type: course, duration_slots: 2, frequency: weekly, professor: "Liviu Marin"       }
+  - { course: "Fundamente ale teoriei proceselor stochastice",          type: course, duration_slots: 2, frequency: weekly, professor: "Ionel Popescu"     }
+  - { course: "Tehnici de programare convexa",                          type: course, duration_slots: 2, frequency: weekly, professor: "Cristian Niculescu" }
+  - { course: "Retele Bayesiene si modele Markov ascunse",              type: course, duration_slots: 2, frequency: weekly, professor: "Iulian Cimpean"    }

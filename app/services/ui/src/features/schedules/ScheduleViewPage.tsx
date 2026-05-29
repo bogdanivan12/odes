@@ -308,7 +308,8 @@ export default function ScheduleViewPage() {
           activeWeeks,
           activityType: act.activity_type,
           courseId: String(act.course_id),
-          groupId: String(act.group_id),
+          groupId: String(act.group_ids?.[0] ?? ''),
+          allGroupIds: (act.group_ids ?? []).map(String),
           professorId: act.professor_id ? String(act.professor_id) : null,
           durationSlots: act.duration_slots,
           requiredRoomFeatures: act.required_room_features ?? [],
@@ -359,7 +360,7 @@ export default function ScheduleViewPage() {
   const byGroupEntries = useMemo(() => {
     if (!selectedGroupId) return [];
     const groupIds = getGroupAndAncestorIds(selectedGroupId);
-    return scheduledEntries.filter((e) => groupIds.has(e.groupId));
+    return scheduledEntries.filter((e) => e.allGroupIds.some((gid) => groupIds.has(gid)));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scheduledEntries, selectedGroupId, groupsById]);
 
@@ -521,10 +522,10 @@ export default function ScheduleViewPage() {
                 if (entry.professorId) extraLines.push(usersById.get(entry.professorId)?.name ?? '');
                 extraLines.push(roomsById.get(entry.roomId)?.name ?? '');
               } else if (pdfMode === 'professors') {
-                extraLines.push(groupsById.get(entry.groupId)?.name ?? '');
+                extraLines.push(entry.allGroupIds.map((gid) => groupsById.get(gid)?.name ?? '').filter(Boolean).join(', '));
                 extraLines.push(roomsById.get(entry.roomId)?.name ?? '');
               } else {
-                extraLines.push(groupsById.get(entry.groupId)?.name ?? '');
+                extraLines.push(entry.allGroupIds.map((gid) => groupsById.get(gid)?.name ?? '').filter(Boolean).join(', '));
                 if (entry.professorId) extraLines.push(usersById.get(entry.professorId)?.name ?? '');
               }
               const lines = [courseName, typeName, ...extraLines.filter(Boolean)].join('\n');
@@ -549,7 +550,7 @@ export default function ScheduleViewPage() {
         let entityEntries: ScheduledEntry[];
         if (pdfMode === 'groups') {
           const groupIds = getGroupAndAncestorIds(entity.id);
-          entityEntries = scheduledEntries.filter((e) => groupIds.has(e.groupId));
+          entityEntries = scheduledEntries.filter((e) => e.allGroupIds.some((gid) => groupIds.has(gid)));
         } else if (pdfMode === 'professors') {
           entityEntries = scheduledEntries.filter((e) => e.professorId === entity.id);
         } else {

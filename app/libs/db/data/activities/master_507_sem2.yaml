@@ -1,0 +1,5 @@
+group: Semigrupa 507_2
+activities:
+  - { course: "Natural Language Processing 2",        type: laboratory, duration_slots: 2, frequency: biweekly, professor: "Ana-Sabina Uban",         additional_groups: ["NatLangProc2_2"] }
+  - { course: "Information Retrieval and Text Mining", type: laboratory, duration_slots: 2, frequency: biweekly, professor: "Miruna-Andreea Zavelca",  additional_groups: ["InfRetrTextMining_2"] }
+  - { course: "Deep Learning",                         type: laboratory, duration_slots: 2, frequency: biweekly, professor: "Eduard Poesina",           additional_groups: ["DeepLearning_2"] }

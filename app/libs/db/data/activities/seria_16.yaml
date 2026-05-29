@@ -4,5 +4,5 @@ activities:
   - { course: "Utilizarea sistemelor de operare", type: course, duration_slots: 2, frequency: weekly, professor: "Dumitru-Daniel Dragulici" }
   - { course: "Algebra si geometrie",          type: course, duration_slots: 3, frequency: weekly, professor: "Iulia Hirica" }
   - { course: "Analiza matematica",            type: course, duration_slots: 2, frequency: weekly, professor: "Alexandru Mihail" }
-  - { course: "Fizica",           type: course, duration_slots: 2, frequency: weekly, professor: "Tiberiu Cheche",      required_room_features: [magurele], selected_timeslot: { start: 28, weeks: [0, 1] } }
-  - { course: "Proiectare logica", type: course, duration_slots: 2, frequency: weekly, professor: "Alecsandru Chirosca", required_room_features: [magurele], selected_timeslot: { start: 30, weeks: [0, 1] } }
+  - { course: "Fizica",           type: course, duration_slots: 2, frequency: weekly, professor: "Tiberiu Cheche",      selected_timeslot: { start: 28, weeks: [0, 1] } }
+  - { course: "Proiectare logica", type: course, duration_slots: 2, frequency: weekly, professor: "Alecsandru Chirosca", selected_timeslot: { start: 30, weeks: [0, 1] } }

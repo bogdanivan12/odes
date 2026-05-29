@@ -1,0 +1,5 @@
+group: 407 AI
+activities:
+  - { course: "Invatare automata aplicata",               type: course, duration_slots: 2, frequency: weekly, professor: "Radu Ionescu",    additional_groups: ["Semigrupa 411_1", "Semigrupa 411_2", "Semigrupa 412_1", "Semigrupa 412_2", "Invatare automata aplicata"] }
+  - { course: "Programare probabilista",                  type: course, duration_slots: 2, frequency: weekly, professor: "Marius Popescu",  additional_groups: ["Semigrupa 411_1", "Semigrupa 411_2", "Programare probabilista"] }
+  - { course: "Reprezentarea cunostintelor si inferenta", type: course, duration_slots: 2, frequency: weekly, professor: "Marina Cidota",    additional_groups: ["Reprezentarea cunostintelor si inferenta"] }

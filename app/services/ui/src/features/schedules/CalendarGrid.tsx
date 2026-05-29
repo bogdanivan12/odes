@@ -108,7 +108,8 @@ export interface ScheduledEntry {
   activeWeeks: number[];
   activityType: string;
   courseId: string;
-  groupId: string;
+  groupId: string;       // primary group (for display)
+  allGroupIds: string[]; // primary + additional groups (for filtering)
   professorId: string | null;
   durationSlots: number;
   requiredRoomFeatures: string[];
@@ -253,7 +254,7 @@ export default function CalendarGrid({
                   const slotIdx = e.startTimeslot % timeslotsPerDay;
                   const typeColor = getTypeColor(e.activityType);
                   const courseName = coursesById.get(e.courseId)?.name ?? '—';
-                  const groupName = groupsById.get(e.groupId)?.name ?? '—';
+                  const groupName = e.allGroupIds.map((gid) => groupsById.get(gid)?.name ?? gid).join(', ') || '—';
                   const profName = e.professorId
                     ? (usersById.get(e.professorId)?.name ?? usersById.get(e.professorId)?.email ?? '—')
                     : null;
@@ -279,25 +280,25 @@ export default function CalendarGrid({
                         '&:hover': { bgcolor: alpha(typeColor, 0.2) },
                       }}
                     >
-                      <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', lineHeight: 1.25, fontSize: '0.68rem', mb: 0.25, whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                      <Typography title={courseName} variant="caption" sx={{ fontWeight: 700, display: 'block', lineHeight: 1.25, fontSize: '0.68rem', mb: 0.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {abbreviateCourse(courseName)}
                       </Typography>
                       {laneH > 30 && (
-                        <Typography variant="caption" sx={{ display: 'block', fontSize: '0.60rem', color: 'text.secondary', lineHeight: 1.3 }}>
+                        <Typography variant="caption" sx={{ display: 'block', fontSize: '0.60rem', color: 'text.secondary', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {toTitleLabel(e.activityType)}
                         </Typography>
                       )}
                       {laneH > 44 && (
                         <>
-                          <Typography variant="caption" sx={{ display: 'block', fontSize: '0.60rem', color: 'text.secondary', lineHeight: 1.3 }}>
+                          <Typography title={groupName} variant="caption" sx={{ display: 'block', fontSize: '0.60rem', color: 'text.secondary', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {groupName}
                           </Typography>
                           {profName && (
-                            <Typography variant="caption" sx={{ display: 'block', fontSize: '0.60rem', color: 'text.secondary', lineHeight: 1.3 }}>
+                            <Typography title={profName} variant="caption" sx={{ display: 'block', fontSize: '0.60rem', color: 'text.secondary', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {profName}
                             </Typography>
                           )}
-                          <Typography variant="caption" sx={{ display: 'block', fontSize: '0.60rem', color: 'text.secondary', lineHeight: 1.3 }}>
+                          <Typography title={roomName} variant="caption" sx={{ display: 'block', fontSize: '0.60rem', color: 'text.secondary', lineHeight: 1.3, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {roomName}
                           </Typography>
                         </>

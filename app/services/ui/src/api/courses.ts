@@ -16,7 +16,7 @@ export interface CourseActivity {
   id?: string;
   _id?: string;
   course_id: string;
-  group_id: string;
+  group_ids: string[];
   professor_id?: string | null;
   activity_type: string;
   frequency: string;

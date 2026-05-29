@@ -1,4 +1,5 @@
 import os
+import re
 from typing import Dict, List, Optional
 
 import yaml
@@ -110,31 +111,104 @@ def insert_professors(institution_id: str) -> Dict[str, str]:
     return result_dict
 
 
+# ── Per-subtree default timeslot preferences ─────────────────────────────────
+# Applied at populate time to a named group AND every descendant of it, so the
+# preference lands directly on each group's own document — every master group
+# and master optional subgroup an activity might target — rather than relying on
+# any ancestor look-up.
+#
+# Windows are keyed by slot-in-day.  With the institution grid (start_hour=8,
+# 60-minute slots) slot-in-day s starts at hour 8 + s:
+#   08-10 (slots 0,1)     -> DESIRED      (ideal)
+#   10-12 (slots 2,3)     -> NOT_IDEAL    (soft penalty)
+#   12-16 (slots 4,5,6,7) -> UNAVAILABLE  (hard block)
+#   16-18 (slots 8,9)     -> NOT_IDEAL    (soft penalty)
+#   18-20 (slots 10,11)   -> DESIRED      (ideal)
+_MASTER_SLOT_PREFERENCES = {
+    0: models.TimeslotPreferenceValue.DESIRED,
+    1: models.TimeslotPreferenceValue.DESIRED,
+    2: models.TimeslotPreferenceValue.NOT_IDEAL,
+    3: models.TimeslotPreferenceValue.NOT_IDEAL,
+    4: models.TimeslotPreferenceValue.UNAVAILABLE,
+    5: models.TimeslotPreferenceValue.UNAVAILABLE,
+    6: models.TimeslotPreferenceValue.UNAVAILABLE,
+    7: models.TimeslotPreferenceValue.UNAVAILABLE,
+    8: models.TimeslotPreferenceValue.NOT_IDEAL,
+    9: models.TimeslotPreferenceValue.NOT_IDEAL,
+    10: models.TimeslotPreferenceValue.DESIRED,
+    11: models.TimeslotPreferenceValue.DESIRED,
+}
+
+# Root group name -> {slot_in_day: preference}.  The preference applies to the
+# named group and ALL of its descendants.
+_SUBTREE_PREFERENCE_ROOTS = {
+    "Master": _MASTER_SLOT_PREFERENCES,
+}
+
+
+def _build_group_preferences(slot_prefs: Dict[int, "models.TimeslotPreferenceValue"],
+                             days: int, tpd: int) -> List[models.TimeslotPreference]:
+    """Expand a per-day {slot_in_day: preference} map to absolute within-week
+    slots for every day (slot = day * tpd + slot_in_day)."""
+    prefs: List[models.TimeslotPreference] = []
+    for d in range(days):
+        for s, value in slot_prefs.items():
+            if s < tpd:
+                prefs.append(models.TimeslotPreference(slot=d * tpd + s, preference=value))
+    return prefs
+
+
 def _insert_group_node(
     collection,
     institution_id: str,
     node,
     parent_id: Optional[str],
     ids: Dict[str, str],
+    subtree_prefs: Dict[str, List[models.TimeslotPreference]],
+    inherited_prefs: List[models.TimeslotPreference],
+    counter: Dict[str, int],
 ):
     name = node if isinstance(node, str) else node["name"]
     children = [] if isinstance(node, str) else node.get("children", [])
 
-    group = models.Group(institution_id=institution_id, name=name, parent_group_id=parent_id)
+    # This node's preferences: if it (or an ancestor) is a preference root, use
+    # that root's preferences; the assignment then flows to all descendants.
+    prefs = subtree_prefs.get(name, inherited_prefs)
+
+    group = models.Group(
+        institution_id=institution_id,
+        name=name,
+        parent_group_id=parent_id,
+        timeslot_preferences=prefs,
+    )
     result = collection.insert_one(group.model_dump(by_alias=True))
     ids[name] = result.inserted_id
+    if prefs:
+        counter["groups"] += 1
 
     for child in children:
-        _insert_group_node(collection, institution_id, child, ids[name], ids)
+        _insert_group_node(collection, institution_id, child, ids[name], ids,
+                           subtree_prefs, prefs, counter)
 
 
 def insert_groups(institution_id: str) -> Dict[str, str]:
     data = _load("groups.yaml")
     collection = db.get_collection(models.Group.COLLECTION_NAME)
+
+    grid = _load("institution.yaml")["time_grid"]
+    days, tpd = grid["days"], grid["timeslots_per_day"]
+    subtree_prefs = {
+        gname: _build_group_preferences(slot_prefs, days, tpd)
+        for gname, slot_prefs in _SUBTREE_PREFERENCE_ROOTS.items()
+    }
+
     ids: Dict[str, str] = {}
+    counter = {"groups": 0}
     for node in data:
-        _insert_group_node(collection, institution_id, node, None, ids)
-    print(f"Successfully inserted {len(ids)} groups.")
+        _insert_group_node(collection, institution_id, node, None, ids,
+                           subtree_prefs, [], counter)
+    print(f"Successfully inserted {len(ids)} groups "
+          f"(timeslot preferences set on {counter['groups']} group(s)).")
     return ids
 
 
@@ -148,15 +222,9 @@ def insert_courses(institution_id: str) -> Dict[str, str]:
     return result_dict
 
 
-_OPTIONAL_GROUP_NAMES = {
-    "Optionale Anul 2 INFO",
-    "Optionale Anul 3 INFO",
-    "Optionale Comune An 2 MATE",
-    "Optionale Anul 2 MATE-INFO",
-    "Optionale Anul 2 MATE APLICATE",
-    "Optionale Anul 3 MATE",
-    "Optionale Anul 3 MATE APLICATE",
-}
+def _is_numbered_group(name: str) -> bool:
+    """True if the group name starts with at least 3 consecutive digits (e.g. '101', '505 BDTS')."""
+    return bool(re.match(r'^\d{3}', name))
 
 
 def insert_students(institution_id: str, groups: Dict[str, str]) -> List[str]:
@@ -165,30 +233,41 @@ def insert_students(institution_id: str, groups: Dict[str, str]) -> List[str]:
     all_students = []
     student_counter = [0]
 
+    def assign(count: int, path: List[str]):
+        group_ids = [str(groups[n]) for n in path if n in groups]
+        for _ in range(count):
+            student_counter[0] += 1
+            idx = student_counter[0]
+            all_students.append(models.User(
+                name=f"student_{idx}",
+                email=f"student.{idx}@fmi.unibuc.ro",
+                user_roles={institution_id: [models.UserRole.STUDENT]},
+                group_ids=group_ids,
+            ))
+
     def walk(node, ancestors: List[str]):
         name = node if isinstance(node, str) else node["name"]
 
-        # Skip optional subtrees entirely
-        if name in _OPTIONAL_GROUP_NAMES:
+        # Skip all optional subtrees entirely (no students)
+        if name.startswith("Optionale"):
             return
 
         children = [] if isinstance(node, str) else node.get("children", [])
         current_path = ancestors + [name]
 
-        if not children:
-            # Leaf node — assign students
-            count = 15 if name.startswith("Semigrupa") else 30
-            group_ids = [str(groups[n]) for n in current_path if n in groups]
-            for _ in range(count):
-                student_counter[0] += 1
-                idx = student_counter[0]
-                all_students.append(models.User(
-                    name=f"student_{idx}",
-                    email=f"student.{idx}@fmi.unibuc.ro",
-                    user_roles={institution_id: [models.UserRole.STUDENT]},
-                    group_ids=group_ids,
-                ))
+        if _is_numbered_group(name):
+            if not children:
+                # Leaf numbered group (e.g. "501 ASM"): 26 students
+                assign(26, current_path)
+            else:
+                # Has semigroups: distribute 26 students evenly across children
+                n = len(children)
+                per_semigroup = 26 // n
+                for child in children:
+                    child_name = child if isinstance(child, str) else child["name"]
+                    assign(per_semigroup, current_path + [child_name])
         else:
+            # Non-numbered group: recurse into children
             for child in children:
                 walk(child, current_path)
 
@@ -232,13 +311,16 @@ def insert_activities(
                     start_timeslot=sel_ts_data["start"],
                     active_weeks=sel_ts_data["weeks"],
                 )
+            extra_group_ids = [
+                groups[g] for g in act.get("additional_groups", []) if g in groups
+            ]
             all_activities.append(models.Activity(
                 institution_id=institution_id,
                 course_id=courses[act["course"]],
                 activity_type=activity_type,
                 duration_slots=act["duration_slots"],
                 frequency=models.Frequency(act["frequency"]),
-                group_id=groups[group_name],
+                group_ids=[groups[group_name]] + extra_group_ids,
                 professor_id=profs.get(professor_name) if professor_name else None,
                 required_room_features=required_features,
                 selected_timeslot=selected_timeslot,

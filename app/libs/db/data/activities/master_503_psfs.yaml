@@ -1,0 +1,6 @@
+group: 503 PSFS
+activities:
+  - { course: "Elemente de ecuatii diferentiale stochastice", type: course, duration_slots: 2, frequency: weekly, professor: "Ionel Popescu"          }
+  - { course: "Matematici financiare aplicate",               type: course, duration_slots: 2, frequency: weekly, professor: "Valentin Constantinescu" }
+  - { course: "Modele stochastice pentru finante",            type: course, duration_slots: 2, frequency: weekly, professor: "Eduard Rotenstein"       }
+  - { course: "Modele statistice",                            type: course, duration_slots: 2, frequency: weekly, professor: "Vasile Preda"            }

@@ -374,8 +374,9 @@ def _run_conflict_check(
 
     ancestor_cache: Dict[str, Set[str]] = {}
     for act in activities_map.values():
-        if act.group_id and act.group_id not in ancestor_cache:
-            ancestor_cache[act.group_id] = _build_ancestor_set(act.group_id, groups_map)
+        for gid in act.group_ids:
+            if gid not in ancestor_cache:
+                ancestor_cache[gid] = _build_ancestor_set(gid, groups_map)
 
     conflicts_by_record: Dict[str, List[dto_out.ConflictItem]] = {}
 
@@ -386,7 +387,8 @@ def _run_conflict_check(
         if not act_a:
             continue
         weeks_a = _get_effective_weeks(rec_a, act_a, total_weeks)
-        anc_a = ancestor_cache.get(act_a.group_id, set())
+        # Expanded group set = all group_ids + all their ancestors
+        anc_a = set(act_a.group_ids) | set().union(*(ancestor_cache.get(gid, set()) for gid in act_a.group_ids))
         orig_a = original_map[rec_a["id"]]
 
         for rec_b in effective:
@@ -415,7 +417,7 @@ def _run_conflict_check(
                 and _timeslots_overlap(orig_a, act_a, orig_b, act_b, tpd)
             )
 
-            anc_b = ancestor_cache.get(act_b.group_id, set())
+            anc_b = set(act_b.group_ids) | set().union(*(ancestor_cache.get(gid, set()) for gid in act_b.group_ids))
             rec_conflicts = conflicts_by_record.setdefault(rec_a["id"], [])
 
             # Room double-booking
@@ -439,19 +441,11 @@ def _run_conflict_check(
                         description="Professor is already assigned to another activity at this timeslot.",
                     ))
 
-            # Group overlap (same group or ancestor–descendant relationship)
-            if act_a.group_id and act_b.group_id:
-                groups_clash = (
-                    act_a.group_id == act_b.group_id
-                    or act_b.group_id in anc_a
-                    or act_a.group_id in anc_b
-                )
+            # Group overlap: any group_id from A shares a hierarchy path with any from B
+            if act_a.group_ids and act_b.group_ids:
+                groups_clash = bool(anc_a & anc_b)
                 if groups_clash:
-                    was_group_conflict = originally_overlapping and (
-                        act_a.group_id == act_b.group_id
-                        or act_b.group_id in anc_a
-                        or act_a.group_id in anc_b
-                    )
+                    was_group_conflict = originally_overlapping and groups_clash
                     if not was_group_conflict:
                         rec_conflicts.append(dto_out.ConflictItem(
                             type="group",

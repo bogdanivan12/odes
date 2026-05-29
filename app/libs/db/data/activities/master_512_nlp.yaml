@@ -1,0 +1,4 @@
+group: 512 NLP
+activities:
+  - { course: "Special Topics in Computational Linguistics", type: course, duration_slots: 3, frequency: weekly, professor: "Liviu Dinu",    additional_groups: ["Special Topics in Computational Linguistics"] }
+  - { course: "Machine Translation",                         type: course, duration_slots: 2, frequency: weekly, professor: "Sergiu Nisioi", additional_groups: ["Machine Translation"] }

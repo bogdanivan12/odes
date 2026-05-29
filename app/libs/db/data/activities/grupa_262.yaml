@@ -6,5 +6,5 @@ activities:
   - { course: "Structuri de date si algoritmi",           type: laboratory, duration_slots: 2, frequency: biweekly, professor: "Radu-Stefan Mincu" }
   - { course: "Structuri de date si algoritmi",           type: seminar,    duration_slots: 2, frequency: biweekly,  professor: "Radu-Stefan Mincu" }
   - { course: "Programare orientata pe obiecte I",        type: seminar,    duration_slots: 2, frequency: biweekly,  professor: "Anca-Madalina Dobrovat" }
-  - { course: "Teoria sistemelor",                 type: laboratory, duration_slots: 2, frequency: weekly, required_room_features: [magurele], selected_timeslot: { start: 36, weeks: [0, 1] } }
-  - { course: "Elemente de electronica analogica", type: laboratory, duration_slots: 2, frequency: weekly, required_room_features: [magurele], selected_timeslot: { start: 38, weeks: [0, 1] } }
+  - { course: "Teoria sistemelor",                 type: laboratory, duration_slots: 2, frequency: weekly, selected_timeslot: { start: 36, weeks: [0, 1] } }
+  - { course: "Elemente de electronica analogica", type: laboratory, duration_slots: 2, frequency: weekly, selected_timeslot: { start: 38, weeks: [0, 1] } }

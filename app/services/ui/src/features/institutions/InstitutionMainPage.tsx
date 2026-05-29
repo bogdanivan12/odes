@@ -604,7 +604,7 @@ export default function InstitutionMainPage() {
 
   const [isActivityCreateOpen, setIsActivityCreateOpen] = useState(false);
   const [actCreateCourseId, setActCreateCourseId] = useState('');
-  const [actCreateGroupId, setActCreateGroupId] = useState('');
+  const [actCreateGroupIds, setActCreateGroupIds] = useState<string[]>([]);
   const [actCreateProfId, setActCreateProfId] = useState('');
   const [actCreateType, setActCreateType] = useState('course');
   const [actCreateFrequency, setActCreateFrequency] = useState('weekly');
@@ -615,7 +615,7 @@ export default function InstitutionMainPage() {
 
   const [activityToEdit, setActivityToEdit] = useState<InstitutionActivity | null>(null);
   const [actEditCourseId, setActEditCourseId] = useState('');
-  const [actEditGroupId, setActEditGroupId] = useState('');
+  const [actEditGroupIds, setActEditGroupIds] = useState<string[]>([]);
   const [actEditProfId, setActEditProfId] = useState('');
   const [actEditType, setActEditType] = useState('course');
   const [actEditFrequency, setActEditFrequency] = useState('weekly');
@@ -863,7 +863,7 @@ export default function InstitutionMainPage() {
   const handleActivityCreate = async () => {
     if (!institutionId) return;
     if (!actCreateCourseId) { setActCreateError('Course is required.'); return; }
-    if (!actCreateGroupId) { setActCreateError('Group is required.'); return; }
+    if (!actCreateGroupIds.length) { setActCreateError('At least one group is required.'); return; }
     const duration = Number(actCreateDuration);
     if (!Number.isInteger(duration) || duration < 1) { setActCreateError('Duration must be a positive integer.'); return; }
     setActCreateLoading(true); setActCreateError(null);
@@ -871,7 +871,7 @@ export default function InstitutionMainPage() {
       await createActivity({
         institution_id: institutionId,
         course_id: actCreateCourseId,
-        group_id: actCreateGroupId,
+        group_ids: actCreateGroupIds,
         professor_id: actCreateProfId || null,
         activity_type: actCreateType,
         frequency: actCreateFrequency,
@@ -881,7 +881,7 @@ export default function InstitutionMainPage() {
       const updated = await getInstitutionActivities(institutionId);
       setActivitiesState({ data: updated, loading: false, error: null });
       setIsActivityCreateOpen(false);
-      setActCreateCourseId(''); setActCreateGroupId(''); setActCreateProfId('');
+      setActCreateCourseId(''); setActCreateGroupIds([]); setActCreateProfId('');
       setActCreateType('course'); setActCreateFrequency('weekly');
       setActCreateDuration('2'); setActCreateFeatures('');
     } catch (err) { setActCreateError((err as Error).message || 'Failed to create activity.'); }
@@ -891,7 +891,7 @@ export default function InstitutionMainPage() {
   const handleActivityEdit = async () => {
     if (!activityToEdit) return;
     if (!actEditCourseId) { setActEditError('Course is required.'); return; }
-    if (!actEditGroupId) { setActEditError('Group is required.'); return; }
+    if (!actEditGroupIds.length) { setActEditError('At least one group is required.'); return; }
     const duration = Number(actEditDuration);
     if (!Number.isInteger(duration) || duration < 1) { setActEditError('Duration must be a positive integer.'); return; }
     const id = String(activityToEdit.id ?? activityToEdit._id ?? '');
@@ -899,7 +899,7 @@ export default function InstitutionMainPage() {
     try {
       await updateActivity(id, {
         course_id: actEditCourseId,
-        group_id: actEditGroupId,
+        group_ids: actEditGroupIds,
         professor_id: actEditProfId || null,
         activity_type: actEditType,
         frequency: actEditFrequency,
@@ -1119,18 +1119,19 @@ export default function InstitutionMainPage() {
   }, [coursesState.data]);
 
   const activitiesList = useMemo(() => activitiesState.data.map((activity) => {
-    const groupName = groupNameById[String(activity.group_id)] ?? activity.group_id;
+    const allGroupIds = (activity.group_ids ?? []).map(String);
+    const groupNames = allGroupIds.map((gid) => groupNameById[gid] ?? gid).join(', ') || 'Unknown group';
     const activityCourseId = (activity as { course_id?: string }).course_id;
     const courseName = courseNameById[String(activityCourseId ?? '')] ?? String(activityCourseId ?? 'Unknown course');
-    const activityId = String(activity.id ?? activity._id ?? `${activity.activity_type}-${activity.group_id}`);
+    const activityId = String(activity.id ?? activity._id ?? `${activity.activity_type}-${allGroupIds[0] ?? ''}`);
     return {
       key: activityId,
-      primary: `${groupName} · ${courseName} · ${toTitleLabel(activity.activity_type)}`,
+      primary: `${groupNames} · ${courseName} · ${toTitleLabel(activity.activity_type)}`,
       secondary: `${toTitleLabel(activity.frequency)} · ${activity.duration_slots} slots`,
       to: activityRoute(activityId),
       rowAction: canManageInstitution ? (
         <Stack direction="row" spacing={0.5}>
-          <Tooltip title="Edit"><IconButton size="small" sx={{ borderRadius: 1.5 }} onClick={(e) => { e.stopPropagation(); setActEditCourseId(String(activity.course_id)); setActEditGroupId(String(activity.group_id)); setActEditProfId(activity.professor_id ? String(activity.professor_id) : ''); setActEditType(activity.activity_type); setActEditFrequency(activity.frequency); setActEditDuration(String(activity.duration_slots)); setActEditFeatures(featuresToInput(activity.required_room_features ?? [])); setActivityToEdit(activity); }}><EditRoundedIcon sx={{ fontSize: '0.85rem' }} /></IconButton></Tooltip>
+          <Tooltip title="Edit"><IconButton size="small" sx={{ borderRadius: 1.5 }} onClick={(e) => { e.stopPropagation(); setActEditCourseId(String(activity.course_id)); setActEditGroupIds(allGroupIds); setActEditProfId(activity.professor_id ? String(activity.professor_id) : ''); setActEditType(activity.activity_type); setActEditFrequency(activity.frequency); setActEditDuration(String(activity.duration_slots)); setActEditFeatures(featuresToInput(activity.required_room_features ?? [])); setActivityToEdit(activity); }}><EditRoundedIcon sx={{ fontSize: '0.85rem' }} /></IconButton></Tooltip>
           <Tooltip title="Delete"><IconButton size="small" color="error" sx={{ borderRadius: 1.5 }} onClick={(e) => { e.stopPropagation(); setActivityToDelete(activity); }}><DeleteOutlineRoundedIcon sx={{ fontSize: '0.85rem' }} /></IconButton></Tooltip>
         </Stack>
       ) : undefined,
@@ -1834,7 +1835,7 @@ export default function InstitutionMainPage() {
               ) : undefined}
               navigationRoute={`${institutionBase}/activities`}
               headerAction={canManageInstitution ? (
-                <Button size="small" variant="contained" startIcon={<AddRoundedIcon />} onClick={() => { setActCreateCourseId(''); setActCreateGroupId(''); setActCreateProfId(''); setActCreateType('course'); setActCreateFrequency('weekly'); setActCreateDuration('2'); setActCreateFeatures(''); setIsActivityCreateOpen(true); }} sx={{ borderRadius: 2, fontSize: '0.8rem', py: 0.5 }}>
+                <Button size="small" variant="contained" startIcon={<AddRoundedIcon />} onClick={() => { setActCreateCourseId(''); setActCreateGroupIds([]); setActCreateProfId(''); setActCreateType('course'); setActCreateFrequency('weekly'); setActCreateDuration('2'); setActCreateFeatures(''); setIsActivityCreateOpen(true); }} sx={{ borderRadius: 2, fontSize: '0.8rem', py: 0.5 }}>
                   Create
                 </Button>
               ) : undefined}
@@ -2341,12 +2342,16 @@ export default function InstitutionMainPage() {
               ))}
             </TextField>
             <TextField
-              label="Group"
+              label="Groups"
               select
-              value={actCreateGroupId}
-              onChange={(e) => setActCreateGroupId(e.target.value)}
+              value={actCreateGroupIds}
+              onChange={(e) => setActCreateGroupIds(typeof e.target.value === 'string' ? [e.target.value] : e.target.value as string[])}
               fullWidth
               disabled={actCreateLoading}
+              SelectProps={{
+                multiple: true,
+                renderValue: (selected) => (selected as string[]).map((id) => groupsState.data.find((g) => String(g.id ?? g._id) === id)?.name ?? id).join(', '),
+              }}
             >
               {groupsState.data.map((g) => (
                 <MenuItem key={String(g.id ?? g._id)} value={String(g.id ?? g._id)}>{g.name}</MenuItem>
@@ -2435,12 +2440,16 @@ export default function InstitutionMainPage() {
               ))}
             </TextField>
             <TextField
-              label="Group"
+              label="Groups"
               select
-              value={actEditGroupId}
-              onChange={(e) => setActEditGroupId(e.target.value)}
+              value={actEditGroupIds}
+              onChange={(e) => setActEditGroupIds(typeof e.target.value === 'string' ? [e.target.value] : e.target.value as string[])}
               fullWidth
               disabled={actEditLoading}
+              SelectProps={{
+                multiple: true,
+                renderValue: (selected) => (selected as string[]).map((id) => groupsState.data.find((g) => String(g.id ?? g._id) === id)?.name ?? id).join(', '),
+              }}
             >
               {groupsState.data.map((g) => (
                 <MenuItem key={String(g.id ?? g._id)} value={String(g.id ?? g._id)}>{g.name}</MenuItem>

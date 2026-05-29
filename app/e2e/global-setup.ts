@@ -401,6 +401,27 @@ async function globalSetup(): Promise<void> {
 
   console.log('[global-setup] Complex activities created');
 
+  // ── Timeslot preferences (exercise + verify the preference feature) ──────────
+  // Mirror the shape used for master groups: block the first two slots of every
+  // day for Year1-A (UNAVAILABLE), softly avoid slot 2 (NOT_IDEAL), and prefer
+  // the last two (DESIRED).  Generation must still honour the UNAVAILABLE block;
+  // schedules/preferences.spec.ts asserts no Year1-A activity lands there.
+  const COMPLEX_TPD = 12;
+  const COMPLEX_DAYS = 5;
+  const complexUnavailableSlotsInDay = [0, 1];
+  const y1aPreferences: { slot: number; preference: string }[] = [];
+  for (let d = 0; d < COMPLEX_DAYS; d++) {
+    for (const s of complexUnavailableSlotsInDay) {
+      y1aPreferences.push({ slot: d * COMPLEX_TPD + s, preference: 'unavailable' });
+    }
+    y1aPreferences.push({ slot: d * COMPLEX_TPD + 2, preference: 'not_ideal' });
+    y1aPreferences.push({ slot: d * COMPLEX_TPD + 10, preference: 'desired' });
+    y1aPreferences.push({ slot: d * COMPLEX_TPD + 11, preference: 'desired' });
+  }
+  await apiCall('PUT', `/api/v1/groups/${year1aId}/timeslot-preferences`,
+    { preferences: y1aPreferences }, adminToken);
+  console.log('[global-setup] Year1-A timeslot preferences set');
+
   // ── Write fixtures ───────────────────────────────────────────────────────────
   const fixtures = {
     adminId,
@@ -460,6 +481,11 @@ async function globalSetup(): Promise<void> {
       year3aId,
       year3bId,
     },
+    // Timeslot-preference fixture: Year1-A is UNAVAILABLE in these slot-in-day
+    // indices on every day — used by schedules/preferences.spec.ts.
+    complexTimeslotsPerDay: COMPLEX_TPD,
+    complexPreferenceGroupId: year1aId,
+    complexUnavailableSlotsInDay,
     complexRooms: {
       hallAId,
       hallBId,

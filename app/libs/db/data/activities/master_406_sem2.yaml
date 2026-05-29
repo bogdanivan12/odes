@@ -1,0 +1,5 @@
+group: Semigrupa 406_2
+activities:
+  - { course: "Proiectarea algoritmilor eficienti",               type: seminar, duration_slots: 2, frequency: weekly, professor: "Alexandru Popa",      additional_groups: ["Semigrupa 408_2", "PrAlgEf_2"] }
+  - { course: "Analiza si modelarea sistemelor software",         type: laboratory,     duration_slots: 2, frequency: weekly, professor: "Claudia-Elena Chirita", additional_groups: ["AnModSist_2"] }
+  - { course: "Managementul si organizarea proiectelor software", type: laboratory,     duration_slots: 2, frequency: weekly, professor: "Razvan Vasile",          additional_groups: ["MngOrgPr_2"] }

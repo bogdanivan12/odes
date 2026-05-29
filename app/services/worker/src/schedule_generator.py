@@ -16,18 +16,26 @@ Decision variables (per activity ``a``):
                          each resource constraint.
   - ``day[a]``         : IntVar = start // tpd, channelled via
                          AddAllowedAssignments over (start, day) pairs.
-  - ``room_indicator[a][r]`` : BoolVars, exactly one is 1 (chosen room).
+  - ``pool_indicator[a][pk]`` : BoolVars, exactly one is 1 (chosen room *pool*).
+                         Rooms with identical (features, capacity) form one
+                         interchangeable pool; an activity picks a pool, not a
+                         specific room.  Concrete rooms are assigned in a sound
+                         post-processing pass.  When an activity has a single
+                         candidate pool the indicator is the constant 1.
   - ``presence[a][w]`` : Constant 0/1 for fixed-week frequencies; BoolVars
                          for plain BIWEEKLY (solver picks which week).
 
 Hard constraints
 ================
-  - Exactly one room per activity (AddExactlyOne over room_indicators).
+  - Exactly one pool per activity (AddExactlyOne over pool_indicators).
   - BIWEEKLY: ``presence[a][0] + presence[a][1] == 1``.
-  - Room no-overlap per (week, room):
-        AddNoOverlap(OptionalIntervalVar(start, dur, end,
-                       is_present = room_indicator[a][r] AND presence[a][w])
-                     for each activity a compatible with room r)
+  - Room-pool capacity per (week, pool):
+        AddCumulative(OptionalIntervalVar(start, dur, end,
+                        is_present = pool_indicator[a][pk] AND presence[a][w]),
+                      demand=1, capacity=#rooms-in-pool)
+        (degenerates to AddNoOverlap for pools of a single room).
+        Concrete rooms are coloured greedily post-solve — the cumulative
+        bounds the max clique by the room count, so colouring always succeeds.
   - Professor no-overlap per (week, prof):
         AddNoOverlap(OptionalIntervalVar(..., is_present = presence[a][w])
                      for each activity a taught by prof)
@@ -456,7 +464,7 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
 
     # ── Per-activity feasibility: rooms (features + capacity) + allowed starts
     for a in activities:
-        required_capacity = group_student_count.get(a.group_id, 0)
+        required_capacity = sum(group_student_count.get(gid, 0) for gid in a.group_ids)
         a.possible_rooms = filter_rooms_for_activity(
             rooms=rooms,
             required_features=a.required_room_features,
@@ -508,10 +516,11 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
         forbidden: Set[int] = set()
         if a.professor_id:
             forbidden |= prof_unavail.get(a.professor_id, set())
-        ag = groups_by_id.get(a.group_id)
-        if ag:
-            for gid in [ag.id] + ag.ancestor_ids:
-                forbidden |= group_unavail.get(gid, set())
+        for primary_gid in a.group_ids:
+            ag = groups_by_id.get(primary_gid)
+            if ag:
+                for gid in [ag.id] + ag.ancestor_ids:
+                    forbidden |= group_unavail.get(gid, set())
         return forbidden
 
     # Per-activity not-ideal set (prof + group + ancestors)
@@ -519,10 +528,11 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
         slots: Set[int] = set()
         if a.professor_id:
             slots |= prof_not_ideal.get(a.professor_id, set())
-        ag = groups_by_id.get(a.group_id)
-        if ag:
-            for gid in [ag.id] + ag.ancestor_ids:
-                slots |= group_not_ideal.get(gid, set())
+        for primary_gid in a.group_ids:
+            ag = groups_by_id.get(primary_gid)
+            if ag:
+                for gid in [ag.id] + ag.ancestor_ids:
+                    slots |= group_not_ideal.get(gid, set())
         return slots
 
     # Allowed starts after pre-filter
@@ -547,6 +557,38 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
             raise Exception(msg)
         allowed_starts_map[a.id] = usable
 
+    # ── Room pools ────────────────────────────────────────────────────────────
+    # Rooms with identical (features, capacity) are fully interchangeable for
+    # scheduling.  Instead of giving each activity one Boolean per candidate
+    # *room* and a per-room disjunctive no-overlap (which created ~52k optional
+    # intervals and a brutal room-relabelling symmetry — 27! for the lab rooms
+    # alone), we model each pool as ONE cumulative resource of capacity =
+    # pool size.  An activity picks a pool (Boolean per candidate pool, usually
+    # just one) and consumes one unit of it; concrete rooms are assigned in a
+    # sound post-processing pass after the solve.  This collapses the symmetry
+    # that made the feasible instance intractable.
+    #
+    # possible_rooms is always a union of *whole* pools: the room filter keys on
+    # exactly (features, capacity), so if one room of a pool qualifies they all
+    # do.  Hence an activity's candidate pools partition its possible_rooms.
+    def _pool_key(r: models.Room):
+        return (frozenset(r.features or []), r.capacity)
+
+    pool_rooms: Dict[object, List[models.Room]] = {}
+    for r in rooms:
+        pool_rooms.setdefault(_pool_key(r), []).append(r)
+    pool_index: Dict[object, int] = {pk: i for i, pk in enumerate(pool_rooms)}
+
+    possible_pools: Dict[str, List[object]] = {}
+    for a in activities:
+        seen, pks = set(), []
+        for r in a.possible_rooms:
+            pk = _pool_key(r)
+            if pk not in seen:
+                seen.add(pk)
+                pks.append(pk)
+        possible_pools[a.id] = pks
+
     # ── Build the CP-SAT model ───────────────────────────────────────────────
     model = cp_model.CpModel()
 
@@ -555,7 +597,10 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
     interval_var: Dict[str, cp_model.IntervalVar] = {}
     day_var: Dict[str, cp_model.IntVar] = {}
     is_day_bv: Dict[Tuple[str, int], cp_model.IntVar] = {}
-    room_indicator: Dict[Tuple[str, str], cp_model.IntVar] = {}
+    # pool_indicator[(a.id, pool_key)] is a BoolVar (1 = activity uses this pool)
+    # when the activity has >1 candidate pool, or the int 1 when it has exactly
+    # one (no choice to make).
+    pool_indicator: Dict[Tuple[str, object], object] = {}
     presence: Dict[Tuple[str, int], object] = {}   # value is BoolVar | 0 | 1
 
     for a in activities:
@@ -580,12 +625,17 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
             model.Add(d != di).OnlyEnforceIf(b.Not())
             is_day_bv[(a.id, di)] = b
 
-        # Exactly-one-room
-        for r in a.possible_rooms:
-            room_indicator[(a.id, r.id)] = model.NewBoolVar(f"ri_{a.id}_{r.id}")
-        model.AddExactlyOne(
-            room_indicator[(a.id, r.id)] for r in a.possible_rooms
-        )
+        # Exactly-one-pool.  With a single candidate pool there's nothing to
+        # decide — store the constant 1 so downstream gating collapses cleanly.
+        pks = possible_pools[a.id]
+        if len(pks) == 1:
+            pool_indicator[(a.id, pks[0])] = 1
+        else:
+            for pk in pks:
+                pool_indicator[(a.id, pk)] = model.NewBoolVar(
+                    f"pi_{a.id}_p{pool_index[pk]}"
+                )
+            model.AddExactlyOne(pool_indicator[(a.id, pk)] for pk in pks)
 
         # Presence per week — populated for every w in range(weeks) so we
         # never KeyError downstream.  Semantics generalise via w % 2:
@@ -640,29 +690,79 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
             db_update_failed_schedule(schedule_id, msg, token)
             raise Exception(msg)
 
-    # ── Room no-overlap per (week, room) ─────────────────────────────────────
-    activities_by_room: Dict[str, List] = {}
-    for a in activities:
-        for r in a.possible_rooms:
-            activities_by_room.setdefault(r.id, []).append(a)
+    # ── No-overlap week-collapsing ───────────────────────────────────────────
+    # The no-overlap loops below iterate per week.  When *every* activity in a
+    # set is unconditionally present in *every* week (presence == 1 for all w),
+    # the per-week constraints are byte-for-byte identical copies and we can
+    # emit a single one.  This is purely structural — it reads the actual
+    # ``presence`` values built above, so a set containing any biweekly /
+    # solver-chosen-phase activity (presence differs across weeks, or is a
+    # BoolVar) keeps the full per-week split and stays correct.
+    def _weeks_to_emit(acts) -> List[int]:
+        for a in acts:
+            for w in range(weeks):
+                pv = presence[(a.id, w)]
+                if not (isinstance(pv, int) and pv == 1):
+                    return list(range(weeks))
+        return [0]   # all members present in all weeks → one representative
 
-    for r_id, acts in activities_by_room.items():
-        for w in range(weeks):
-            intervals = []
+    # ── Shared presence-gated interval cache ─────────────────────────────────
+    # The professor and group no-overlap constraints both gate an activity's
+    # interval on the *same* expression: its presence in week w.  Previously
+    # each loop (and every leaf group an activity belongs to) created its own
+    # fresh OptionalIntervalVar — so a faculty-wide lecture spawned one identical
+    # interval per leaf descendant, inflating the model with tens of thousands
+    # of duplicates that presolve then had to detect and remove.  Build the
+    # presence-gated interval once per (activity, week) and reuse it everywhere.
+    # (The room-pool cumulative can't share these — its gate is
+    # pool_indicator AND presence, a different expression — so it keeps its own
+    # intervals.)
+    _presence_iv_cache: Dict[Tuple[str, int], object] = {}
+
+    def presence_interval(a, w):
+        key = (a.id, w)
+        if key not in _presence_iv_cache:
+            _presence_iv_cache[key] = _make_optional_interval(
+                model, f"oiv_a{a.id}_w{w}",
+                start_var[a.id], a.duration_slots, end_var[a.id],
+                presence[(a.id, w)],
+            )
+        return _presence_iv_cache[key]
+
+    # ── Room-pool capacity per (week, pool) ──────────────────────────────────
+    # One cumulative constraint per (pool, week): at most `capacity` activities
+    # (= rooms in the pool) may run simultaneously.  An activity contributes an
+    # optional interval to a pool, present iff it's active that week AND it
+    # selected that pool.  Pools of size 1 degenerate to a plain no-overlap.
+    activities_by_pool: Dict[object, List] = {}
+    for a in activities:
+        for pk in possible_pools[a.id]:
+            activities_by_pool.setdefault(pk, []).append(a)
+
+    for pk, acts in activities_by_pool.items():
+        capacity = len(pool_rooms[pk])
+        pidx = pool_index[pk]
+        for w in _weeks_to_emit(acts):
+            intervals, demands = [], []
             for a in acts:
-                pa = presence[(a.id, w)]
-                ri = room_indicator[(a.id, r_id)]
                 pres = _and_bool(
-                    model, f"pres_{a.id}_r{r_id}_w{w}", [pa, ri],
+                    model, f"pres_{a.id}_p{pidx}_w{w}",
+                    [presence[(a.id, w)], pool_indicator[(a.id, pk)]],
                 )
                 iv = _make_optional_interval(
-                    model, f"oiv_{a.id}_r{r_id}_w{w}",
+                    model, f"oiv_{a.id}_p{pidx}_w{w}",
                     start_var[a.id], a.duration_slots, end_var[a.id], pres,
                 )
                 if iv is not None:
                     intervals.append(iv)
-            if len(intervals) > 1:
-                model.AddNoOverlap(intervals)
+                    demands.append(1)
+            if not intervals:
+                continue
+            if capacity == 1:
+                if len(intervals) > 1:
+                    model.AddNoOverlap(intervals)
+            else:
+                model.AddCumulative(intervals, demands, capacity)
 
     # ── Professor no-overlap per (week, prof) ────────────────────────────────
     activities_by_prof: Dict[str, List] = {}
@@ -671,16 +771,8 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
             activities_by_prof.setdefault(a.professor_id, []).append(a)
 
     for p_id, acts in activities_by_prof.items():
-        for w in range(weeks):
-            intervals = []
-            for a in acts:
-                pa = presence[(a.id, w)]
-                iv = _make_optional_interval(
-                    model, f"oiv_p{p_id}_a{a.id}_w{w}",
-                    start_var[a.id], a.duration_slots, end_var[a.id], pa,
-                )
-                if iv is not None:
-                    intervals.append(iv)
+        for w in _weeks_to_emit(acts):
+            intervals = [iv for a in acts if (iv := presence_interval(a, w)) is not None]
             if len(intervals) > 1:
                 model.AddNoOverlap(intervals)
 
@@ -690,28 +782,32 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
     for L in leaf_groups:
         relevant = [
             a for a in activities
-            if a.group_id == L.id or a.group_id in L.ancestor_ids
+            if any(gid == L.id or gid in L.ancestor_ids for gid in a.group_ids)
         ]
         if not relevant:
             continue
-        for w in range(weeks):
-            intervals = []
-            for a in relevant:
-                pa = presence[(a.id, w)]
-                iv = _make_optional_interval(
-                    model, f"oiv_g{L.id}_a{a.id}_w{w}",
-                    start_var[a.id], a.duration_slots, end_var[a.id], pa,
-                )
-                if iv is not None:
-                    intervals.append(iv)
+        for w in _weeks_to_emit(relevant):
+            intervals = [iv for a in relevant if (iv := presence_interval(a, w)) is not None]
             if len(intervals) > 1:
                 model.AddNoOverlap(intervals)
 
     # ── Per-day caps (helper for "activity in day d, week w") ────────────────
+    # Cached by (activity, week, day): the same "present in this day-week" bool
+    # is requested by the professor cap, by every group cap that contains the
+    # activity, and by the compactness objective.  Without the cache each caller
+    # minted a fresh BoolVar + reifying constraints for the identical AND,
+    # producing thousands of duplicates (presolve was removing ~27k of them).
+    _present_in_day_cache: Dict[Tuple[str, int, int], object] = {}
+
     def present_in_day(a, w, d):
-        pa = presence[(a.id, w)]
-        is_d = is_day_bv[(a.id, d)]
-        return _and_bool(model, f"pid_{a.id}_w{w}_d{d}", [pa, is_d])
+        key = (a.id, w, d)
+        if key not in _present_in_day_cache:
+            pa = presence[(a.id, w)]
+            is_d = is_day_bv[(a.id, d)]
+            _present_in_day_cache[key] = _and_bool(
+                model, f"pid_{a.id}_w{w}_d{d}", [pa, is_d]
+            )
+        return _present_in_day_cache[key]
 
     # Professor per-day cap (when configured below tpd)
     for p in professors:
@@ -750,7 +846,7 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
         for grp in groups:
             relevant = [
                 a for a in activities
-                if a.group_id == grp.id or a.group_id in grp.ancestor_ids
+                if any(gid == grp.id or gid in grp.ancestor_ids for gid in a.group_ids)
             ]
             if not relevant:
                 continue
@@ -770,10 +866,20 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
                     expr = sum(dur * bv for dur, bv in terms if bv is not None) + const
                     model.Add(expr <= group_cap)
 
-    # ── Soft: preferred-hours violations ─────────────────────────────────────
-    # For each activity, for each allowed start, count overlap with
-    # not-ideal slots and add overlap * (start[a] == s) to penalty.
+    # ── Two-phase solve setup ────────────────────────────────────────────────
+    # Phase 1 solves the *hard-constraint model only* (no objective) — a pure
+    # feasibility search on the leanest model, which is what reliably yields a
+    # first valid timetable fast.  Phase 2 then adds the soft objective
+    # (preferred hours + gap compactness), warm-starts from the phase-1 solution
+    # via hints, and optimises within the remaining budget.  If phase 2 finds no
+    # solution before timing out, we fall back to the phase-1 schedule, so we
+    # always return *a* valid timetable instead of failing.
+    # SCHEDULE_FEASIBILITY_ONLY=1 skips phase 2 entirely.
+    _feasibility_only = os.getenv("SCHEDULE_FEASIBILITY_ONLY", "0") == "1"
+
     pref_terms: List[Tuple[int, cp_model.IntVar]] = []
+    span_vars: List[cp_model.IntVar] = []
+    any_used_vars: List[cp_model.IntVar] = []
     start_eq_bv_cache: Dict[Tuple[str, int], cp_model.IntVar] = {}
 
     def start_eq(a_id, s):
@@ -784,20 +890,6 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
             model.Add(start_var[a_id] != s).OnlyEnforceIf(b.Not())
             start_eq_bv_cache[key] = b
         return start_eq_bv_cache[key]
-
-    for a in activities:
-        ni = activity_not_ideal_slots(a)
-        if not ni:
-            continue
-        for s in allowed_starts_map[a.id]:
-            covered = set(range(s, s + a.duration_slots))
-            overlap = len(covered & ni)
-            if overlap > 0:
-                pref_terms.append((overlap, start_eq(a.id, s)))
-
-    # ── Soft: gap minimisation per (entity, week, day) ───────────────────────
-    span_vars: List[cp_model.IntVar] = []
-    any_used_vars: List[cp_model.IntVar] = []
 
     def add_entity_compactness(tag: str, relevant):
         """Add span + any_used vars for each (week, day) of this entity.
@@ -858,133 +950,268 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
                 span_vars.append(span)
                 any_used_vars.append(any_used)
 
-    for p in professors:
-        acts = activities_by_prof.get(p.id, [])
-        if acts:
-            add_entity_compactness(f"p{p.id}", acts)
-    for L in leaf_groups:
-        relevant = [
-            a for a in activities
-            if a.group_id == L.id or a.group_id in L.ancestor_ids
-        ]
-        if relevant:
-            add_entity_compactness(f"g{L.id}", relevant)
+    def build_objective():
+        """Populate pref_terms / span_vars / any_used_vars and set the Minimize
+        objective.  Called only for phase 2 — phase 1 is a pure feasibility
+        search, so none of this machinery (and its ~9k vars + reified
+        constraints) burdens the first-solution search."""
+        # Preferred-hours violations: overlap_count * (start[a] == s).
+        for a in activities:
+            ni = activity_not_ideal_slots(a)
+            if not ni:
+                continue
+            for s in allowed_starts_map[a.id]:
+                covered = set(range(s, s + a.duration_slots))
+                overlap = len(covered & ni)
+                if overlap > 0:
+                    pref_terms.append((overlap, start_eq(a.id, s)))
 
-    logger.info(
-        f"Compactness: {len(span_vars)} spans, {len(any_used_vars)} active flags."
-    )
-    if pref_terms:
-        logger.info(f"Preferred-hours penalties: {len(pref_terms)} terms.")
+        # Gap minimisation per (entity, week, day).
+        for p in professors:
+            acts = activities_by_prof.get(p.id, [])
+            if acts:
+                add_entity_compactness(f"p{p.id}", acts)
+        for L in leaf_groups:
+            relevant = [
+                a for a in activities
+                if any(gid == L.id or gid in L.ancestor_ids for gid in a.group_ids)
+            ]
+            if relevant:
+                add_entity_compactness(f"g{L.id}", relevant)
 
-    # ── Combined objective ───────────────────────────────────────────────────
-    # Worst-case compactness cost is bounded by len(spans)*(tpd-1) + len(any_used).
-    # Weight preferred-hours penalties above that so they always dominate.
-    max_compact_cost = len(span_vars) * (tpd - 1) + len(any_used_vars)
-    pref_weight = max(1, max_compact_cost) + 1
-
-    objective_terms = []
-    if pref_terms:
-        objective_terms.extend(pref_weight * w * v for w, v in pref_terms)
-    objective_terms.extend(span_vars)
-    objective_terms.extend(any_used_vars)
-    if objective_terms:
-        model.Minimize(sum(objective_terms))
         logger.info(
-            f"Objective: {len(pref_terms)} pref penalties (weight ×{pref_weight}) + "
-            f"{len(span_vars) + len(any_used_vars)} compactness terms (weight ×1)"
+            f"Compactness: {len(span_vars)} spans, {len(any_used_vars)} active flags."
         )
+        if pref_terms:
+            logger.info(f"Preferred-hours penalties: {len(pref_terms)} terms.")
 
-    # ── Solve ───────────────────────────────────────────────────────────────
-    solver = cp_model.CpSolver()
-    # Match Docker's cpus allocation (compose.yaml: cpus: 8.0).  CP-SAT
-    # runs multiple search strategies in parallel — one worker explores
-    # LP-based branching, another no-LP, others local search etc. — and
-    # the new interval-based model is small enough that 8 workers fit
-    # under the 12 GB memory limit.
-    # Read worker count from env so compose (8 CPUs, 12 GB) and k8s (1 CPU,
-    # 2 GiB) can be tuned independently without changing code.  Default to 2
-    # — safe under the k8s 2 GiB limit; set NUM_SEARCH_WORKERS=8 in compose.
-    _num_workers = int(os.getenv("NUM_SEARCH_WORKERS", "2"))
-    solver.parameters.num_search_workers = _num_workers
-    solver.parameters.max_time_in_seconds = float(
-        eta_helper.estimate_solver_seconds(len(activities))
-    )
-    solver.parameters.log_search_progress = True
+        # Worst-case compactness cost bounds the gap terms; weight preferred-hours
+        # penalties above that so they always dominate.
+        max_compact_cost = len(span_vars) * (tpd - 1) + len(any_used_vars)
+        pref_weight = max(1, max_compact_cost) + 1
+        objective_terms = []
+        if pref_terms:
+            objective_terms.extend(pref_weight * wt * v for wt, v in pref_terms)
+        objective_terms.extend(span_vars)
+        objective_terms.extend(any_used_vars)
+        if objective_terms:
+            model.Minimize(sum(objective_terms))
+            logger.info(
+                f"Objective: {len(pref_terms)} pref penalties (weight ×{pref_weight}) + "
+                f"{len(span_vars) + len(any_used_vars)} compactness terms (weight ×1)"
+            )
 
-    # Watchdog: stop early if the incumbent hasn't improved for a while.
-    # The stagnation budget scales with activity count — small problems get
-    # 60 s of patience, bigger ones up to 180 s, with a power-law in between.
-    # We still keep ``max_time_in_seconds`` as a hard upper bound.
-    stagnation_seconds = eta_helper.estimate_stagnation_seconds(len(activities))
-    stagnation_monitor = _StagnationMonitor(solver, max_idle_seconds=stagnation_seconds)
-    stagnation_callback = _StagnationStopper(stagnation_monitor)
+    def _make_solver(max_seconds: float, stop_after_first: bool = False) -> cp_model.CpSolver:
+        s = cp_model.CpSolver()
+        # Search parallelism — read from env so compose (8 CPUs) and k8s (3 CPU)
+        # tune independently.  Default 1 fits the k8s node budget.
+        s.parameters.num_search_workers = int(os.getenv("NUM_SEARCH_WORKERS", "1"))
+        s.parameters.max_time_in_seconds = float(max_seconds)
+        s.parameters.log_search_progress = True
+        # Let CP-SAT detect & break symmetry (interchangeable rooms collapse;
+        # no-op when rooms differ).
+        s.parameters.symmetry_level = 2
+        # Disable presolve probing.  On this model a single probe pass reports
+        # only ~1 deterministic unit but burns ~280 s of wall time, so the
+        # deterministic-time cap never bites and probing devoured the entire
+        # budget before search even started (booleans:0 branches:0 "Stopped
+        # after presolve").  Feasibility search doesn't need probing, and
+        # phase 2 is warm-started — so turn it off and let search run.
+        # Guarded: the field name can vary across OR-Tools versions.
+        try:
+            s.parameters.cp_model_probing_level = 0
+        except AttributeError:
+            logger.warning("cp_model_probing_level unavailable; probing left on")
+        if stop_after_first:
+            s.parameters.stop_after_first_solution = True
+        return s
 
-    logger.info(
-        f"Starting CP-SAT solver "
-        f"(time budget {solver.parameters.max_time_in_seconds:.0f}s, "
-        f"stagnation limit {stagnation_seconds}s)..."
-    )
+    total_budget = float(eta_helper.estimate_solver_seconds(len(activities)))
+    # Feasibility is usually quick; cap its slice so most of the budget is left
+    # for optimisation, but allow up to half if the instance is hard to satisfy.
+    feas_budget = min(600.0, total_budget * 0.5)
+
+    # ── Phase 1: feasibility ─────────────────────────────────────────────────
+    logger.info(f"Phase 1 (feasibility): time budget {feas_budget:.0f}s...")
     sys.stdout.flush()
-    start_time = time.time()
-    stagnation_monitor.start()
-    try:
-        result = solver.Solve(model, stagnation_callback)
-    finally:
-        stagnation_monitor.stop()
-    elapsed = time.time() - start_time
+    phase1_solver = _make_solver(feas_budget, stop_after_first=True)
+    t0 = time.time()
+    res1 = phase1_solver.Solve(model)
+    feas_elapsed = time.time() - t0
 
-    if result not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-        msg = "Unable to find a feasible schedule."
+    if res1 not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+        status_name = {
+            cp_model.UNKNOWN: "UNKNOWN (timeout or no solution found)",
+            cp_model.MODEL_INVALID: "MODEL_INVALID",
+            cp_model.INFEASIBLE: "INFEASIBLE (proven no solution exists)",
+        }.get(res1, f"status_code={res1}")
+        msg = (f"Unable to find a feasible schedule. CP-SAT status: {status_name} "
+               f"after {feas_elapsed:.1f}s (phase 1, feasibility).")
         logger.error(msg)
         db_update_failed_schedule(schedule_id, msg, token)
         raise Exception(msg)
 
-    pref_cost = sum(w * solver.Value(v) for w, v in pref_terms) if pref_terms else 0
-    span_total = sum(solver.Value(v) for v in span_vars) if span_vars else 0
-    active_days = sum(solver.Value(v) for v in any_used_vars) if any_used_vars else 0
-    if result == cp_model.OPTIMAL:
-        status = "OPTIMAL"
-    elif stagnation_monitor.fired():
-        status = "feasible (stagnation)"
-    else:
-        status = "feasible (time limit)"
-    logger.info(
-        f"Solve ({elapsed:.1f}s): preferred-hours penalty = {pref_cost}, "
-        f"span = {span_total}, active entity-days = {active_days}, "
-        f"compactness cost = {span_total + active_days} ({status})"
-    )
+    logger.info(f"Phase 1 found a feasible schedule in {feas_elapsed:.1f}s.")
+
+    # Solver we extract from — upgraded to phase 2 only if it returns a solution.
+    solver = phase1_solver
+
+    # ── Phase 2: optimise (warm-started from phase 1) ────────────────────────
+    if not _feasibility_only:
+        # Capture the phase-1 assignment as hints before extending the model.
+        hints: List[Tuple[object, int]] = []
+        for a in activities:
+            hints.append((start_var[a.id], phase1_solver.Value(start_var[a.id])))
+            for pk in possible_pools[a.id]:
+                pv_pool = pool_indicator[(a.id, pk)]
+                if not isinstance(pv_pool, int):
+                    hints.append((pv_pool, phase1_solver.Value(pv_pool)))
+            # A plain-BIWEEKLY activity has ONE phase BoolVar, exposed as
+            # presence[(a,0)] = phase and presence[(a,odd)] = phase.Not() — the
+            # same underlying variable.  Hinting more than one of these feeds
+            # CP-SAT the same variable twice and makes the whole hint invalid
+            # ("solution hint contains duplicate variables"), which silently
+            # kills phase-2 optimisation.  presence[(a,0)] is always the positive
+            # phase, so hint just that one.
+            pv0 = presence[(a.id, 0)]
+            if not isinstance(pv0, int):
+                hints.append((pv0, phase1_solver.Value(pv0)))
+
+        build_objective()
+        model.ClearHints()
+        for var, val in hints:
+            model.AddHint(var, val)
+
+        opt_budget = max(1.0, total_budget - feas_elapsed)
+        stagnation_seconds = eta_helper.estimate_stagnation_seconds(len(activities))
+        phase2_solver = _make_solver(opt_budget)
+        stagnation_monitor = _StagnationMonitor(phase2_solver, max_idle_seconds=stagnation_seconds)
+        stagnation_callback = _StagnationStopper(stagnation_monitor)
+
+        logger.info(
+            f"Phase 2 (optimise): time budget {opt_budget:.0f}s, "
+            f"stagnation limit {stagnation_seconds}s (warm-started)..."
+        )
+        sys.stdout.flush()
+        t0 = time.time()
+        stagnation_monitor.start()
+        try:
+            res2 = phase2_solver.Solve(model, stagnation_callback)
+        finally:
+            stagnation_monitor.stop()
+        opt_elapsed = time.time() - t0
+
+        if res2 in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+            solver = phase2_solver
+            pref_cost = sum(wt * phase2_solver.Value(v) for wt, v in pref_terms) if pref_terms else 0
+            span_total = sum(phase2_solver.Value(v) for v in span_vars) if span_vars else 0
+            active_days = sum(phase2_solver.Value(v) for v in any_used_vars) if any_used_vars else 0
+            if res2 == cp_model.OPTIMAL:
+                status = "OPTIMAL"
+            elif stagnation_monitor.fired():
+                status = "feasible (stagnation)"
+            else:
+                status = "feasible (time limit)"
+            logger.info(
+                f"Phase 2 ({opt_elapsed:.1f}s): preferred-hours penalty = {pref_cost}, "
+                f"span = {span_total}, active entity-days = {active_days}, "
+                f"compactness cost = {span_total + active_days} ({status})"
+            )
+        else:
+            logger.warning(
+                f"Phase 2 returned no solution after {opt_elapsed:.1f}s; "
+                f"falling back to the phase-1 feasible schedule."
+            )
 
     # ── Extract solution ────────────────────────────────────────────────────
-    scheduled_by_key: Dict[Tuple[str, str, int], models.ScheduledActivity] = {}
+    # The solver fixed each activity's start, active weeks, and chosen *pool*.
+    # Concrete rooms are assigned here.
+    # Per (pool, week) the cumulative guaranteed ≤ capacity simultaneous
+    # activities, i.e. the interval graph's max clique ≤ #rooms.  So the
+    # classic interval-colouring greedy (process by start time, take the
+    # lowest-indexed room that's free) is guaranteed to find a room within the
+    # pool — it never needs more colours than the clique number.  This makes the
+    # cumulative relaxation exact: a valid room assignment always exists and we
+    # construct it.  Rooms are assigned independently per week, so an activity
+    # may (rarely) use different rooms in different weeks — we emit one
+    # ScheduledActivity row per (room, weeks) group, which the data model
+    # already supports via active_weeks.
+    placements: Dict[str, Tuple[object, int, int, List[int]]] = {}
     for a in activities:
-        chosen_room = None
-        for r in a.possible_rooms:
-            if solver.Value(room_indicator[(a.id, r.id)]) == 1:
-                chosen_room = r.id
+        chosen_pk = None
+        for pk in possible_pools[a.id]:
+            pv_pool = pool_indicator[(a.id, pk)]
+            if (pv_pool == 1) if isinstance(pv_pool, int) else (solver.Value(pv_pool) == 1):
+                chosen_pk = pk
                 break
-        if chosen_room is None:
-            logger.error(f"No room chosen by solver for activity {a.id}")
+        if chosen_pk is None:
+            logger.error(f"No pool chosen by solver for activity {a.id}")
             continue
-        chosen_start = solver.Value(start_var[a.id])
+        start = solver.Value(start_var[a.id])
         active_weeks: List[int] = []
         for w in range(weeks):
             pv = presence[(a.id, w)]
-            if isinstance(pv, int):
-                if pv == 1:
-                    active_weeks.append(w)
-            else:
-                if solver.Value(pv) == 1:
-                    active_weeks.append(w)
-        key = (a.id, chosen_room, chosen_start)
-        scheduled_by_key[key] = models.ScheduledActivity(
-            schedule_id=schedule_id,
-            activity_id=a.id,
-            room_id=chosen_room,
-            start_timeslot=chosen_start,
-            active_weeks=active_weeks,
-        )
+            if (pv == 1) if isinstance(pv, int) else (solver.Value(pv) == 1):
+                active_weeks.append(w)
+        placements[a.id] = (chosen_pk, start, start + a.duration_slots, active_weeks)
 
-    final_list = list(scheduled_by_key.values())
+    # Greedy room colouring per pool.  We assign each activity ONE room for all
+    # of its active weeks whenever possible, so it shows up as a single entry in
+    # the timetable (no per-week duplication).  Process activities by start time
+    # and pick the lowest-indexed room that is free in *every* active week of
+    # the activity.  If the pool is so saturated that no single room is free
+    # across all those weeks, fall back to independent per-week assignment — the
+    # cumulative guarantees a free room exists within each individual week.
+    room_of: Dict[Tuple[str, int], str] = {}
+    for pk, rms in pool_rooms.items():
+        room_ids = [r.id for r in rms]
+        free_at = {rid: [0] * weeks for rid in room_ids}   # free time per room, per week
+        pool_acts = sorted(
+            ((aid, st, en, aw) for aid, (p, st, en, aw) in placements.items() if p == pk),
+            key=lambda x: x[1],
+        )
+        for aid, st, en, aw in pool_acts:
+            chosen = next(
+                (rid for rid in room_ids if all(free_at[rid][w] <= st for w in aw)),
+                None,
+            )
+            if chosen is not None:
+                for w in aw:
+                    free_at[chosen][w] = en
+                    room_of[(aid, w)] = chosen
+            else:
+                for w in aw:
+                    rw = next((rid for rid in room_ids if free_at[rid][w] <= st), None)
+                    if rw is None:
+                        # Cumulative guarantees this can't happen; guard anyway.
+                        logger.error(
+                            f"Room colouring overflow for activity {aid} in pool "
+                            f"{pool_index[pk]} week {w}; capacity may be exceeded."
+                        )
+                        rw = room_ids[0]
+                    free_at[rw][w] = en
+                    room_of[(aid, w)] = rw
+
+    # Build ScheduledActivity rows, grouping each activity's weeks by room.
+    final_list: List[models.ScheduledActivity] = []
+    for a in activities:
+        if a.id not in placements:
+            continue
+        _pk, start, _en, active_weeks = placements[a.id]
+        weeks_by_room: Dict[str, List[int]] = {}
+        for w in active_weeks:
+            rid = room_of.get((a.id, w))
+            if rid is not None:
+                weeks_by_room.setdefault(rid, []).append(w)
+        for rid, wks in weeks_by_room.items():
+            final_list.append(models.ScheduledActivity(
+                schedule_id=schedule_id,
+                activity_id=a.id,
+                room_id=rid,
+                start_timeslot=start,
+                active_weeks=sorted(wks),
+            ))
+
     replace_scheduled_activities(schedule_id, final_list, token)
     db_update_schedule_status(schedule_id, models.ScheduleStatus.COMPLETED, token)
     logger.info(f"Generated {len(final_list)} scheduled activities.")

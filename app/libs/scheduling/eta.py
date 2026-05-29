@@ -1,16 +1,18 @@
 """Shared formulas for estimating schedule generation duration.
 
-Calibrated for the k8s worker: 2 CPU cores, 4 GiB RAM, NUM_SEARCH_WORKERS=2.
+Calibrated for the k8s worker: 3 CPU cores, 8 GiB RAM, NUM_SEARCH_WORKERS=3.
+(Reduced from 4 to leave 1 vCPU headroom for API and UI pods on the same node.)
 
 Original reference (8 workers, 8 CPUs, 12 GB — compose only):
   106 activities → ~417 s total (~80 s model build + ~317 s typical solver
   + ~20 s data-fetch / DB overhead).
 
-With 2 CP-SAT search workers instead of 8, solver throughput is roughly
-2.5× lower (CP-SAT's parallelism is sub-linear; 8 workers ≈ 4-5× faster
-than 1, 2 workers ≈ 1.5-2×).  The model-build phase is single-threaded so
-its coefficient is unchanged.  Stagnation patience is raised from 180 → 300 s
-because improvements arrive less frequently with fewer workers.
+With 3 CP-SAT search workers, solver throughput is roughly 2× lower than
+8 workers (CP-SAT's parallelism is sub-linear; 8 workers ≈ 4-5× faster
+than 1, 3 workers ≈ 2-2.5×).  The model-build phase is single-threaded so
+its coefficient is unchanged.  Stagnation patience kept at 300 s — with 3
+parallel threads improvements arrive frequently enough that 300 s of idle
+reliably means the search has converged.
 
 Three solver-time helpers, used in different places:
   - ``estimate_solver_seconds``         : worst-case ceiling. Used by the
@@ -26,23 +28,31 @@ Three solver-time helpers, used in different places:
 # Fixed overhead: data fetching from the API, DB writes, network round-trips.
 _OVERHEAD_SECONDS = 20
 
-# Model-build cost: power-law in num_activities.  Single-threaded — unchanged
-# from the 8-worker calibration.
-# Calibration: 106 activities → ~80 s of build time.
-#   build = _BUILD_COEF * n ** _BUILD_EXPONENT
-#   80 = c * 106 ** 1.3 → c ≈ 0.224
-_BUILD_COEF = 0.224
+# Model-build cost: power-law in num_activities.  Single-threaded.
+# Re-calibrated for the room-pooling model, which builds far fewer variables
+# than the old per-(activity,room,week) formulation.  Measured: 700 activities
+# → ~1.2 s of Python model construction (worker log: "Generating schedule" to
+# "Phase 1" gap).  build = _BUILD_COEF * n ** 1.3 with 1.2 = c * 700**1.3 →
+# c ≈ 0.00024.  Build is now negligible; the solver dominates end-to-end time.
+_BUILD_COEF = 0.00024
 _BUILD_EXPONENT = 1.3
 
-# Solver budget: re-calibrated for 2 CP-SAT workers (k8s deployment).
-# 8-worker reference: 106 activities → 600 s  (c ≈ 1.68)
-# 2-worker estimate : multiply by 2.5×         → c ≈ 4.20
+# Solver *budget* (worst-case ceiling passed to CP-SAT as max_time_in_seconds).
+# Kept generous so hard instances aren't starved — the two-phase solve almost
+# always stops earlier via the stagnation watchdog (see typical estimate below).
 #   solver = _SOLVER_COEF * n ** _SOLVER_EXPONENT
-#   1500 = c * 106 ** 1.3 → c ≈ 4.20
-_SOLVER_COEF = 4.20
+_SOLVER_COEF = 3.36
 _SOLVER_EXPONENT = 1.3
 _SOLVER_MIN_SECONDS = 120      # tiny problems still need warm-up time
-_SOLVER_MAX_SECONDS = 1800     # 30-minute cap (interactive ceiling)
+_SOLVER_MAX_SECONDS = 7200     # 2-hour hard ceiling
+
+# Typical solver runtime (drives the user-facing ETA).  This is what runs
+# actually take: phase-1 feasibility + phase-2 optimisation until the stagnation
+# watchdog stops it — well below the worst-case budget.  Measured: 700 activities
+# → ~4.8 k s total wall time, of which ~4.78 k s is solver (phase 1 ≈ 270 s +
+# phase 2 ≈ 4.5 k s).  typical = _SOLVER_TYPICAL_COEF * n ** 1.3 with
+# 4780 = c * 700**1.3 → c ≈ 0.96.  Clamped to [MIN, worst-case budget].
+_SOLVER_TYPICAL_COEF = 0.96
 
 
 def _power(base: float, exponent: float) -> float:
@@ -78,9 +88,8 @@ def estimate_stagnation_seconds(num_activities: int) -> int:
     Smaller problems converge faster so they should bail sooner; bigger
     ones might need a few minutes of plateau before the search is truly
     done.  Power-law in num_activities, clamped to [60, 300] seconds.
-    Upper bound raised from 180 → 300 s for the 2-worker k8s deployment:
-    with fewer parallel search threads, improvements arrive less frequently
-    so a longer idle window is needed before declaring stagnation.
+    With 4 parallel search threads improvements arrive frequently; 300 s of
+    idle reliably signals convergence.
     """
     if num_activities <= 0:
         return 60
@@ -89,34 +98,25 @@ def estimate_stagnation_seconds(num_activities: int) -> int:
 
 
 def estimate_solver_typical_seconds(num_activities: int) -> int:
-    """Expected/typical solver runtime, accounting for the stagnation
-    watchdog implemented in the worker.
+    """Expected/typical solver runtime — the basis for the user-facing ETA.
 
-    The worker's CP-SAT call has two exit paths:
-      - ``max_time_in_seconds`` (worst case) — what ``estimate_solver_seconds``
-        returns and what we pass to CP-SAT as the hard ceiling.
-      - Stagnation early-exit — fires when no improvement has been seen for
-        ``estimate_stagnation_seconds`` seconds.
+    The two-phase solve (phase-1 feasibility + phase-2 optimisation with the
+    stagnation watchdog) almost never runs to the worst-case ``max_time``
+    budget; it stops once the objective plateaus.  So the typical runtime has
+    its own power law fitted to observed end-to-end runs, independent of the
+    (deliberately generous) worst-case budget.
 
-    Calibrated for the 2-worker k8s deployment (2 CPU / 4 GiB):
-      Observed: 229 activities → ~2100 s total (~261 s build + ~1819 s solver).
-      The solver hit the 1800 s cap — with 2 workers it keeps finding
-      improvements throughout the budget rather than plateauing early.
+    Calibration (room-pooling model, 3-worker k8s): 700 activities → ~4.78 k s
+    of solver time → ``_SOLVER_TYPICAL_COEF ≈ 0.96``.
 
-    Formula: min(worst, 0.9 × worst + stagnation)
-      - Resolves to ~worst for any instance where worst ≥ stagnation × 10
-        (i.e. all non-trivial problems with the current coefficients).
-      - For very small problems (tiny worst budget) the stagnation term
-        can still produce an early-exit estimate, which keeps the ETA
-        from being overly pessimistic on toy instances.
-
-    Used by ``estimate_total_duration_seconds`` for the user-facing ETA.
+    Clamped to ``[_SOLVER_MIN_SECONDS, worst-case budget]`` so it never exceeds
+    the hard ceiling we actually grant CP-SAT.
     """
     if num_activities <= 0:
         return _SOLVER_MIN_SECONDS
+    raw = int(_SOLVER_TYPICAL_COEF * _power(num_activities, _SOLVER_EXPONENT))
     worst = estimate_solver_seconds(num_activities)
-    stagnation = estimate_stagnation_seconds(num_activities)
-    return min(worst, int(0.9 * worst) + stagnation)
+    return max(_SOLVER_MIN_SECONDS, min(worst, raw))
 
 
 def estimate_total_duration_seconds(num_activities: int) -> int:

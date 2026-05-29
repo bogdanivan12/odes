@@ -134,7 +134,7 @@ class Activity(BaseModel):
     activity_type: ActivityType
     course_id: str
     duration_slots: int
-    group_id: str
+    group_ids: List[str] = Field(default_factory=list)
     professor_id: Optional[str] = None
     required_room_features: List[str] = Field(default_factory=list)
     frequency: Frequency = Frequency.WEEKLY

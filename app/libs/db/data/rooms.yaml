@@ -2,10 +2,6 @@ rooms:
   # ── Robotica ─────────────────────────────────────────────────────────────────
   - { name: "L.315 Robotica", capacity: 30, features: [laborator, robotica] }
 
-  # ── Magurele (Facultatea de Fizica) ─────────────────────────────────────────
-  - { name: "Fac.Fizica-Magurele", capacity: 150, features: [magurele] }
-  - { name: "Magurele lab",        capacity: 30,  features: [laborator, magurele] }
-
   # ── Floor 0 ────────────────────────────────────────────────────────────────
   - { name: "0(Haret)",    capacity: 130 }
   - { name: "001",  capacity: 30 }

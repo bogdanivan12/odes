@@ -1,0 +1,3 @@
+group: LLMsCogn_2
+activities:
+  - { course: "LLMs and Cognition", type: laboratory, duration_slots: 2, frequency: weekly, professor: "Claudiu Creanga" }

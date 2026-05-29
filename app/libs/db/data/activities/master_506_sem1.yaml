@@ -1,0 +1,5 @@
+group: Semigrupa 506_1
+activities:
+  - { course: "Testarea Sistemelor Software",                  type: laboratory, duration_slots: 2, frequency: biweekly, professor: "Radu Bobe",         additional_groups: ["TestSistSoft_1"] }
+  - { course: "Teme Speciale in Inginerie Software I",         type: laboratory, duration_slots: 2, frequency: biweekly, professor: "Liviu Bouruc",       additional_groups: ["TopSpIngSoft_1"] }
+  - { course: "Managementul Echipelor de Dezvoltare Software", type: laboratory, duration_slots: 2, frequency: biweekly, professor: "Radu Gramatovici",   additional_groups: ["MngEchipDezvSoft_1"] }

@@ -339,7 +339,8 @@ export default function ScheduleEditPage() {
           activeWeeks,
           activityType: act.activity_type,
           courseId: String(act.course_id),
-          groupId: String(act.group_id),
+          groupId: String(act.group_ids?.[0] ?? ''),
+          allGroupIds: (act.group_ids ?? []).map(String),
           professorId: act.professor_id ? String(act.professor_id) : null,
           durationSlots: act.duration_slots,
           requiredRoomFeatures: act.required_room_features ?? [],
@@ -390,7 +391,7 @@ export default function ScheduleEditPage() {
   const byGroupEntries = useMemo(() => {
     if (!selectedGroupId) return [];
     const gIds = getGroupAndAncestorIds(selectedGroupId);
-    return effectiveEntries.filter((e) => gIds.has(e.groupId));
+    return effectiveEntries.filter((e) => e.allGroupIds.some((gid) => gIds.has(gid)));
   }, [effectiveEntries, selectedGroupId, getGroupAndAncestorIds]);
 
   const byProfessorEntries = useMemo(
@@ -613,8 +614,8 @@ export default function ScheduleEditPage() {
       const entry = effectiveEntries.find((e) => e.schedRecId === schedRecId);
       if (!entry) return schedRecId;
       const course = coursesById.get(entry.courseId)?.name ?? '—';
-      const group = groupsById.get(entry.groupId)?.name ?? '—';
-      return `${course} (${group})`;
+      const groups = entry.allGroupIds.map((gid) => groupsById.get(gid)?.name ?? gid).join(', ') || '—';
+      return `${course} (${groups})`;
     },
     [effectiveEntries, coursesById, groupsById],
   );
@@ -638,7 +639,7 @@ export default function ScheduleEditPage() {
         let description = c.description; // fallback to backend text
         if (other) {
           const course = coursesById.get(other.courseId)?.name ?? '—';
-          const group = groupsById.get(other.groupId)?.name ?? '—';
+          const groups = other.allGroupIds.map((gid) => groupsById.get(gid)?.name ?? gid).join(', ') || '—';
           const room = roomsById.get(other.roomId)?.name ?? '—';
           const prof = other.professorId
             ? (usersById.get(other.professorId)?.name ??
@@ -647,13 +648,13 @@ export default function ScheduleEditPage() {
             : null;
 
           if (c.type === 'room') {
-            description = `Room ${room} is already occupied by "${course}" (${group})`;
+            description = `Room ${room} is already occupied by "${course}" (${groups})`;
           } else if (c.type === 'professor') {
             description = prof
-              ? `${prof} already has "${course}" (${group})`
-              : `The professor already has "${course}" (${group})`;
+              ? `${prof} already has "${course}" (${groups})`
+              : `The professor already has "${course}" (${groups})`;
           } else if (c.type === 'group') {
-            description = `Group ${group} already has "${course}"`;
+            description = `Group ${groups} already has "${course}"`;
           }
         }
 

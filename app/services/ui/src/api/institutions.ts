@@ -38,10 +38,11 @@ export interface InstitutionRoom {
 export interface InstitutionActivity {
   id?: string;
   _id?: string;
+  institution_id?: string;
   activity_type: string;
   course_id: string;
   duration_slots: number;
-  group_id: string;
+  group_ids: string[];
   professor_id?: string | null;
   required_room_features?: string[];
   frequency: string;

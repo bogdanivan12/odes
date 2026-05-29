@@ -1,0 +1,4 @@
+group: Semigrupa 512_2
+activities:
+  - { course: "Information Retrieval and Text Mining", type: laboratory, duration_slots: 2, frequency: biweekly, professor: "Miruna-Andreea Zavelca", additional_groups: ["InfRetrTextMining_2"] }
+  - { course: "Machine Translation",                   type: laboratory, duration_slots: 1, frequency: biweekly, professor: "Sergiu Nisioi",          additional_groups: ["MachTrans_2"] }
