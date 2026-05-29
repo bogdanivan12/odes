@@ -223,8 +223,8 @@ export default function MemberMainPage() {
     const byType = compareAlphabetical(toTitleLabel(a.activity_type), toTitleLabel(b.activity_type));
     if (byType !== 0) return byType;
     return compareAlphabetical(
-      groupsById.get(String(a.group_id)) ?? '',
-      groupsById.get(String(b.group_id)) ?? '',
+      groupsById.get(String(a.group_ids?.[0] ?? '')) ?? '',
+      groupsById.get(String(b.group_ids?.[0] ?? '')) ?? '',
     );
   }), [activities, coursesById, groupsById]);
 
@@ -435,7 +435,7 @@ export default function MemberMainPage() {
                         const id = String(activity.id ?? '').trim();
                         const canOpen = Boolean(id);
                         const courseName = coursesById.get(String(activity.course_id)) ?? 'Unknown course';
-                        const groupName = groupsById.get(String(activity.group_id)) ?? 'Unknown group';
+                        const groupName = groupsById.get(String(activity.group_ids?.[0] ?? '')) ?? 'Unknown group';
                         const institutionName = institutionNamesById.get(String(activity.institution_id)) ?? 'Institution';
                         return (
                           <Box

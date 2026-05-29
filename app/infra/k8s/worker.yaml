@@ -4,7 +4,7 @@ metadata:
   name: worker
   namespace: odes
 spec:
-  # replicas is managed by KEDA (0 when idle, 1 during generation)
+  replicas: 1
   selector:
     matchLabels:
       app: worker
@@ -22,10 +22,21 @@ spec:
           envFrom:
             - secretRef:
                 name: odes-secret
+          env:
+            # CP-SAT search parallelism — 3 workers on the 4 vCPU node.
+            # Leaves ~1 vCPU headroom for the API and UI pods on the same node.
+            # Override to 8 in compose (12 GB / 8 CPUs available there).
+            - name: NUM_SEARCH_WORKERS
+              value: "3"
+            # Optional: set to "1" to skip phase-2 optimisation and return the
+            # first feasible schedule (diagnostic / fast-path).  "0" = full
+            # two-phase solve (feasibility then warm-started optimisation).
+            - name: SCHEDULE_FEASIBILITY_ONLY
+              value: "0"
           resources:
             requests:
-              cpu: "1200m"
-              memory: "1Gi"
-            limits:
-              cpu: "2"
+              cpu: "1500m"
               memory: "4Gi"
+            limits:
+              cpu: "3"      # Reserve 1 vCPU for API + UI
+              memory: "5Gi"

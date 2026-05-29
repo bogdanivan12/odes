@@ -368,9 +368,9 @@ export default function RoomMainPage() {
                     {compatibleActivities
                       .slice(activitiesPage * activitiesRowsPerPage, (activitiesPage + 1) * activitiesRowsPerPage)
                       .map((activity) => {
-                      const activityId = String(activity.id ?? activity._id ?? `${activity.course_id}-${activity.group_id}-${activity.activity_type}`);
+                      const activityId = String(activity.id ?? activity._id ?? `${activity.course_id}-${activity.group_ids?.[0] ?? ''}-${activity.activity_type}`);
                       const courseName = coursesById.get(String(activity.course_id))?.name ?? 'Unknown course';
-                      const groupName = groupsById.get(String(activity.group_id))?.name ?? 'Unknown group';
+                      const groupName = groupsById.get(String(activity.group_ids?.[0] ?? ''))?.name ?? 'Unknown group';
                       const professor = activity.professor_id ? usersById.get(String(activity.professor_id)) : undefined;
                       const professorName = professor?.name ?? 'Unassigned';
 
@@ -402,7 +402,7 @@ export default function RoomMainPage() {
                               variant="caption"
                               color="primary.main"
                               sx={{ cursor: 'pointer' }}
-                              onClick={(e) => { e.stopPropagation(); navigate(groupRoute(String(activity.group_id))); }}
+                              onClick={(e) => { e.stopPropagation(); navigate(groupRoute(String(activity.group_ids?.[0] ?? ''))); }}
                             >
                               {groupName}
                             </Typography>

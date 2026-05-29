@@ -1,0 +1,6 @@
+group: Grupa 461
+activities:
+  - { course: "Ingineria programarii",                type: laboratory, duration_slots: 2, frequency: weekly,       professor: "Radu Gramatovici" }
+  - { course: "Ingineria programarii",                type: laboratory, duration_slots: 2, frequency: biweekly, professor: "Radu Gramatovici" }
+  - { course: "Criptografie si securitate",           type: laboratory, duration_slots: 2, frequency: weekly,       professor: "Paul Cotan" }
+  - { course: "Managementul si dezvoltarea carierei", type: seminar,    duration_slots: 2, frequency: biweekly, professor: "Loredana-Simona Carp" }

@@ -1,0 +1,3 @@
+group: Seria 32 (MATE APLICATE)
+activities:
+  - { course: "Modelarea matematica a sistemelor materiale II", type: course, duration_slots: 2, frequency: weekly, professor: "Raisa Pascan" }

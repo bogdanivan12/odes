@@ -1,0 +1,10 @@
+group: Grupa 262
+activities:
+  - { course: "Fundamente ale retelelor de calculatoare", type: laboratory, duration_slots: 2, frequency: weekly,        professor: "Mihaita Dragan" }
+  - { course: "Baze de date",                             type: laboratory, duration_slots: 2, frequency: weekly,        professor: "Flavius-Stefan Stan" }
+  - { course: "Programare orientata pe obiecte I",        type: laboratory, duration_slots: 2, frequency: weekly,    professor: "Tiberiu Maxim" }
+  - { course: "Structuri de date si algoritmi",           type: laboratory, duration_slots: 2, frequency: biweekly, professor: "Radu-Stefan Mincu" }
+  - { course: "Structuri de date si algoritmi",           type: seminar,    duration_slots: 2, frequency: biweekly,  professor: "Radu-Stefan Mincu" }
+  - { course: "Programare orientata pe obiecte I",        type: seminar,    duration_slots: 2, frequency: biweekly,  professor: "Anca-Madalina Dobrovat" }
+  - { course: "Teoria sistemelor",                 type: laboratory, duration_slots: 2, frequency: weekly, selected_timeslot: { start: 36, weeks: [0, 1] } }
+  - { course: "Elemente de electronica analogica", type: laboratory, duration_slots: 2, frequency: weekly, selected_timeslot: { start: 38, weeks: [0, 1] } }

@@ -1,0 +1,3 @@
+group: Asociatii operationale de securitate cibernetica
+activities:
+  - { course: "Asociatii operationale de securitate cibernetica", type: course, duration_slots: 2, frequency: weekly, professor: "Mihaita Dragan" }

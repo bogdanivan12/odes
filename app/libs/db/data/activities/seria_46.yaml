@@ -1,0 +1,5 @@
+group: Seria 46
+activities:
+  - { course: "Managementul si dezvoltarea carierei", type: course, duration_slots: 2, frequency: weekly, professor: "Ioana Josan" }
+  - { course: "Ingineria programarii",                type: course, duration_slots: 2, frequency: weekly, professor: "Radu Gramatovici" }
+  - { course: "Criptografie si securitate",           type: course, duration_slots: 2, frequency: weekly, professor: "George Teseleanu" }

@@ -1,0 +1,7 @@
+group: Grupa 201
+activities:
+  - { course: "Algebra III",                       type: seminar, duration_slots: 2, frequency: weekly, professor: "Daniel Bulacu" }
+  - { course: "Teoria masurarii si a integrarii",  type: seminar, duration_slots: 2, frequency: weekly, professor: "Cristian Bereanu" }
+  - { course: "Geometrie diferentiala I",          type: seminar, duration_slots: 2, frequency: weekly, professor: "Catalin Gherghe" }
+  - { course: "Ecuatii diferentiale",              type: seminar, duration_slots: 2, frequency: weekly, professor: "Aurelian Cernea" }
+  - { course: "Teoria numerelor",                  type: seminar, duration_slots: 3, frequency: weekly, professor: "Alexandru Gica" }

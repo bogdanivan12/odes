@@ -1,0 +1,4 @@
+group: Arhitectura sistemelor de calcul
+activities:
+  - { course: "Arhitectura sistemelor de calcul", type: course,     duration_slots: 2, frequency: weekly, professor: "Cristian Rusu" }
+  - { course: "Arhitectura sistemelor de calcul", type: laboratory, duration_slots: 2, frequency: weekly, professor: "Bogdan Macovei" }

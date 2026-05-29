@@ -1,0 +1,5 @@
+group: Semigrupa 407_2
+activities:
+  - { course: "Invatare automata aplicata",               type: laboratory, duration_slots: 2, frequency: weekly, professor: "Adriana Costache", additional_groups: ["InvAutApl_2"] }
+  - { course: "Programare probabilista",                  type: laboratory, duration_slots: 2, frequency: weekly, professor: "Marius Popescu",   additional_groups: ["ProgProb_2"] }
+  - { course: "Reprezentarea cunostintelor si inferenta", type: laboratory, duration_slots: 2, frequency: weekly, professor: "Marina Cidota",    additional_groups: ["RepCunInf_2"] }

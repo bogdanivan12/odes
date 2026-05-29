@@ -1,0 +1,5 @@
+group: Semigrupa 411_2
+activities:
+  - { course: "Invatare automata aplicata",     type: laboratory, duration_slots: 2, frequency: weekly, professor: "Vlad Hondru",         additional_groups: ["InvAutApl_4"] }
+  - { course: "Programare probabilista",        type: laboratory, duration_slots: 2, frequency: weekly, professor: "Marius Popescu",      additional_groups: ["ProgProb_4"] }
+  - { course: "Analiza exploratorie a datelor", type: laboratory, duration_slots: 2, frequency: weekly, professor: "Bogdan-Nicolae Ichim", additional_groups: ["AnExpDate_2"] }

@@ -1,0 +1,5 @@
+group: Semigrupa 412_2
+activities:
+  - { course: "Invatare automata aplicata",                           type: laboratory,     duration_slots: 2, frequency: weekly, professor: "Vlad Hondru",            additional_groups: ["InvAutApl_6"] }
+  - { course: "Fundamentele procesarii limbajului natural",           type: laboratory,     duration_slots: 2, frequency: weekly, professor: "Miruna-Andreea Zavelca", additional_groups: ["FundPLN_2"] }
+  - { course: "Elemente de lingvistica aplicata pentru informatica",  type: seminar, duration_slots: 2, frequency: weekly, professor: "Anca Dinu",              additional_groups: ["LingvApl_2"] }

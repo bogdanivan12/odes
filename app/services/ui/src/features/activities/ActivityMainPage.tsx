@@ -64,7 +64,7 @@ export default function ActivityMainPage() {
   const [currentUserLoading, setCurrentUserLoading] = useState(true);
 
   const [formCourseId, setFormCourseId] = useState('');
-  const [formGroupId, setFormGroupId] = useState('');
+  const [formGroupIds, setFormGroupIds] = useState<string[]>([]);
   const [formProfessorId, setFormProfessorId] = useState('');
   const [formActivityType, setFormActivityType] = useState('course');
   const [formFrequency, setFormFrequency] = useState('weekly');
@@ -73,7 +73,7 @@ export default function ActivityMainPage() {
 
   const populateForm = (value: Activity) => {
     setFormCourseId(String(value.course_id));
-    setFormGroupId(String(value.group_id));
+    setFormGroupIds(value.group_ids ?? []);
     setFormProfessorId(value.professor_id ? String(value.professor_id) : '');
     setFormActivityType(value.activity_type);
     setFormFrequency(value.frequency);
@@ -170,7 +170,7 @@ export default function ActivityMainPage() {
     if (!activity) return false;
     return (
       Boolean(coursesById.get(String(activity.course_id))) &&
-      Boolean(groupsById.get(String(activity.group_id))) &&
+      (activity.group_ids ?? []).length > 0 &&
       (!activity.professor_id || Boolean(usersById.get(String(activity.professor_id))))
     );
   }, [activity, coursesById, groupsById, usersById]);
@@ -178,7 +178,7 @@ export default function ActivityMainPage() {
   const validateForm = () => {
     const duration = Number(formDurationSlots);
     if (!formCourseId) return 'Course is required.';
-    if (!formGroupId) return 'Group is required.';
+    if (formGroupIds.length === 0) return 'At least one group is required.';
     if (!Number.isFinite(duration) || duration < 1) return 'Duration slots must be a positive number.';
     return null;
   };
@@ -192,7 +192,7 @@ export default function ActivityMainPage() {
     try {
       const updated = await updateActivity(activity.id, {
         course_id: formCourseId,
-        group_id: formGroupId,
+        group_ids: formGroupIds,
         professor_id: formProfessorId || null,
         activity_type: formActivityType,
         frequency: formFrequency,
@@ -254,7 +254,7 @@ export default function ActivityMainPage() {
     : INSTITUTIONS_ROUTE;
 
   const courseName = coursesById.get(String(activity.course_id))?.name ?? 'Unknown course';
-  const groupName = groupsById.get(String(activity.group_id))?.name ?? 'Unknown group';
+  const groupNames = (activity.group_ids ?? []).map((gid) => groupsById.get(String(gid))?.name).filter(Boolean).join(', ') || 'Unknown group';
   const professor = activity.professor_id ? usersById.get(String(activity.professor_id)) : undefined;
   const professorName = professor?.name ?? (activity.professor_id ? 'Unknown professor' : 'Unassigned');
   const professorEmail = professor?.email;
@@ -290,7 +290,15 @@ export default function ActivityMainPage() {
       <TextField select label="Course" value={formCourseId} onChange={(e) => setFormCourseId(e.target.value)} fullWidth disabled={disabled}>
         {courses.map((c) => { const id = String(c.id ?? c._id ?? ''); return <MenuItem key={id} value={id}>{c.name}</MenuItem>; })}
       </TextField>
-      <TextField select label="Group" value={formGroupId} onChange={(e) => setFormGroupId(e.target.value)} fullWidth disabled={disabled}>
+      <TextField
+        select
+        label="Groups"
+        value={formGroupIds}
+        onChange={(e) => { const v = e.target.value; setFormGroupIds(Array.isArray(v) ? v : typeof v === 'string' ? v.split(',') : []); }}
+        fullWidth
+        disabled={disabled}
+        SelectProps={{ multiple: true, renderValue: (sel) => (sel as string[]).map((id) => groupsById.get(id)?.name ?? id).join(', ') }}
+      >
         {groups.map((g) => { const id = String(g.id ?? g._id ?? ''); return <MenuItem key={id} value={id}>{g.name}</MenuItem>; })}
       </TextField>
       <TextField select label="Professor" value={formProfessorId} onChange={(e) => setFormProfessorId(e.target.value)} fullWidth disabled={disabled}>
@@ -394,8 +402,8 @@ export default function ActivityMainPage() {
             )}
             {entityCard(
               <Diversity3Icon sx={{ fontSize: '1rem' }} />,
-              'Group', groupName, undefined,
-              () => navigate(groupRoute(String(activity.group_id))),
+              `Group${(activity.group_ids ?? []).length !== 1 ? 's' : ''}`, groupNames, undefined,
+              (activity.group_ids ?? []).length === 1 ? () => navigate(groupRoute(String(activity.group_ids![0]))) : undefined,
             )}
             {entityCard(
               <SchoolIcon sx={{ fontSize: '1rem' }} />,

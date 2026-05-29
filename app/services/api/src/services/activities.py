@@ -77,7 +77,7 @@ def create_activity(db: Database, request: dto_in.CreateActivity, current_user_i
     """Create a new activity"""
     logger.info(
         f"Creating activity for institution={request.institution_id}"
-        f" course={request.course_id} group={request.group_id} professor={request.professor_id}"
+        f" course={request.course_id} groups={request.group_ids} professor={request.professor_id}"
     )
 
     activity = models.Activity(**request.model_dump())
@@ -110,24 +110,30 @@ def create_activity(db: Database, request: dto_in.CreateActivity, current_user_i
                    f" institution with id {request.institution_id}."
         )
 
-    group = groups_repo.find_group_by_id(db, request.group_id)
-    if not group:
-        logger.error(f"Group not found: {request.group_id}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Group with id {request.group_id} not found."
-        )
-
-    group = models.Group(**group)
-    if group.institution_id != request.institution_id:
-        logger.error(
-            f"Group {request.group_id} does not belong to institution {request.institution_id}"
-        )
+    if not request.group_ids:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Group with id {request.group_id} does not belong to"
-                   f" institution with id {request.institution_id}."
+            detail="At least one group_id is required."
         )
+
+    for gid in request.group_ids:
+        group_data = groups_repo.find_group_by_id(db, gid)
+        if not group_data:
+            logger.error(f"Group not found: {gid}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Group with id {gid} not found."
+            )
+        group = models.Group(**group_data)
+        if group.institution_id != request.institution_id:
+            logger.error(
+                f"Group {gid} does not belong to institution {request.institution_id}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Group with id {gid} does not belong to"
+                       f" institution with id {request.institution_id}."
+            )
 
     professor = users_repo.find_user_by_id(db, request.professor_id)
     if not professor:
@@ -222,25 +228,30 @@ def update_activity(
                        f" institution with id {activity.institution_id}."
             )
 
-    if "group_id" in updated_data:
-        group = groups_repo.find_group_by_id(db, updated_data["group_id"])
-        if not group:
-            logger.error(f"Group not found for update: {updated_data['group_id']}")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Group with id {updated_data['group_id']} not found."
-            )
-
-        group = models.Group(**group)
-        if group.institution_id != activity.institution_id:
-            logger.error(
-                f"Group {group.id} does not belong to institution {activity.institution_id}"
-            )
+    if "group_ids" in updated_data:
+        if not updated_data["group_ids"]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Group with id {group.id} does not belong to"
-                       f" institution with id {activity.institution_id}."
+                detail="At least one group_id is required."
             )
+        for gid in updated_data["group_ids"]:
+            group_data = groups_repo.find_group_by_id(db, gid)
+            if not group_data:
+                logger.error(f"Group not found for update: {gid}")
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Group with id {gid} not found."
+                )
+            group = models.Group(**group_data)
+            if group.institution_id != activity.institution_id:
+                logger.error(
+                    f"Group {gid} does not belong to institution {activity.institution_id}"
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Group with id {gid} does not belong to"
+                           f" institution with id {activity.institution_id}."
+                )
 
     if "professor_id" in updated_data:
         professor = users_repo.find_user_by_id(db, updated_data["professor_id"])

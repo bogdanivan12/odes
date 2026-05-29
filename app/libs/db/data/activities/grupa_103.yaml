@@ -1,0 +1,7 @@
+group: Grupa 103
+activities:
+  - { course: "Analiza matematica I",   type: seminar,    duration_slots: 3, frequency: weekly, professor: "Liliana Mitre" }
+  - { course: "Algebra liniara",        type: seminar,    duration_slots: 3, frequency: weekly, professor: "Valentin Ghisoiu" }
+  - { course: "Algebra I",              type: seminar,    duration_slots: 2, frequency: weekly, professor: "Miron-Ion Stanciu" }
+  - { course: "Geometrie I",            type: seminar,    duration_slots: 2, frequency: weekly, professor: "Victor Vuletescu" }
+  - { course: "Programare procedurala", type: laboratory, duration_slots: 2, frequency: weekly, professor: "Vlad Furdui" }

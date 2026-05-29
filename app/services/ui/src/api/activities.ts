@@ -7,7 +7,7 @@ export interface CreateActivityRequest {
   institution_id: string;
   course_id: string;
   activity_type: string;
-  group_id: string;
+  group_ids: string[];
   professor_id?: string | null;
   duration_slots: number;
   required_room_features: string[];
@@ -18,7 +18,7 @@ export interface CreateActivityRequest {
 export interface UpdateActivityRequest {
   course_id?: string;
   activity_type?: string;
-  group_id?: string;
+  group_ids?: string[];
   professor_id?: string | null;
   duration_slots?: number;
   required_room_features?: string[];

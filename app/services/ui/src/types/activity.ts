@@ -9,7 +9,7 @@ export interface ActivityData {
   institution_id: string;
   course_id: string;
   activity_type: string;
-  group_id: string;
+  group_ids: string[];
   professor_id?: string | null;
   duration_slots: number;
   required_room_features?: string[];
@@ -22,7 +22,7 @@ export interface ActivityShape {
   institution_id: string;
   course_id: string;
   activity_type: string;
-  group_id: string;
+  group_ids: string[];
   professor_id?: string | null;
   duration_slots: number;
   required_room_features: string[];
@@ -35,7 +35,7 @@ export class Activity implements ActivityShape {
   institution_id: string;
   course_id: string;
   activity_type: string;
-  group_id: string;
+  group_ids: string[];
   professor_id?: string | null;
   duration_slots: number;
   required_room_features: string[];
@@ -47,7 +47,7 @@ export class Activity implements ActivityShape {
     this.institution_id = data.institution_id;
     this.course_id = data.course_id;
     this.activity_type = data.activity_type;
-    this.group_id = data.group_id;
+    this.group_ids = data.group_ids ?? [];
     this.professor_id = data.professor_id ?? null;
     this.duration_slots = data.duration_slots;
     this.required_room_features = data.required_room_features ?? [];

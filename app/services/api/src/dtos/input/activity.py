@@ -12,7 +12,7 @@ class CreateActivity(BaseModel):
     institution_id: str
     course_id: str
     activity_type: models.ActivityType
-    group_id: str
+    group_ids: List[str] = Field(default_factory=list)
     professor_id: Optional[str] = None
     duration_slots: int = Field(default=2, gt=0)
     required_room_features: List[str] = Field(default_factory=list)
@@ -26,7 +26,7 @@ class UpdateActivity(BaseModel):
     """
     course_id: Optional[str] = None
     activity_type: Optional[models.ActivityType] = None
-    group_id: Optional[str] = None
+    group_ids: Optional[List[str]] = None
     professor_id: Optional[str] = None
     duration_slots: Optional[int] = None
     required_room_features: Optional[List[str]] = None

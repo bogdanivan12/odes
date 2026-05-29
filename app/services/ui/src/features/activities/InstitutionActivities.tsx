@@ -86,7 +86,7 @@ export default function InstitutionActivities() {
   const [editError, setEditError] = useState<string | null>(null);
 
   const [formCourseId, setFormCourseId] = useState('');
-  const [formGroupId, setFormGroupId] = useState('');
+  const [formGroupIds, setFormGroupIds] = useState<string[]>([]);
   const [formProfessorId, setFormProfessorId] = useState('');
   const [formActivityType, setFormActivityType] = useState('course');
   const [formFrequency, setFormFrequency] = useState('weekly');
@@ -95,7 +95,7 @@ export default function InstitutionActivities() {
 
   const resetForm = () => {
     setFormCourseId('');
-    setFormGroupId('');
+    setFormGroupIds([]);
     setFormProfessorId('');
     setFormActivityType('course');
     setFormFrequency('weekly');
@@ -105,7 +105,7 @@ export default function InstitutionActivities() {
 
   const populateEditForm = (a: Activity) => {
     setFormCourseId(String(a.course_id));
-    setFormGroupId(String(a.group_id));
+    setFormGroupIds(a.group_ids ?? []);
     setFormProfessorId(a.professor_id ? String(a.professor_id) : '');
     setFormActivityType(a.activity_type);
     setFormFrequency(a.frequency);
@@ -124,7 +124,7 @@ export default function InstitutionActivities() {
         getInstitutionGroups(institutionId),
         getInstitutionUsers(institutionId),
       ]);
-      const normalized = institutionActivities.map((a) => ({ ...a, id: String(a.id ?? a._id ?? '') })) as Activity[];
+      const normalized = institutionActivities.map((a) => ({ ...a, id: String(a.id ?? a._id ?? ''), institution_id: a.institution_id ?? institutionId ?? '' })) as unknown as Activity[];
       setActivities([...normalized].sort((a, b) => compareAlphabetical(String(a.course_id), String(b.course_id))));
       setCourses([...institutionCourses].sort((a, b) => compareAlphabetical(a.name, b.name)));
       setGroups([...institutionGroups].sort((a, b) => compareAlphabetical(a.name, b.name)));
@@ -179,9 +179,9 @@ export default function InstitutionActivities() {
 
   const getActivitySearchText = (a: Activity): string => {
     const courseName = coursesById.get(String(a.course_id))?.name ?? '';
-    const groupName = groupsById.get(String(a.group_id))?.name ?? '';
+    const groupNames = (a.group_ids ?? []).map((gid) => groupsById.get(String(gid))?.name ?? '').join(' ');
     const professor = a.professor_id ? usersById.get(String(a.professor_id)) : undefined;
-    return `${courseName} ${groupName} ${professor?.name ?? ''} ${a.activity_type} ${a.frequency}`.toLowerCase();
+    return `${courseName} ${groupNames} ${professor?.name ?? ''} ${a.activity_type} ${a.frequency}`.toLowerCase();
   };
 
   const filteredActivities = useMemo(() => {
@@ -207,17 +207,19 @@ export default function InstitutionActivities() {
     const q = groupSectionQuery.trim().toLowerCase();
     if (!q) return filteredActivities;
     return filteredActivities.filter((a) => {
-      const groupName = groupsById.get(String(a.group_id))?.name ?? '';
-      return groupName.toLowerCase().includes(q) || getActivitySearchText(a).includes(q);
+      const groupNames = (a.group_ids ?? []).map((gid) => groupsById.get(String(gid))?.name ?? '').join(' ');
+      return groupNames.toLowerCase().includes(q) || getActivitySearchText(a).includes(q);
     });
   }, [filteredActivities, groupSectionQuery, groupsById]);
 
   const activitiesByGroupId = useMemo(() => {
     const map = new Map<string, Activity[]>();
     groupSectionActivities.forEach((a) => {
-      const key = String(a.group_id);
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(a);
+      (a.group_ids ?? []).forEach((gid) => {
+        const key = String(gid);
+        if (!map.has(key)) map.set(key, []);
+        map.get(key)!.push(a);
+      });
     });
     return map;
   }, [groupSectionActivities]);
@@ -314,7 +316,7 @@ export default function InstitutionActivities() {
   const validateForm = () => {
     const duration = Number(formDurationSlots);
     if (!formCourseId) return 'Course is required.';
-    if (!formGroupId) return 'Group is required.';
+    if (formGroupIds.length === 0) return 'At least one group is required.';
     if (!Number.isFinite(duration) || duration < 1) return 'Duration slots must be a positive number.';
     return null;
   };
@@ -329,7 +331,7 @@ export default function InstitutionActivities() {
       await createActivity({
         institution_id: institutionId,
         course_id: formCourseId,
-        group_id: formGroupId,
+        group_ids: formGroupIds,
         professor_id: formProfessorId || null,
         activity_type: formActivityType,
         frequency: formFrequency,
@@ -356,7 +358,7 @@ export default function InstitutionActivities() {
     try {
       await updateActivity(activityToEdit.id, {
         course_id: formCourseId,
-        group_id: formGroupId,
+        group_ids: formGroupIds,
         professor_id: formProfessorId || null,
         activity_type: formActivityType,
         frequency: formFrequency,
@@ -405,13 +407,13 @@ export default function InstitutionActivities() {
   const renderActivityRow = (activity: Activity): React.ReactNode => {
     const id = getActivityId(activity);
     const courseName = coursesById.get(String(activity.course_id))?.name ?? 'Unknown course';
-    const groupName = groupsById.get(String(activity.group_id))?.name ?? 'Unknown group';
+    const groupName = (activity.group_ids ?? []).map((gid) => groupsById.get(String(gid))?.name).filter(Boolean).join(', ') || 'Unknown group';
     const professor = activity.professor_id ? usersById.get(String(activity.professor_id)) : undefined;
     const professorName = professor?.name ?? 'Unassigned';
 
     return (
       <Box
-        key={id || `${activity.course_id}-${activity.group_id}-${activity.activity_type}`}
+        key={id || `${activity.course_id}-${(activity.group_ids ?? []).join('-')}-${activity.activity_type}`}
         sx={{
           display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 0.9,
           border: '1px solid', borderColor: 'divider', borderRadius: 2,
@@ -584,7 +586,7 @@ export default function InstitutionActivities() {
       <TextField select label="Course" value={formCourseId} onChange={(e) => setFormCourseId(e.target.value)} fullWidth disabled={disabled}>
         {courses.map((c) => { const id = String(c.id ?? c._id ?? ''); return <MenuItem key={id} value={id}>{c.name}</MenuItem>; })}
       </TextField>
-      <TextField select label="Group" value={formGroupId} onChange={(e) => setFormGroupId(e.target.value)} fullWidth disabled={disabled}>
+      <TextField select label="Groups" value={formGroupIds} onChange={(e) => { const v = e.target.value; setFormGroupIds(Array.isArray(v) ? v : typeof v === 'string' ? v.split(',') : []); }} fullWidth disabled={disabled} SelectProps={{ multiple: true, renderValue: (sel) => (sel as string[]).map((id) => groupsById.get(id)?.name ?? id).join(', ') }}>
         {groups.map((g) => { const id = String(g.id ?? g._id ?? ''); return <MenuItem key={id} value={id}>{g.name}</MenuItem>; })}
       </TextField>
       <TextField select label="Professor" value={formProfessorId} onChange={(e) => setFormProfessorId(e.target.value)} fullWidth disabled={disabled}>

@@ -1,0 +1,5 @@
+group: Semigrupa 405_4
+activities:
+  - { course: "Sisteme de baze de date",                  type: laboratory, duration_slots: 2, frequency: weekly, professor: "Sorina-Nicoleta Predut", additional_groups: ["SistDB_4"] }
+  - { course: "Programare Web utilizand tehnologii Java", type: laboratory, duration_slots: 2, frequency: weekly, professor: "Laurentiu Spilca",          additional_groups: ["ProgWebJava_4"] }
+  - { course: "Data Mining si Knowledge Discovery",       type: laboratory, duration_slots: 2, frequency: weekly, professor: "Alexandru Tache",           additional_groups: ["DataMining_2"] }

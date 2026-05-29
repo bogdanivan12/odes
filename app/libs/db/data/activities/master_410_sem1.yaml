@@ -1,0 +1,5 @@
+group: Semigrupa 410_1
+activities:
+  - { course: "Sisteme de operare: proiectare si securitate", type: laboratory,     duration_slots: 2, frequency: weekly, professor: "Costin-Teodor Grigore", additional_groups: ["SistOper_1"] }
+  - { course: "Criptografie avansata",                        type: seminar, duration_slots: 2, frequency: weekly, professor: "Nicoleta Dumitru",      additional_groups: ["Cripto_1"] }
+  - { course: "Logica pentru sisteme multi-agent",            type: laboratory,     duration_slots: 2, frequency: weekly, professor: "Horatiu Cheval",        additional_groups: ["LogicMA_1"] }

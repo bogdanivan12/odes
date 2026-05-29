@@ -1,0 +1,5 @@
+group: Semigrupa 511_1
+activities:
+  - { course: "Distributed Data Engineering",          type: laboratory, duration_slots: 2, frequency: biweekly, professor: "Cristian Kevorchian",    additional_groups: ["DistribDataEng_1"] }
+  - { course: "Information Retrieval and Text Mining", type: laboratory, duration_slots: 2, frequency: biweekly, professor: "Miruna-Andreea Zavelca", additional_groups: ["InfRetrTextMining_1"] }
+  - { course: "Deep Learning",                         type: laboratory, duration_slots: 2, frequency: biweekly, professor: "Vlad Hondru",            additional_groups: ["DeepLearning_1"] }

@@ -1,3 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-config
+  namespace: odes
+data:
+  rabbitmq.conf: |
+    # Schedule generation can take up to ~7200 s (presolve + search).
+    # Raise the consumer acknowledgement timeout to 5 hours so RabbitMQ
+    # does not drop the connection before the worker finishes.
+    consumer_timeout = 18000000
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -19,6 +31,13 @@ spec:
           image: rabbitmq:4.1.5-management-alpine
           ports:
             - containerPort: 5672
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "300m"
+              memory: "512Mi"
           readinessProbe:
             tcpSocket:
               port: 5672
@@ -27,6 +46,13 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/rabbitmq
+            - name: config
+              mountPath: /etc/rabbitmq/rabbitmq.conf
+              subPath: rabbitmq.conf
+      volumes:
+        - name: config
+          configMap:
+            name: rabbitmq-config
   volumeClaimTemplates:
     - metadata:
         name: data

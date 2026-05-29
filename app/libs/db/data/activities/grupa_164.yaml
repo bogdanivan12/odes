@@ -1,0 +1,9 @@
+group: Grupa 164
+activities:
+  - { course: "Programarea calculatoarelor I",  type: seminar,    duration_slots: 2, frequency: biweekly, professor: "Camelia Obreja" }
+  - { course: "Programarea calculatoarelor I",  type: laboratory, duration_slots: 2, frequency: weekly,       professor: "Radu-Stefan Mincu" }
+  - { course: "Utilizarea sistemelor de operare", type: laboratory, duration_slots: 2, frequency: weekly,     professor: "Dumitru-Daniel Dragulici" }
+  - { course: "Algebra si geometrie",           type: seminar,    duration_slots: 2, frequency: weekly,       professor: "Andrei Halanay" }
+  - { course: "Analiza matematica",             type: seminar,    duration_slots: 2, frequency: weekly,       professor: "Liliana Mitre" }
+  - { course: "Proiectare logica", type: laboratory, duration_slots: 2, frequency: weekly, professor: "Alecsandru Chirosca", selected_timeslot: { start: 32, weeks: [0, 1] } }
+  - { course: "Fizica",            type: laboratory, duration_slots: 2, frequency: weekly, professor: "Sorina Iftimie",      selected_timeslot: { start: 34, weeks: [0, 1] } }

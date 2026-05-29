@@ -154,23 +154,24 @@ function DraggableCard({
         }}
       >
         <Typography
+          title={courseName}
           variant="caption"
-          sx={{ fontWeight: 700, display: 'block', lineHeight: 1.25, fontSize: '0.68rem', mb: 0.25 }}
+          sx={{ fontWeight: 700, display: 'block', lineHeight: 1.25, fontSize: '0.68rem', mb: 0.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
         >
           {courseName}
         </Typography>
         {height > 30 && (
-          <Typography variant="caption" sx={{ display: 'block', fontSize: '0.60rem', color: 'text.secondary', lineHeight: 1.3 }}>
+          <Typography variant="caption" sx={{ display: 'block', fontSize: '0.60rem', color: 'text.secondary', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {toTitleLabel(entry.activityType)}
           </Typography>
         )}
         {height > 44 && (
           <>
-            <Typography variant="caption" sx={{ display: 'block', fontSize: '0.60rem', color: 'text.secondary', lineHeight: 1.3 }}>
+            <Typography title={groupName} variant="caption" sx={{ display: 'block', fontSize: '0.60rem', color: 'text.secondary', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {groupName}
             </Typography>
             {profName && (
-              <Typography variant="caption" sx={{ display: 'block', fontSize: '0.60rem', color: 'text.secondary', lineHeight: 1.3 }}>
+              <Typography title={profName} variant="caption" sx={{ display: 'block', fontSize: '0.60rem', color: 'text.secondary', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {profName}
               </Typography>
             )}
@@ -429,7 +430,7 @@ export default function EditableCalendarGrid({
                 {laned.map(({ entry: e, lane, laneCount }) => {
                   const slotIdx = e.startTimeslot % timeslotsPerDay;
                   const courseName = coursesById.get(e.courseId)?.name ?? '—';
-                  const groupName = groupsById.get(e.groupId)?.name ?? '—';
+                  const groupName = e.allGroupIds.map((gid) => groupsById.get(gid)?.name ?? gid).join(', ') || '—';
                   const profName = e.professorId
                     ? (usersById.get(e.professorId)?.name ?? usersById.get(e.professorId)?.email ?? '—')
                     : null;

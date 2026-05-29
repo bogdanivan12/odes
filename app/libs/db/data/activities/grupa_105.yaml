@@ -1,0 +1,7 @@
+group: Grupa 105
+activities:
+  - { course: "Algebra liniara",        type: seminar,    duration_slots: 3, frequency: weekly, professor: "Ana-Maria-Adelina Calina" }
+  - { course: "Analiza matematica I",   type: seminar,    duration_slots: 3, frequency: weekly, professor: "Petre Ilias" }
+  - { course: "Geometrie I",            type: seminar,    duration_slots: 2, frequency: weekly, professor: "David Petcu" }
+  - { course: "Algebra I",              type: seminar,    duration_slots: 2, frequency: weekly, professor: "Andrei Stoenica" }
+  - { course: "Programare procedurala", type: laboratory, duration_slots: 2, frequency: weekly, professor: "Bogdan Ivan" }

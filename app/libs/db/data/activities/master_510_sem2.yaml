@@ -1,0 +1,5 @@
+group: Semigrupa 510_2
+activities:
+  - { course: "Database Security",                             type: laboratory, duration_slots: 1, frequency: weekly, professor: "Letitia Marin",                       additional_groups: ["DBSecurity_1"] }
+  - { course: "Modele si Tehnici in Securitatea Informatiei",  type: laboratory, duration_slots: 1, frequency: weekly, professor: "Mihaita Dragan",                      additional_groups: ["ModTechInfoSec_1"] }
+  - { course: "Special Topics in Security and Applied Logic I", type: laboratory, duration_slots: 1, frequency: weekly, professor: "Bogdan Macovei",   additional_groups: ["SpTopSec_1"] }

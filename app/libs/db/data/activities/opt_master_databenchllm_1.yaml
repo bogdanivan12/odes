@@ -1,0 +1,3 @@
+group: DataBenchLLM_1
+activities:
+  - { course: "Datasets and Benchmarks for LLMs", type: laboratory, duration_slots: 2, frequency: weekly, professor: "Marius-Adrian Dumitran" }

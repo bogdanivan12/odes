@@ -1,0 +1,7 @@
+group: 502 MD
+activities:
+  - { course: "Practica pedagogica experientiala",  type: seminar, duration_slots: 1, frequency: weekly, professor: "Alexandru Gica"    }
+  - { course: "Didactica domeniului",               type: course,  duration_slots: 2, frequency: weekly, professor: "Cristian Voica"   }
+  - { course: "Didactica algebrei",                 type: course,  duration_slots: 2, frequency: weekly, professor: "Gabriel Mincu"    }
+  - { course: "Didactica geometriei",               type: course,  duration_slots: 2, frequency: weekly, professor: "Iulia Hirica"     }
+  - { course: "Didactica analizei matematice",      type: course,  duration_slots: 2, frequency: weekly, professor: "Speranta Vladoiu" }

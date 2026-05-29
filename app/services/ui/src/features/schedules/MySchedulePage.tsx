@@ -254,7 +254,8 @@ export default function MySchedulePage() {
         activeWeeks,
         activityType: activity.activity_type,
         courseId: String(activity.course_id ?? ''),
-        groupId: String(activity.group_id ?? ''),
+        groupId: String(activity.group_ids?.[0] ?? ''),
+        allGroupIds: (activity.group_ids ?? []).map(String),
         professorId: activity.professor_id ? String(activity.professor_id) : null,
         durationSlots: activity.duration_slots,
         requiredRoomFeatures: activity.required_room_features ?? [],
@@ -304,7 +305,7 @@ export default function MySchedulePage() {
   }, [currentUser, groups]);
 
   const studentEntries = useMemo(
-    () => scheduledEntries.filter((e) => myGroupIds.has(e.groupId)),
+    () => scheduledEntries.filter((e) => e.allGroupIds.some((gid) => myGroupIds.has(gid))),
     [scheduledEntries, myGroupIds],
   );
 
@@ -327,7 +328,7 @@ export default function MySchedulePage() {
   }, [selectedGroupIds, groupsById]);
 
   const filteredStudentEntries = useMemo(
-    () => filterGroupIds ? studentEntries.filter((e) => filterGroupIds.has(e.groupId)) : studentEntries,
+    () => filterGroupIds ? studentEntries.filter((e) => e.allGroupIds.some((gid) => filterGroupIds.has(gid))) : studentEntries,
     [studentEntries, filterGroupIds],
   );
 
