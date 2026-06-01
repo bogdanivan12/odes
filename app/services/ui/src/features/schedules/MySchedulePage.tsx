@@ -376,7 +376,11 @@ export default function MySchedulePage() {
       const slotInDay = e.startTimeslot % tpd;
       const course = coursesById.get(e.courseId)?.name ?? 'Activity';
       const title = `${course} (${toTitleLabel(e.activityType)})`;
-      const professor = e.professorId ? (usersById.get(e.professorId)?.name ?? '') : '';
+      // When the user teaches this activity, show the groups; otherwise the professor.
+      const isMyClass = !!e.professorId && e.professorId === myUserId;
+      const description = isMyClass
+        ? e.allGroupIds.map((gid) => groupsById.get(gid)?.name ?? gid).join(', ')
+        : (e.professorId ? (usersById.get(e.professorId)?.name ?? '') : '');
       const room = roomsById.get(e.roomId)?.name ?? '';
       calendarWeeks.forEach((w) => {
         if (!e.activeWeeks.includes(w.week_number)) return;
@@ -384,7 +388,7 @@ export default function MySchedulePage() {
         const startMin = tg.start_hour * 60 + tg.start_minute + slotInDay * durMin;
         const start = new Date(base + startMin * 60000);
         const end = new Date(start.getTime() + e.durationSlots * durMin * 60000);
-        events.push({ uid: `${e.schedRecId}-${w.start_date}@odes`, title, description: professor, location: room, start, end });
+        events.push({ uid: `${e.schedRecId}-${w.start_date}@odes`, title, description, location: room, start, end });
       });
     });
     if (events.length === 0) return;

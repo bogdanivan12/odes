@@ -503,7 +503,11 @@ export default function GlobalMySchedulePage() {
         const slotInDay = rec.start_timeslot % tpd;
         const course = coursesById.get(String(a.course_id))?.name ?? 'Activity';
         const title = `${course} (${toTitleLabel(a.activity_type)})`;
-        const professor = a.professor_id ? (usersById.get(String(a.professor_id))?.name ?? '') : '';
+        // When the user teaches this activity, show the groups; otherwise the professor.
+        const isMyClass = !!a.professor_id && String(a.professor_id) === userId;
+        const description = isMyClass
+          ? (a.group_ids ?? []).map((g) => groupsById.get(String(g))?.name ?? String(g)).join(', ')
+          : (a.professor_id ? (usersById.get(String(a.professor_id))?.name ?? '') : '');
         const room = roomsById.get(String(rec.room_id ?? ''))?.name ?? '';
         const recId = String(rec.id ?? (rec as { _id?: string })._id ?? a.id ?? '');
 
@@ -513,7 +517,7 @@ export default function GlobalMySchedulePage() {
           const startMin = tg.start_hour * 60 + tg.start_minute + slotInDay * durMin;
           const start = new Date(base + startMin * 60000);
           const end = new Date(start.getTime() + a.duration_slots * durMin * 60000);
-          events.push({ uid: `${idOf(d.institution)}-${recId}-${w.start_date}@odes`, title, description: professor, location: room, start, end });
+          events.push({ uid: `${idOf(d.institution)}-${recId}-${w.start_date}@odes`, title, description, location: room, start, end });
         });
       });
     });
