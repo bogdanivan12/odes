@@ -186,11 +186,13 @@ async function createActivity(
   durationSlots: number,
   frequency: string,
   requiredRoomFeatures: string[],
-  additionalGroupIds: string[] = []
+  additionalGroupIds: string[] = [],
+  selectedTimeslot: { start_timeslot: number; active_weeks: number[] } | null = null
 ): Promise<string> {
   // The activity model is multi-group: the API expects ``group_ids`` (a list),
   // not the legacy singular ``group_id``.  The primary group plus any extra
-  // groups (shared lectures) go into one list.
+  // groups (shared lectures) go into one list.  ``selected_timeslot`` pins the
+  // activity to a fixed start (honoured as a hard constraint by the solver).
   const data = await apiCall('POST', '/api/v1/activities', {
     institution_id: institutionId,
     course_id: courseId,
@@ -200,6 +202,7 @@ async function createActivity(
     duration_slots: durationSlots,
     required_room_features: requiredRoomFeatures,
     frequency,
+    selected_timeslot: selectedTimeslot,
   }, token) as { activity: { _id: string } };
   return data.activity._id;
 }
@@ -381,8 +384,15 @@ async function globalSetup(): Promise<void> {
   await createActivity(adminToken, complexInstitutionId, cProgIId, 'laboratory', year1aId, profGammaId, 2, 'weekly', ['laborator']);
   await createActivity(adminToken, complexInstitutionId, cProgIId, 'laboratory', year1bId, profGammaId, 2, 'weekly', ['laborator']);
 
-  // Year 2 - Mathematics II
-  await createActivity(adminToken, complexInstitutionId, cMathIIId, 'course', year2aId, profAlphaId, 2, 'weekly', []);
+  // Year 2 - Mathematics II.  The Year2-A course is PINNED to a fixed start
+  // (Monday 12:00 = slot 4) to exercise the selected-timeslot hard constraint;
+  // schedules/preferences.spec.ts asserts it lands exactly there.
+  const PINNED_START = 4;
+  const pinnedActivityId = await createActivity(
+    adminToken, complexInstitutionId, cMathIIId, 'course',
+    year2aId, profAlphaId, 2, 'weekly', [], [],
+    { start_timeslot: PINNED_START, active_weeks: [0, 1] },
+  );
   await createActivity(adminToken, complexInstitutionId, cMathIIId, 'course', year2bId, profAlphaId, 2, 'weekly', []);
 
   // Year 2 - Algorithms
@@ -499,6 +509,10 @@ async function globalSetup(): Promise<void> {
     complexTimeslotsPerDay: COMPLEX_TPD,
     complexPreferenceGroupId: year1aId,
     complexUnavailableSlotsInDay,
+    // Pinned-timeslot fixture: this activity must be scheduled at exactly this
+    // absolute start_timeslot.
+    complexPinnedActivityId: pinnedActivityId,
+    complexPinnedStartTimeslot: PINNED_START,
     complexRooms: {
       hallAId,
       hallBId,

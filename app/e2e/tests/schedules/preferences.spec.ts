@@ -87,6 +87,24 @@ test.describe('Schedule honours constraints', () => {
     ).toHaveLength(0);
   });
 
+  test('places a pinned (selected) timeslot exactly where requested', async () => {
+    const fixtures = loadFixtures();
+    const token = await login(fixtures.adminEmail, fixtures.adminPassword);
+    const scheduled = await completedScheduleActivities(token, fixtures.complexInstitutionId);
+    test.skip(!scheduled, 'No completed schedule — generate.spec.ts must run first');
+
+    const rows = scheduled!.filter(
+      (sa) => sa.activity_id === fixtures.complexPinnedActivityId,
+    );
+    expect(rows.length).toBeGreaterThan(0);
+    for (const r of rows) {
+      expect(
+        r.start_timeslot,
+        `pinned activity scheduled at ${r.start_timeslot}, expected ${fixtures.complexPinnedStartTimeslot}`,
+      ).toBe(fixtures.complexPinnedStartTimeslot);
+    }
+  });
+
   test('does not double-book any room', async () => {
     const fixtures = loadFixtures();
     const token = await login(fixtures.adminEmail, fixtures.adminPassword);

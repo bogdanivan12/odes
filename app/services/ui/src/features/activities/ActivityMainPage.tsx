@@ -26,9 +26,12 @@ import PageContainer from '../layout/PageContainer';
 import { compareAlphabetical, toTitleLabel } from '../../utils/text';
 import { parseFeatures, featuresToInput } from '../../utils/roomFeatures';
 import { deleteActivity, getActivityById, updateActivity } from '../../api/activities';
-import type { Activity } from '../../types/activity';
-import { getInstitutionCourses, getInstitutionGroups, getInstitutionUsers } from '../../api/institutions';
+import type { Activity, ActivitySelectedTimeslot } from '../../types/activity';
+import { getInstitutionById, getInstitutionCourses, getInstitutionGroups, getInstitutionUsers } from '../../api/institutions';
 import type { InstitutionCourse, InstitutionGroup, InstitutionUser } from '../../api/institutions';
+import type { TimeGridConfig } from '../../types/institution';
+import { formatPinnedTimeslot, validStartSlots } from '../../utils/timeslot';
+import PinnedTimeslotField from './PinnedTimeslotField';
 import { courseRoute, groupRoute, institutionRoute, memberRoute, INSTITUTIONS_ROUTE } from '../../config/routes';
 import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionAdmin';
 import { useInstitutionSync } from '../../utils/useInstitutionSync';
@@ -70,6 +73,8 @@ export default function ActivityMainPage() {
   const [formFrequency, setFormFrequency] = useState('weekly');
   const [formDurationSlots, setFormDurationSlots] = useState('2');
   const [formRequiredFeatures, setFormRequiredFeatures] = useState('');
+  const [timeGrid, setTimeGrid] = useState<TimeGridConfig | null>(null);
+  const [formSelectedTimeslot, setFormSelectedTimeslot] = useState<ActivitySelectedTimeslot | null>(null);
 
   const populateForm = (value: Activity) => {
     setFormCourseId(String(value.course_id));
@@ -79,6 +84,7 @@ export default function ActivityMainPage() {
     setFormFrequency(value.frequency);
     setFormDurationSlots(String(value.duration_slots));
     setFormRequiredFeatures(featuresToInput(value.required_room_features));
+    setFormSelectedTimeslot(value.selected_timeslot ?? null);
   };
 
   useEffect(() => {
@@ -109,12 +115,14 @@ export default function ActivityMainPage() {
       setRelatedLoading(true);
       setRelatedError(null);
       try {
-        const [institutionCourses, institutionGroups, institutionUsers] = await Promise.all([
+        const [institutionCourses, institutionGroups, institutionUsers, institution] = await Promise.all([
           getInstitutionCourses(activity.institution_id),
           getInstitutionGroups(activity.institution_id),
           getInstitutionUsers(activity.institution_id),
+          getInstitutionById(activity.institution_id),
         ]);
         if (!mounted) return;
+        setTimeGrid(institution.time_grid_config);
         setCourses([...institutionCourses].sort((a, b) => compareAlphabetical(a.name, b.name)));
         setGroups([...institutionGroups].sort((a, b) => compareAlphabetical(a.name, b.name)));
         setUsers([...institutionUsers].sort((a, b) => compareAlphabetical(a.name ?? '', b.name ?? '')));
@@ -180,6 +188,12 @@ export default function ActivityMainPage() {
     if (!formCourseId) return 'Course is required.';
     if (formGroupIds.length === 0) return 'At least one group is required.';
     if (!Number.isFinite(duration) || duration < 1) return 'Duration slots must be a positive number.';
+    if (formSelectedTimeslot && timeGrid) {
+      const slotInDay = formSelectedTimeslot.start_timeslot % timeGrid.timeslots_per_day;
+      if (!validStartSlots(timeGrid, duration).includes(slotInDay)) {
+        return 'The pinned start time does not leave room for the activity within the day.';
+      }
+    }
     return null;
   };
 
@@ -198,6 +212,7 @@ export default function ActivityMainPage() {
         frequency: formFrequency,
         duration_slots: Number(formDurationSlots),
         required_room_features: parseFeatures(formRequiredFeatures),
+        selected_timeslot: formSelectedTimeslot,
       });
       setActivity(updated);
       setEditOpen(false);
@@ -313,6 +328,13 @@ export default function ActivityMainPage() {
       </TextField>
       <TextField label="Duration slots" type="number" value={formDurationSlots} onChange={(e) => setFormDurationSlots(e.target.value)} fullWidth disabled={disabled} slotProps={{ htmlInput: { min: 1 } }} />
       <TextField label="Required room features" placeholder="projector, whiteboard" value={formRequiredFeatures} onChange={(e) => setFormRequiredFeatures(e.target.value)} fullWidth disabled={disabled} helperText="Comma-separated list" />
+      <PinnedTimeslotField
+        timeGrid={timeGrid}
+        durationSlots={Number(formDurationSlots)}
+        value={formSelectedTimeslot}
+        onChange={setFormSelectedTimeslot}
+        disabled={disabled}
+      />
     </Stack>
   );
 
@@ -412,24 +434,17 @@ export default function ActivityMainPage() {
             )}
           </Stack>
 
-          {/* Timeslot */}
+          {/* Pinned timeslot */}
           {activity.selected_timeslot && (
             <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Selected Timeslot</Typography>
-              <Stack spacing={0.5}>
-                <Typography variant="body2" color="text.secondary">
-                  Start slot:{' '}
-                  <Typography component="span" variant="body2" sx={{ fontWeight: 600 }}>
-                    {activity.selected_timeslot.start_timeslot}
-                  </Typography>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Pinned Timeslot</Typography>
+              <Typography variant="body2" color="text.secondary">
+                <Typography component="span" variant="body2" sx={{ fontWeight: 600 }}>
+                  {timeGrid
+                    ? formatPinnedTimeslot(activity.selected_timeslot.start_timeslot, activity.duration_slots, timeGrid)
+                    : `Slot ${activity.selected_timeslot.start_timeslot}`}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Weeks:{' '}
-                  <Typography component="span" variant="body2" sx={{ fontWeight: 600 }}>
-                    {activity.selected_timeslot.active_weeks.join(', ') || 'none'}
-                  </Typography>
-                </Typography>
-              </Stack>
+              </Typography>
             </Paper>
           )}
 
