@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
@@ -10,7 +10,7 @@ import Alert from '@mui/material/Alert';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import type { CalendarWeekMapping } from '../../types/institution';
-import { snapToWeekStart, weekRangeLabel, generateWeeks } from '../../utils/calendarWeeks';
+import { snapToWeekStart, weekRangeLabel, generateWeeks, formatDayMonthYear } from '../../utils/calendarWeeks';
 
 interface Props {
   weeks: number;        // number of distinct week patterns in the rotation
@@ -19,6 +19,70 @@ interface Props {
   value: CalendarWeekMapping[];
   onChange: (value: CalendarWeekMapping[]) => void;
   disabled?: boolean;
+}
+
+/**
+ * A date field that *displays* "1 Jun 2026" (or any custom text) but swaps to
+ * the native date picker only while being edited.  Avoids the browser's
+ * locale-dependent mm/dd/yyyy resting display, with no extra date library.
+ */
+function FriendlyDateField({
+  value, displayText, placeholder, onChange, disabled, fullWidth, minWidth = 175,
+}: {
+  value: string;
+  displayText?: string;
+  placeholder?: string;
+  onChange: (iso: string) => void;
+  disabled?: boolean;
+  fullWidth?: boolean;
+  minWidth?: number;
+}) {
+  const [editing, setEditing] = useState(false);
+  const ref = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (editing) {
+      ref.current?.focus();
+      try { (ref.current as unknown as { showPicker?: () => void })?.showPicker?.(); } catch { /* not supported */ }
+    }
+  }, [editing]);
+
+  if (editing && !disabled) {
+    return (
+      <TextField
+        type="date"
+        size="small"
+        value={value}
+        inputRef={ref}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={() => setEditing(false)}
+        fullWidth={fullWidth}
+        sx={fullWidth ? undefined : { width: minWidth }}
+        slotProps={{ inputLabel: { shrink: true } }}
+      />
+    );
+  }
+
+  const label = displayText ?? (value ? formatDayMonthYear(value) : (placeholder ?? 'Pick a date'));
+  return (
+    <Button
+      variant="outlined"
+      size="small"
+      disabled={disabled}
+      onClick={() => setEditing(true)}
+      sx={{
+        width: fullWidth ? '100%' : minWidth,
+        height: 40,
+        justifyContent: 'flex-start',
+        textTransform: 'none',
+        fontWeight: 400,
+        borderColor: 'divider',
+        color: value ? 'text.primary' : 'text.secondary',
+      }}
+    >
+      {label}
+    </Button>
+  );
 }
 
 /**
@@ -69,16 +133,13 @@ export default function WeekCalendarEditor({ weeks, days, startDay, value, onCha
       </Typography>
 
       {/* Auto-fill */}
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'flex-end' }} sx={{ mb: 1.5 }}>
-        <TextField
-          type="date"
-          label="First week"
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }} sx={{ mb: 1.5 }}>
+        <FriendlyDateField
           value={firstDate}
-          onChange={(e) => setFirstDate(e.target.value)}
+          placeholder="First week…"
+          onChange={setFirstDate}
           disabled={disabled}
-          size="small"
           fullWidth
-          slotProps={{ inputLabel: { shrink: true } }}
         />
         <TextField
           type="number"
@@ -90,7 +151,7 @@ export default function WeekCalendarEditor({ weeks, days, startDay, value, onCha
           slotProps={{ htmlInput: { min: 1, max: 60 } }}
           sx={{ width: { xs: '100%', sm: 160 } }}
         />
-        <Button variant="outlined" onClick={handleAutoFill} disabled={disabled || !firstDate} sx={{ borderRadius: 2, whiteSpace: 'nowrap' }}>
+        <Button variant="outlined" onClick={handleAutoFill} disabled={disabled || !firstDate} sx={{ borderRadius: 2, whiteSpace: 'nowrap', height: 40 }}>
           Auto-fill
         </Button>
       </Stack>
@@ -101,24 +162,20 @@ export default function WeekCalendarEditor({ weeks, days, startDay, value, onCha
         </Alert>
       )}
 
-      {/* Mapped weeks list — each row's date is editable and shows the full week */}
+      {/* Mapped weeks list — the field shows the full week and is click-to-edit */}
       {value.length > 0 && (
         <Stack spacing={1} sx={{ mb: 1.5 }}>
           {value.map((w, i) => (
             <Stack key={i} direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }} sx={{ pb: { xs: 1, sm: 0 }, borderBottom: { xs: '1px solid', sm: 'none' }, borderColor: 'divider' }}>
-              <TextField
-                type="date"
-                label="Week start"
-                value={w.start_date}
-                onChange={(e) => handleDate(i, e.target.value)}
-                disabled={disabled}
-                size="small"
-                slotProps={{ inputLabel: { shrink: true } }}
-                sx={{ width: { xs: '100%', sm: 175 } }}
-              />
-              <Typography variant="body2" color="text.secondary" sx={{ flex: 1, minWidth: 0 }}>
-                {weekRangeLabel(w.start_date, days)}
-              </Typography>
+              <Box sx={{ flex: 1, minWidth: 0, width: { xs: '100%', sm: 'auto' } }}>
+                <FriendlyDateField
+                  value={w.start_date}
+                  displayText={weekRangeLabel(w.start_date, days)}
+                  onChange={(iso) => handleDate(i, iso)}
+                  disabled={disabled}
+                  fullWidth
+                />
+              </Box>
               <TextField
                 select
                 label="Pattern"
@@ -141,17 +198,14 @@ export default function WeekCalendarEditor({ weeks, days, startDay, value, onCha
       )}
 
       {/* Add a single week */}
-      <Stack direction="row" spacing={1.5} alignItems="flex-end">
-        <TextField
-          type="date"
-          label="Add a week"
+      <Stack direction="row" spacing={1.5} alignItems="center">
+        <FriendlyDateField
           value={addDate}
-          onChange={(e) => setAddDate(e.target.value)}
+          placeholder="Add a week…"
+          onChange={setAddDate}
           disabled={disabled}
-          size="small"
-          slotProps={{ inputLabel: { shrink: true } }}
         />
-        <Button startIcon={<AddRoundedIcon />} onClick={handleAddWeek} disabled={disabled || !addDate} sx={{ borderRadius: 2 }}>
+        <Button startIcon={<AddRoundedIcon />} onClick={handleAddWeek} disabled={disabled || !addDate} sx={{ borderRadius: 2, height: 40 }}>
           Add
         </Button>
       </Stack>

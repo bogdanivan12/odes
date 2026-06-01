@@ -41,6 +41,13 @@ export function snapToWeekStart(iso: string, startDay: number): string {
   return addDaysIso(iso, -offset);
 }
 
+/** "1 Jun 2026" — day, 3-letter month, year. */
+export function formatDayMonthYear(iso: string): string {
+  if (!iso) return '';
+  const d = isoToLocalDate(iso);
+  return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
 /** "Mon 1 Jun – Fri 5 Jun 2026" style label for a week of `days` length. */
 export function weekRangeLabel(startIso: string, days: number): string {
   const start = isoToLocalDate(startIso);
