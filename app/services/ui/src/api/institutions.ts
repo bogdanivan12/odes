@@ -46,6 +46,7 @@ export interface InstitutionActivity {
   professor_id?: string | null;
   required_room_features?: string[];
   frequency: string;
+  selected_timeslot?: { start_timeslot: number; active_weeks: number[] } | null;
 }
 
 export interface InstitutionSchedule {

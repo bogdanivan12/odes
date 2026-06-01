@@ -539,6 +539,29 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
     allowed_starts_map: Dict[str, List[int]] = {}
     for a in activities:
         raw = time_helpers.allowed_starts(institution.time_grid_config, a.duration_slots)
+
+        # Pinned timeslot: an admin explicitly fixed this activity to a specific
+        # start slot.  Honour it as a hard constraint — its domain collapses to
+        # that single start — overriding soft/unavailable preferences (the pin
+        # is a deliberate override).  The week pattern is still governed by the
+        # activity's frequency; only the within-week start is pinned.  The slot
+        # must remain grid-valid (fit within a day, in range), so it must be one
+        # of the raw allowed starts for this duration.
+        sel = a.selected_timeslot
+        if sel is not None:
+            pinned = sel.start_timeslot
+            if pinned not in set(raw):
+                msg = (
+                    f"Activity {a.id} is pinned to start slot {pinned}, which is "
+                    f"not a valid start for a {a.duration_slots}-slot activity "
+                    f"(it would cross a day boundary or fall outside the grid)."
+                )
+                logger.error(msg)
+                db_update_failed_schedule(schedule_id, msg, token)
+                raise Exception(msg)
+            allowed_starts_map[a.id] = [pinned]
+            continue
+
         forbidden = activity_forbidden_slots(a)
         if forbidden:
             usable = [
@@ -706,28 +729,17 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
                     return list(range(weeks))
         return [0]   # all members present in all weeks → one representative
 
-    # ── Shared presence-gated interval cache ─────────────────────────────────
-    # The professor and group no-overlap constraints both gate an activity's
-    # interval on the *same* expression: its presence in week w.  Previously
-    # each loop (and every leaf group an activity belongs to) created its own
-    # fresh OptionalIntervalVar — so a faculty-wide lecture spawned one identical
-    # interval per leaf descendant, inflating the model with tens of thousands
-    # of duplicates that presolve then had to detect and remove.  Build the
-    # presence-gated interval once per (activity, week) and reuse it everywhere.
-    # (The room-pool cumulative can't share these — its gate is
-    # pool_indicator AND presence, a different expression — so it keeps its own
-    # intervals.)
-    _presence_iv_cache: Dict[Tuple[str, int], object] = {}
-
-    def presence_interval(a, w):
-        key = (a.id, w)
-        if key not in _presence_iv_cache:
-            _presence_iv_cache[key] = _make_optional_interval(
-                model, f"oiv_a{a.id}_w{w}",
-                start_var[a.id], a.duration_slots, end_var[a.id],
-                presence[(a.id, w)],
-            )
-        return _presence_iv_cache[key]
+    # NOTE on interval objects: each no-overlap / cumulative constraint builds
+    # its OWN optional interval per activity, even though the professor and group
+    # constraints gate on the same expression (presence in week w).  Reusing a
+    # single shared interval across multiple no-overlap constraints is NOT safe:
+    # when an activity is pinned (selected_timeslot), its start collapses to a
+    # constant and presolve's "merge constant contiguous intervals" rewrites the
+    # interval inside one constraint, corrupting the shared reference in the
+    # others — CP-SAT then rejects the model with MODEL_INVALID.  Creating fresh
+    # intervals is correct; presolve de-duplicates the identical copies on its
+    # own ("duplicate: remapped duplicate intervals"), so the solved model is no
+    # larger.
 
     # ── Room-pool capacity per (week, pool) ──────────────────────────────────
     # One cumulative constraint per (pool, week): at most `capacity` activities
@@ -772,7 +784,15 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
 
     for p_id, acts in activities_by_prof.items():
         for w in _weeks_to_emit(acts):
-            intervals = [iv for a in acts if (iv := presence_interval(a, w)) is not None]
+            intervals = []
+            for a in acts:
+                iv = _make_optional_interval(
+                    model, f"oiv_p{p_id}_a{a.id}_w{w}",
+                    start_var[a.id], a.duration_slots, end_var[a.id],
+                    presence[(a.id, w)],
+                )
+                if iv is not None:
+                    intervals.append(iv)
             if len(intervals) > 1:
                 model.AddNoOverlap(intervals)
 
@@ -787,7 +807,15 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
         if not relevant:
             continue
         for w in _weeks_to_emit(relevant):
-            intervals = [iv for a in relevant if (iv := presence_interval(a, w)) is not None]
+            intervals = []
+            for a in relevant:
+                iv = _make_optional_interval(
+                    model, f"oiv_g{L.id}_a{a.id}_w{w}",
+                    start_var[a.id], a.duration_slots, end_var[a.id],
+                    presence[(a.id, w)],
+                )
+                if iv is not None:
+                    intervals.append(iv)
             if len(intervals) > 1:
                 model.AddNoOverlap(intervals)
 

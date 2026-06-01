@@ -34,9 +34,12 @@ import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import PageContainer from '../layout/PageContainer';
 import { createActivity, deleteActivity, updateActivity } from '../../api/activities';
-import { getInstitutionActivities, getInstitutionCourses, getInstitutionGroups, getInstitutionUsers } from '../../api/institutions';
+import { getInstitutionActivities, getInstitutionById, getInstitutionCourses, getInstitutionGroups, getInstitutionUsers } from '../../api/institutions';
 import type { InstitutionCourse, InstitutionGroup, InstitutionUser } from '../../api/institutions';
-import type { Activity } from '../../types/activity';
+import type { Activity, ActivitySelectedTimeslot } from '../../types/activity';
+import type { TimeGridConfig } from '../../types/institution';
+import { validStartSlots } from '../../utils/timeslot';
+import PinnedTimeslotField from './PinnedTimeslotField';
 import { activityRoute } from '../../config/routes';
 import { compareAlphabetical, toTitleLabel } from '../../utils/text';
 import { parseFeatures, featuresToInput } from '../../utils/roomFeatures';
@@ -93,6 +96,10 @@ export default function InstitutionActivities() {
   const [formDurationSlots, setFormDurationSlots] = useState('2');
   const [formRequiredFeatures, setFormRequiredFeatures] = useState('');
 
+  // Pinned timeslot (optional): fixes the activity to a specific day + start.
+  const [timeGrid, setTimeGrid] = useState<TimeGridConfig | null>(null);
+  const [formSelectedTimeslot, setFormSelectedTimeslot] = useState<ActivitySelectedTimeslot | null>(null);
+
   const resetForm = () => {
     setFormCourseId('');
     setFormGroupIds([]);
@@ -101,6 +108,7 @@ export default function InstitutionActivities() {
     setFormFrequency('weekly');
     setFormDurationSlots('2');
     setFormRequiredFeatures('');
+    setFormSelectedTimeslot(null);
   };
 
   const populateEditForm = (a: Activity) => {
@@ -111,6 +119,7 @@ export default function InstitutionActivities() {
     setFormFrequency(a.frequency);
     setFormDurationSlots(String(a.duration_slots));
     setFormRequiredFeatures(featuresToInput(a.required_room_features ?? []));
+    setFormSelectedTimeslot(a.selected_timeslot ?? null);
   };
 
   const loadData = async () => {
@@ -118,12 +127,14 @@ export default function InstitutionActivities() {
     setLoading(true);
     setError(null);
     try {
-      const [institutionActivities, institutionCourses, institutionGroups, institutionUsers] = await Promise.all([
+      const [institutionActivities, institutionCourses, institutionGroups, institutionUsers, institution] = await Promise.all([
         getInstitutionActivities(institutionId),
         getInstitutionCourses(institutionId),
         getInstitutionGroups(institutionId),
         getInstitutionUsers(institutionId),
+        getInstitutionById(institutionId),
       ]);
+      setTimeGrid(institution.time_grid_config);
       const normalized = institutionActivities.map((a) => ({ ...a, id: String(a.id ?? a._id ?? ''), institution_id: a.institution_id ?? institutionId ?? '' })) as unknown as Activity[];
       setActivities([...normalized].sort((a, b) => compareAlphabetical(String(a.course_id), String(b.course_id))));
       setCourses([...institutionCourses].sort((a, b) => compareAlphabetical(a.name, b.name)));
@@ -318,6 +329,12 @@ export default function InstitutionActivities() {
     if (!formCourseId) return 'Course is required.';
     if (formGroupIds.length === 0) return 'At least one group is required.';
     if (!Number.isFinite(duration) || duration < 1) return 'Duration slots must be a positive number.';
+    if (formSelectedTimeslot && timeGrid) {
+      const slotInDay = formSelectedTimeslot.start_timeslot % timeGrid.timeslots_per_day;
+      if (!validStartSlots(timeGrid, duration).includes(slotInDay)) {
+        return 'The pinned start time does not leave room for the activity within the day.';
+      }
+    }
     return null;
   };
 
@@ -337,7 +354,7 @@ export default function InstitutionActivities() {
         frequency: formFrequency,
         duration_slots: Number(formDurationSlots),
         required_room_features: parseFeatures(formRequiredFeatures),
-        selected_timeslot: null,
+        selected_timeslot: formSelectedTimeslot,
       });
       setIsCreateOpen(false);
       resetForm();
@@ -364,6 +381,7 @@ export default function InstitutionActivities() {
         frequency: formFrequency,
         duration_slots: Number(formDurationSlots),
         required_room_features: parseFeatures(formRequiredFeatures),
+        selected_timeslot: formSelectedTimeslot,
       });
       setActivityToEdit(null);
       resetForm();
@@ -601,6 +619,14 @@ export default function InstitutionActivities() {
       </TextField>
       <TextField label="Duration slots" type="number" value={formDurationSlots} onChange={(e) => setFormDurationSlots(e.target.value)} fullWidth disabled={disabled} slotProps={{ htmlInput: { min: 1 } }} />
       <TextField label="Required room features" placeholder="projector, whiteboard" value={formRequiredFeatures} onChange={(e) => setFormRequiredFeatures(e.target.value)} fullWidth disabled={disabled} helperText="Comma-separated list" />
+
+      <PinnedTimeslotField
+        timeGrid={timeGrid}
+        durationSlots={Number(formDurationSlots)}
+        value={formSelectedTimeslot}
+        onChange={setFormSelectedTimeslot}
+        disabled={disabled}
+      />
     </Stack>
   );
 
