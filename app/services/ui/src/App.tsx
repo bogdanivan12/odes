@@ -18,13 +18,11 @@ import {
   SCHEDULE_VIEW_ROUTE,
   SCHEDULE_EDIT_ROUTE,
   INSTITUTION_ROUTE,
-  INSTITUTION_UPDATE_ROUTE,
   INSTITUTIONS_ROUTE,
   INSTITUTIONS_CREATE_ROUTE,
   PROFILE_ROUTE,
   ROOM_ROUTE,
   USER_ROUTE,
-  USER_UPDATE_ROUTE,
   USER_LOGIN_ROUTE,
   USER_REGISTER_ROUTE,
 } from "./config/routes.ts";
@@ -35,7 +33,6 @@ import MainLayout from './features/layout/MainLayout';
 import Institutions from './features/institutions/Institutions';
 import CreateInstitution from './features/institutions/CreateInstitution';
 import InstitutionMainPage from './features/institutions/InstitutionMainPage';
-import UpdateInstitution from './features/institutions/UpdateInstitution';
 import InstitutionCourses from './features/courses/InstitutionCourses';
 import CourseMainPage from './features/courses/CourseMainPage';
 import InstitutionGroups from './features/groups/InstitutionGroups';
@@ -50,7 +47,6 @@ import ScheduleEditPage from './features/schedules/ScheduleEditPage';
 import MySchedulePage from './features/schedules/MySchedulePage';
 import InstitutionMembers from './features/members/InstitutionMembers';
 import MemberMainPage from './features/members/MemberMainPage';
-import UpdateMemberRoles from './features/members/UpdateMemberRoles';
 import ProfilePage from './features/members/ProfilePage';
 
 function App() {
@@ -66,7 +62,6 @@ function App() {
         <Route element={<RequireAuth><MainLayout /></RequireAuth>}>
           <Route path={INSTITUTIONS_ROUTE} element={<Institutions />} />
           <Route path={INSTITUTIONS_CREATE_ROUTE} element={<CreateInstitution />} />
-          <Route path={INSTITUTION_UPDATE_ROUTE} element={<UpdateInstitution />} />
           <Route path={INSTITUTION_ROUTE} element={<InstitutionMainPage />} />
           <Route path={INSTITUTION_MEMBERS_ROUTE} element={<InstitutionMembers />} />
           <Route path={INSTITUTION_GROUPS_ROUTE} element={<InstitutionGroups />} />
@@ -84,7 +79,6 @@ function App() {
           <Route path={ACTIVITY_ROUTE} element={<ActivityMainPage />} />
           <Route path={PROFILE_ROUTE} element={<ProfilePage />} />
           <Route path={USER_ROUTE} element={<MemberMainPage />} />
-          <Route path={USER_UPDATE_ROUTE} element={<UpdateMemberRoles />} />
           {/* Other protected routes can be nested here and will inherit the layout */}
         </Route>
       </Routes>

@@ -10,7 +10,9 @@ import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import Paper from '@mui/material/Paper';
 import Button from '@mui/material/Button';
+import Tooltip from '@mui/material/Tooltip';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
+import FileDownloadRoundedIcon from '@mui/icons-material/FileDownloadRounded';
 import SchoolRoundedIcon from '@mui/icons-material/SchoolRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import AccountBalanceRoundedIcon from '@mui/icons-material/AccountBalanceRounded';
@@ -39,7 +41,10 @@ import type {
 import type { Institution as InstitutionClass } from '../../types/institution';
 import { institutionRoute, scheduleRoute } from '../../config/routes';
 import { getCurrentUserData } from '../../utils/institutionAdmin';
-import { compareAlphabetical } from '../../utils/text';
+import { compareAlphabetical, toTitleLabel } from '../../utils/text';
+import { addDaysIso, isoToLocalDate } from '../../utils/calendarWeeks';
+import { buildIcs, downloadIcs } from '../../utils/ics';
+import type { CalendarEvent } from '../../utils/ics';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -439,6 +444,89 @@ export default function GlobalMySchedulePage() {
     [scheduledEntries, myUserId],
   );
 
+  // ── Personal-calendar (.ics) export ─────────────────────────────────────────
+  // Built straight from each institution's raw records using that institution's
+  // own grid + calendar-week mapping (not the global-normalised slots).  Covers
+  // every institution that has calendar weeks configured.
+
+  const exportableInstitutionCount = useMemo(() => {
+    let n = 0;
+    dataMap.forEach((d) => {
+      if ((d.institution.time_grid_config?.calendar_weeks?.length ?? 0) > 0) n += 1;
+    });
+    return n;
+  }, [dataMap]);
+
+  const handleExportCalendar = () => {
+    const userId = String(currentUser?.id ?? (currentUser as { _id?: string } | null)?._id ?? '');
+    const userGroupIds = new Set(currentUser?.group_ids ?? []);
+    const events: CalendarEvent[] = [];
+
+    dataMap.forEach((d) => {
+      const tg = d.institution.time_grid_config;
+      const calWeeks = tg?.calendar_weeks ?? [];
+      if (!tg || calWeeks.length === 0) return;
+      const tpd = tg.timeslots_per_day;
+      const durMin = tg.timeslot_duration_minutes;
+      const allWeeks = Array.from({ length: tg.weeks }, (_, i) => i + 1);
+
+      const idOf = (o: { id?: string; _id?: string }) => String(o.id ?? o._id ?? '');
+      const groupsById = new Map(d.groups.map((g) => [idOf(g), g]));
+      const coursesById = new Map(d.courses.map((c) => [idOf(c), c]));
+      const usersById = new Map(d.users.map((u) => [idOf(u), u]));
+      const roomsById = new Map(d.rooms.map((r) => [idOf(r), r]));
+      const activitiesById = new Map(d.activities.map((a) => [idOf(a), a]));
+
+      // User's groups in this institution + their ancestors.
+      const myGroups = new Set<string>();
+      d.groups.forEach((g) => { const id = idOf(g); if (userGroupIds.has(id)) myGroups.add(id); });
+      const walkUp = (gid: string) => {
+        const g = groupsById.get(gid);
+        if (g?.parent_group_id) {
+          const p = String(g.parent_group_id);
+          if (!myGroups.has(p)) { myGroups.add(p); walkUp(p); }
+        }
+      };
+      [...myGroups].forEach(walkUp);
+
+      d.schedRecords.forEach((rec) => {
+        const a = activitiesById.get(String(rec.activity_id ?? ''));
+        if (!a) return;
+        const mine =
+          (a.professor_id && String(a.professor_id) === userId) ||
+          (a.group_ids ?? []).some((g) => myGroups.has(String(g)));
+        if (!mine) return;
+
+        const freq = (a.frequency ?? '').toLowerCase();
+        const activeWeeks = freq === 'weekly' ? allWeeks : (rec.active_weeks ?? []).map((w) => w + 1);
+        const day = Math.floor(rec.start_timeslot / tpd);
+        const slotInDay = rec.start_timeslot % tpd;
+        const course = coursesById.get(String(a.course_id))?.name ?? 'Activity';
+        const title = `${course} (${toTitleLabel(a.activity_type)})`;
+        // When the user teaches this activity, show the groups; otherwise the professor.
+        const isMyClass = !!a.professor_id && String(a.professor_id) === userId;
+        const description = isMyClass
+          ? (a.group_ids ?? []).map((g) => groupsById.get(String(g))?.name ?? String(g)).join(', ')
+          : (a.professor_id ? (usersById.get(String(a.professor_id))?.name ?? '') : '');
+        const room = roomsById.get(String(rec.room_id ?? ''))?.name ?? '';
+        const recId = String(rec.id ?? (rec as { _id?: string })._id ?? a.id ?? '');
+
+        calWeeks.forEach((w) => {
+          if (!activeWeeks.includes(w.week_number)) return;
+          const base = isoToLocalDate(addDaysIso(w.start_date, day)).getTime();
+          const startMin = tg.start_hour * 60 + tg.start_minute + slotInDay * durMin;
+          const start = new Date(base + startMin * 60000);
+          const end = new Date(start.getTime() + a.duration_slots * durMin * 60000);
+          events.push({ uid: `${idOf(d.institution)}-${recId}-${w.start_date}@odes`, title, description, location: room, start, end });
+        });
+      });
+    });
+
+    if (events.length === 0) return;
+    events.sort((a, b) => a.start.getTime() - b.start.getTime());
+    downloadIcs('my_schedule.ics', buildIcs(events, 'My Schedule'));
+  };
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   if (loading) {
@@ -461,11 +549,35 @@ export default function GlobalMySchedulePage() {
         <Stack spacing={3}>
 
           {/* ── Header ── */}
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 700 }}>My Schedule</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-              Your personal timetable across all institutions
-            </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, flexWrap: 'wrap' }}>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography variant="h5" sx={{ fontWeight: 700 }}>My Schedule</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+                Your personal timetable across all institutions
+              </Typography>
+            </Box>
+            {hasActiveSchedules && (
+              <Tooltip
+                title={
+                  exportableInstitutionCount === 0
+                    ? 'No institution has calendar weeks configured yet — an admin needs to set them up.'
+                    : 'Download an .ics file for Apple / Google / Outlook calendars'
+                }
+              >
+                <span>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<FileDownloadRoundedIcon />}
+                    onClick={handleExportCalendar}
+                    disabled={exportableInstitutionCount === 0}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    Add to calendar
+                  </Button>
+                </span>
+              </Tooltip>
+            )}
           </Box>
 
           {error && <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>}

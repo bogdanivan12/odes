@@ -83,20 +83,7 @@ export interface CreateInstitutionRequest {
     start_minute: number;
     timeslot_duration_minutes: number;
     start_day: number;
-  };
-}
-
-export interface UpdateInstitutionRequest {
-  name: string;
-  time_grid_config: {
-    weeks: number;
-    days: number;
-    timeslots_per_day: number;
-    max_timeslots_per_day_per_group: number;
-    start_hour: number;
-    start_minute: number;
-    timeslot_duration_minutes: number;
-    start_day: number;
+    calendar_weeks?: { start_date: string; week_number: number }[];
   };
 }
 
