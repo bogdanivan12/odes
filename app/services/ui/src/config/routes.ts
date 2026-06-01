@@ -4,7 +4,6 @@ export const HOME_ROUTE = '/';
 export const MY_SCHEDULE_ROUTE = '/my-schedule';
 export const INSTITUTIONS_ROUTE = '/institutions';
 export const INSTITUTIONS_CREATE_ROUTE = '/institutions/new';
-export const INSTITUTION_UPDATE_ROUTE = '/institutions/:institutionId/edit';
 export const INSTITUTION_ROUTE = '/institutions/:institutionId';
 export const INSTITUTION_MEMBERS_ROUTE = '/institutions/:institutionId/members';
 export const INSTITUTION_GROUPS_ROUTE = '/institutions/:institutionId/groups';
@@ -20,15 +19,11 @@ export const GROUP_ROUTE = '/groups/:groupId';
 export const ROOM_ROUTE = '/rooms/:roomId';
 export const ACTIVITY_ROUTE = '/activities/:activityId';
 export const USER_ROUTE = '/users/:memberId';
-export const USER_UPDATE_ROUTE = '/users/:memberId/edit';
 export const PROFILE_ROUTE = '/profile';
 
 export const institutionRoute = (institutionId: string) => `/institutions/${institutionId}`;
-export const institutionUpdateRoute = (institutionId: string) => `/institutions/${institutionId}/edit`;
 
 export const memberRoute = (memberId: string) => `/users/${memberId}`;
-export const memberUpdateRoute = (memberId: string) => `/users/${memberId}/edit`;
-export const profileRoute = () => '/profile';
 export const groupRoute = (groupId: string) => `/groups/${groupId}`;
 export const courseRoute = (courseId: string) => `/courses/${courseId}`;
 export const roomRoute = (roomId: string) => `/rooms/${roomId}`;

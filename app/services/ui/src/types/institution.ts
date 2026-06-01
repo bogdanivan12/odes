@@ -1,5 +1,10 @@
 // Type definitions for Institution model (matches app.libs.db.models.Institution)
 
+export interface CalendarWeekMapping {
+  start_date: string; // ISO "YYYY-MM-DD" — first day (start_day) of the real week
+  week_number: number; // 1-based week pattern within the rotation
+}
+
 export interface TimeGridConfig {
   weeks: number;
   days: number;
@@ -9,6 +14,7 @@ export interface TimeGridConfig {
   start_minute: number;
   timeslot_duration_minutes: number;
   start_day: number; // 0=Monday, 5=Saturday
+  calendar_weeks?: CalendarWeekMapping[];
 }
 
 export interface InstitutionData {

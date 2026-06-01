@@ -10,8 +10,10 @@ import Chip from '@mui/material/Chip';
 import Button from '@mui/material/Button';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
+import Tooltip from '@mui/material/Tooltip';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
+import FileDownloadRoundedIcon from '@mui/icons-material/FileDownloadRounded';
 import SchoolRoundedIcon from '@mui/icons-material/SchoolRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import PageContainer from '../layout/PageContainer';
@@ -38,9 +40,12 @@ import type {
 } from '../../api/institutions';
 import type { Institution as InstitutionClass } from '../../types/institution';
 import { institutionRoute, scheduleRoute } from '../../config/routes';
-import { compareAlphabetical } from '../../utils/text';
+import { compareAlphabetical, toTitleLabel } from '../../utils/text';
 import { getCurrentUserData } from '../../utils/institutionAdmin';
 import { parseServerTimestamp } from '../../utils/time';
+import { addDaysIso, isoToLocalDate } from '../../utils/calendarWeeks';
+import { buildIcs, downloadIcs } from '../../utils/ics';
+import type { CalendarEvent } from '../../utils/ics';
 import { useTheme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
 
@@ -344,6 +349,54 @@ export default function MySchedulePage() {
     [scheduledEntries, myUserId],
   );
 
+  // ── Personal-calendar (.ics) export ────────────────────────────────────────
+  // Places each of the user's activities on every real calendar week the admin
+  // mapped to its rotation pattern.  Combines the student + professor views
+  // (de-duplicated), so a single import covers everything the user attends/teaches.
+
+  const calendarWeeks = institution?.time_grid_config?.calendar_weeks ?? [];
+  const myEntryCount = useMemo(() => {
+    const ids = new Set<string>();
+    [...studentEntries, ...professorEntries].forEach((e) => ids.add(e.schedRecId));
+    return ids.size;
+  }, [studentEntries, professorEntries]);
+
+  const handleExportCalendar = () => {
+    const tg = institution?.time_grid_config;
+    if (!tg || calendarWeeks.length === 0) return;
+    const tpd = tg.timeslots_per_day;
+    const durMin = tg.timeslot_duration_minutes;
+
+    const byId = new Map<string, ScheduledEntry>();
+    [...studentEntries, ...professorEntries].forEach((e) => byId.set(e.schedRecId, e));
+
+    const events: CalendarEvent[] = [];
+    byId.forEach((e) => {
+      const day = Math.floor(e.startTimeslot / tpd);
+      const slotInDay = e.startTimeslot % tpd;
+      const course = coursesById.get(e.courseId)?.name ?? 'Activity';
+      const title = `${course} (${toTitleLabel(e.activityType)})`;
+      const professor = e.professorId ? (usersById.get(e.professorId)?.name ?? '') : '';
+      const room = roomsById.get(e.roomId)?.name ?? '';
+      calendarWeeks.forEach((w) => {
+        if (!e.activeWeeks.includes(w.week_number)) return;
+        const base = isoToLocalDate(addDaysIso(w.start_date, day)).getTime();
+        const startMin = tg.start_hour * 60 + tg.start_minute + slotInDay * durMin;
+        const start = new Date(base + startMin * 60000);
+        const end = new Date(start.getTime() + e.durationSlots * durMin * 60000);
+        events.push({ uid: `${e.schedRecId}-${w.start_date}@odes`, title, description: professor, location: room, start, end });
+      });
+    });
+    if (events.length === 0) return;
+    events.sort((a, b) => a.start.getTime() - b.start.getTime());
+
+    const instName = institution?.name ?? 'Schedule';
+    downloadIcs(
+      `${instName.replace(/[^a-z0-9]+/gi, '_')}_my_schedule.ics`,
+      buildIcs(events, `${instName} — My Schedule`),
+    );
+  };
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   if (loading) {
@@ -393,6 +446,28 @@ export default function MySchedulePage() {
               <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
                 {schedule?.status && (
                   <Chip label={schedule.status} color={scheduleStatusColor(schedule.status)} sx={{ borderRadius: 1.5 }} />
+                )}
+                {schedule && (isStudent || isProfessor) && (
+                  <Tooltip
+                    title={
+                      calendarWeeks.length === 0
+                        ? 'An admin needs to set up calendar weeks for this institution first.'
+                        : 'Download an .ics file for Apple / Google / Outlook calendars'
+                    }
+                  >
+                    <span>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<FileDownloadRoundedIcon />}
+                        onClick={handleExportCalendar}
+                        disabled={calendarWeeks.length === 0 || myEntryCount === 0}
+                        sx={{ borderRadius: 2 }}
+                      >
+                        Add to calendar
+                      </Button>
+                    </span>
+                  </Tooltip>
                 )}
                 {schedule && (
                   <Button

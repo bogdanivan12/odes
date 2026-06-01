@@ -21,6 +21,8 @@ import AccountBalanceRoundedIcon from '@mui/icons-material/AccountBalanceRounded
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '../layout/PageContainer';
 import { createInstitution } from '../../api/institutions';
+import WeekCalendarEditor from './WeekCalendarEditor';
+import type { CalendarWeekMapping } from '../../types/institution';
 import { INSTITUTIONS_ROUTE } from '../../config/routes';
 import { useTheme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
@@ -141,6 +143,7 @@ function fmtTime(hour: string, minute: string) {
 export default function CreateInstitution() {
   const theme = useTheme();
   const [values, setValues] = useState<FormValues>(initialValues);
+  const [calendarWeeks, setCalendarWeeks] = useState<CalendarWeekMapping[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -187,12 +190,14 @@ export default function CreateInstitution() {
           start_minute: parseInt(values.startMinute || '0', 10),
           timeslot_duration_minutes: parseInt(values.slotDuration, 10),
           start_day: startDay,
+          calendar_weeks: calendarWeeks,
         },
       });
       try { localStorage.setItem('selectedInstitutionId', String(created.id)); } catch { /* ignore */ }
       try { window.dispatchEvent(new CustomEvent('institutionsChanged', { detail: { type: 'created', institutionId: created.id } })); } catch { /* ignore */ }
       setSuccess(`Institution "${created.name}" created.`);
       setValues(initialValues);
+      setCalendarWeeks([]);
       setTimeout(() => { navigate(INSTITUTIONS_ROUTE); }, 600);
     } catch (err) {
       setError((err as Error).message || 'Failed to create institution.');
@@ -337,6 +342,15 @@ export default function CreateInstitution() {
                       slotProps={{ htmlInput: { min: 1 } }}
                       required fullWidth disabled={loading}
                       helperText={timeslotsPerDay > 0 ? `Cannot exceed ${timeslotsPerDay} timeslots per day` : undefined}
+                    />
+
+                    <WeekCalendarEditor
+                      weeks={parseInt(values.weeks, 10) || 1}
+                      days={SCHEDULE_TYPE_CONFIG[values.scheduleType].days}
+                      startDay={SCHEDULE_TYPE_CONFIG[values.scheduleType].startDay}
+                      value={calendarWeeks}
+                      onChange={setCalendarWeeks}
+                      disabled={loading}
                     />
                   </Stack>
                 </Box>

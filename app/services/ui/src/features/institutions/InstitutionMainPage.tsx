@@ -92,6 +92,8 @@ import type {
   InstitutionUser,
 } from '../../api/institutions';
 import { Institution } from '../../types/institution';
+import type { CalendarWeekMapping } from '../../types/institution';
+import WeekCalendarEditor from './WeekCalendarEditor';
 import { API_INSTITUTIONS_PATH, API_URL } from '../../config/constants';
 import { apiGet, apiPost, apiPut, apiDelete } from '../../utils/apiClient';
 import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionAdmin';
@@ -218,7 +220,7 @@ type EditFormValues = {
 
 async function updateInstitutionData(
   institutionId: string,
-  payload: { name: string; time_grid_config: { weeks: number; days: number; timeslots_per_day: number; max_timeslots_per_day_per_group: number; start_hour: number; start_minute: number; timeslot_duration_minutes: number; start_day: number } },
+  payload: { name: string; time_grid_config: { weeks: number; days: number; timeslots_per_day: number; max_timeslots_per_day_per_group: number; start_hour: number; start_minute: number; timeslot_duration_minutes: number; start_day: number; calendar_weeks?: { start_date: string; week_number: number }[] } },
 ) {
   const res = await apiPut<any>(`${API_URL}${API_INSTITUTIONS_PATH}/${institutionId}`, payload);
   return (res?.institution ?? res) as Institution;
@@ -533,6 +535,7 @@ export default function InstitutionMainPage() {
   const [removeMemberError, setRemoveMemberError] = useState<string | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editValues, setEditValues] = useState<EditFormValues>({ name: '', weeks: '2', scheduleType: '5', startHour: '8', startMinute: '0', endHour: '20', endMinute: '0', slotDuration: '60', maxTimeslotsPerDayPerGroup: '8' });
+  const [editCalendarWeeks, setEditCalendarWeeks] = useState<CalendarWeekMapping[]>([]);
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -1213,6 +1216,7 @@ export default function InstitutionMainPage() {
       slotDuration: String(slotDuration),
       maxTimeslotsPerDayPerGroup: String(tgc.max_timeslots_per_day_per_group),
     });
+    setEditCalendarWeeks(tgc.calendar_weeks ?? []);
     setEditError(null);
     setIsEditDialogOpen(true);
   };
@@ -1259,6 +1263,7 @@ export default function InstitutionMainPage() {
           start_minute: parseInt(editValues.startMinute || '0', 10),
           timeslot_duration_minutes: parseInt(editValues.slotDuration, 10),
           start_day: startDay,
+          calendar_weeks: editCalendarWeeks,
         },
       });
       setInstitution(updated);
@@ -1961,6 +1966,15 @@ export default function InstitutionMainPage() {
                 slotProps={{ htmlInput: { min: 1 } }}
                 required fullWidth disabled={editLoading}
                 helperText={editTimeslotsPerDay > 0 ? `Cannot exceed ${editTimeslotsPerDay} timeslots per day` : undefined}
+              />
+
+              <WeekCalendarEditor
+                weeks={parseInt(editValues.weeks, 10) || 1}
+                days={SCHEDULE_TYPE_CONFIG[editValues.scheduleType].days}
+                startDay={SCHEDULE_TYPE_CONFIG[editValues.scheduleType].startDay}
+                value={editCalendarWeeks}
+                onChange={setEditCalendarWeeks}
+                disabled={editLoading}
               />
 
               {editError && <Alert severity="error" sx={{ borderRadius: 2 }}>{editError}</Alert>}

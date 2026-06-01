@@ -7,6 +7,16 @@ from pydantic import BaseModel, Field, EmailStr
 from app.libs.stringproc.stringproc import generate_id
 
 
+class CalendarWeekMapping(BaseModel):
+    """Maps a real-world calendar week to one of the rotation's week patterns.
+
+    Used by the calendar export so a scheduled activity active in week pattern
+    ``N`` is placed on every real week the admin assigned to pattern ``N``.
+    """
+    start_date: str   # ISO "YYYY-MM-DD" — the first day (start_day) of the real week
+    week_number: int  # 1-based week pattern within the rotation (1..weeks)
+
+
 class TimeGridConfig(BaseModel):
     weeks: int
     days: int
@@ -16,6 +26,9 @@ class TimeGridConfig(BaseModel):
     start_minute: int = 0
     timeslot_duration_minutes: int = 60
     start_day: int = 0  # 0=Monday, 5=Saturday
+    # Optional mapping of real calendar weeks to rotation week patterns, set by
+    # the institution admin.  Drives the personal-calendar (.ics) export.
+    calendar_weeks: List[CalendarWeekMapping] = Field(default_factory=list)
 
 
 class Institution(BaseModel):
