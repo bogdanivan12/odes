@@ -1,4 +1,4 @@
-from datetime import date as date_cls, datetime, timezone
+from datetime import date as date_cls, datetime, timedelta, timezone
 from typing import List, Optional, Tuple
 
 from starlette import status
@@ -39,23 +39,26 @@ def _load_institution(db: Database, institution_id: str) -> models.Institution:
 def _resolve_week(
     institution: models.Institution, iso_date: str
 ) -> Optional[Tuple[int, int]]:
-    """Map a real date to (week_pattern_0based, day_index) using the calendar
-    mapping, or None when the date is not inside any configured week."""
+    """Map a real date to (week_pattern_0based, weekday) using the calendar
+    mapping.  A date matches a configured week when it falls in the *same
+    Monday–Sunday (ISO) week* as that week's start_date, so any day of the real
+    week is reservable in natural Mon→Sun order regardless of which weekday the
+    institution's grid starts on.  weekday is 0=Mon … 6=Sun.  None when no week
+    matches."""
     tgc = institution.time_grid_config
     try:
         target = date_cls.fromisoformat(iso_date)
     except ValueError:
         return None
+    target_monday = target - timedelta(days=target.weekday())
     for cw in tgc.calendar_weeks:
         try:
             start = date_cls.fromisoformat(cw.start_date)
         except ValueError:
             continue
-        day_index = (target - start).days
-        # Any day of the real (7-day) week is reservable, even days the
-        # institution doesn't hold classes on (e.g. weekends of a Mon–Fri grid).
-        if 0 <= day_index < 7:
-            return cw.week_number - 1, day_index
+        week_monday = start - timedelta(days=start.weekday())
+        if week_monday == target_monday:
+            return cw.week_number - 1, target.weekday()
     return None
 
 
@@ -79,7 +82,7 @@ def _compute_conflicts(
             description="The selected date is not within a configured calendar week.",
         ))
         return conflicts
-    week_pattern, day_index = resolved
+    week_pattern, reservation_weekday = resolved
 
     tgc = institution.time_grid_config
     tpd = tgc.timeslots_per_day
@@ -111,7 +114,10 @@ def _compute_conflicts(
             active = (freq == "weekly") or (week_pattern in (s.get("active_weeks") or []))
             if not active:
                 continue
-            if s["start_timeslot"] // tpd != day_index:
+            # The schedule's day index is relative to the grid's start_day; convert
+            # it to a real weekday (Mon=0) to compare with the reservation's day.
+            activity_weekday = (tgc.start_day + s["start_timeslot"] // tpd) % 7
+            if activity_weekday != reservation_weekday:
                 continue
             slot_in_day = s["start_timeslot"] % tpd
             act_start = grid_start + slot_in_day * slot_dur

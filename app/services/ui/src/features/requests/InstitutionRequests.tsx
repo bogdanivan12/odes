@@ -42,8 +42,8 @@ import type { Institution as InstitutionClass } from '../../types/institution';
 import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionAdmin';
 import { compareAlphabetical } from '../../utils/text';
 import { addDaysIso, weekRangeLabel, formatDayMonthYear } from '../../utils/calendarWeeks';
-import { dayLabel } from '../../utils/timeslot';
 
+const WEEKDAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const idOf = (o: { id?: string; _id?: string }) => String(o.id ?? o._id ?? '');
 const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 
@@ -307,7 +307,7 @@ function NewReservationDialog({
 
   const [roomId, setRoomId] = useState('');
   const [weekIdx, setWeekIdx] = useState('0');
-  const [dayIdx, setDayIdx] = useState('0');
+  const [weekday, setWeekday] = useState(String(tg.start_day)); // 0 = Mon … 6 = Sun
   const [startHour, setStartHour] = useState('8');
   const [endHour, setEndHour] = useState('10');
   const [reason, setReason] = useState('');
@@ -320,13 +320,16 @@ function NewReservationDialog({
   useEffect(() => {
     if (open) {
       setRoomId(rooms[0] ? idOf(rooms[0]) : '');
-      setWeekIdx('0'); setDayIdx('0'); setStartHour('8'); setEndHour('10');
+      setWeekIdx('0'); setWeekday(String(tg.start_day)); setStartHour('8'); setEndHour('10');
       setReason(''); setCheck(null); setSubmitError(null);
     }
-  }, [open, rooms]);
+  }, [open, rooms, tg.start_day]);
 
   const selectedWeek = weeks[Number(weekIdx)] ?? weeks[0];
-  const date = selectedWeek ? addDaysIso(selectedWeek.start_date, Number(dayIdx)) : '';
+  // Monday of the selected calendar week's ISO week (the grid may start on any
+  // weekday, e.g. Saturday for a weekend institution).
+  const monday = selectedWeek ? addDaysIso(selectedWeek.start_date, -tg.start_day) : '';
+  const date = monday ? addDaysIso(monday, Number(weekday)) : '';
   const startMinute = Number(startHour) * 60;
   const endMinute = Number(endHour) * 60;
   const timesValid = endMinute > startMinute;
@@ -377,24 +380,20 @@ function NewReservationDialog({
             {rooms.map((r) => <MenuItem key={idOf(r)} value={idOf(r)}>{r.name}</MenuItem>)}
           </TextField>
 
-          <TextField select label="Week" value={weekIdx} onChange={(e) => { setWeekIdx(e.target.value); setDayIdx('0'); }} fullWidth>
+          <TextField select label="Week" value={weekIdx} onChange={(e) => setWeekIdx(e.target.value)} fullWidth>
             {weeks.map((w, i) => (
               <MenuItem key={w.start_date} value={String(i)}>
-                {weekRangeLabel(w.start_date, tg.days)} · Week {w.week_number}
+                {weekRangeLabel(addDaysIso(w.start_date, -tg.start_day), 7)} · Week {w.week_number}
               </MenuItem>
             ))}
           </TextField>
 
-          <TextField select label="Day" value={dayIdx} onChange={(e) => setDayIdx(e.target.value)} fullWidth>
-            {/* Show all 7 days, ordered Monday→Sunday regardless of the institution's
-                start day. The value stays the day-offset from the week start, which the
-                conflict check relies on. */}
-            {Array.from({ length: 7 }, (_, d) => d)
-              .sort((a, b) => ((tg.start_day + a) % 7) - ((tg.start_day + b) % 7))
-              .map((d) => {
-                const iso = selectedWeek ? addDaysIso(selectedWeek.start_date, d) : '';
-                return <MenuItem key={d} value={String(d)}>{dayLabel(d, tg)} · {iso ? formatDayMonthYear(iso) : ''}</MenuItem>;
-              })}
+          <TextField select label="Day" value={weekday} onChange={(e) => setWeekday(e.target.value)} fullWidth>
+            {/* Natural Monday→Sunday week; dates are contiguous from that week's Monday. */}
+            {WEEKDAY_NAMES.map((name, m) => {
+              const iso = monday ? addDaysIso(monday, m) : '';
+              return <MenuItem key={m} value={String(m)}>{name} · {iso ? formatDayMonthYear(iso) : ''}</MenuItem>;
+            })}
           </TextField>
           <Stack direction="row" spacing={2}>
             <TextField select label="From" value={startHour} onChange={(e) => setStartHour(e.target.value)} fullWidth>
