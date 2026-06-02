@@ -445,6 +445,20 @@ async function globalSetup(): Promise<void> {
     { preferences: y1aPreferences }, adminToken);
   console.log('[global-setup] Year1-A timeslot preferences set');
 
+  // ── Calendar weeks for the complex institution (enables room reservations) ──
+  const complexCalendarWeeks = [
+    { start_date: '2026-06-01', week_number: 1 },
+    { start_date: '2026-06-08', week_number: 2 },
+  ];
+  const complexInstResp = await apiCall(
+    'GET', `/api/v1/institutions/${complexInstitutionId}`, undefined, adminToken,
+  ) as { institution: { time_grid_config: Record<string, unknown> } };
+  await apiCall('PUT', `/api/v1/institutions/${complexInstitutionId}`, {
+    name: 'E2E Complex University',
+    time_grid_config: { ...complexInstResp.institution.time_grid_config, calendar_weeks: complexCalendarWeeks },
+  }, adminToken);
+  console.log('[global-setup] Complex institution calendar weeks set');
+
   // ── Write fixtures ───────────────────────────────────────────────────────────
   const fixtures = {
     adminId,
@@ -513,6 +527,13 @@ async function globalSetup(): Promise<void> {
     // absolute start_timeslot.
     complexPinnedActivityId: pinnedActivityId,
     complexPinnedStartTimeslot: PINNED_START,
+    // Room-reservation fixtures (calendar week 1 starts 2026-06-01):
+    //  - a non-school day (day 5) that the schedule never occupies → always free
+    //  - day 0 (2026-06-01) where the pinned activity sits → used to prove the
+    //    active schedule blocks reservations.
+    complexReservationFreeDate: '2026-06-06',
+    complexReservationScheduleDate: '2026-06-01',
+    complexReservationRoomId: hallAId,
     complexRooms: {
       hallAId,
       hallBId,

@@ -94,6 +94,7 @@ import type {
 import { Institution } from '../../types/institution';
 import type { CalendarWeekMapping } from '../../types/institution';
 import WeekCalendarEditor from './WeekCalendarEditor';
+import { weekRangeLabel } from '../../utils/calendarWeeks';
 import { API_INSTITUTIONS_PATH, API_URL } from '../../config/constants';
 import { apiGet, apiPost, apiPut, apiDelete } from '../../utils/apiClient';
 import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionAdmin';
@@ -536,6 +537,7 @@ export default function InstitutionMainPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editValues, setEditValues] = useState<EditFormValues>({ name: '', weeks: '2', scheduleType: '5', startHour: '8', startMinute: '0', endHour: '20', endMinute: '0', slotDuration: '60', maxTimeslotsPerDayPerGroup: '8' });
   const [editCalendarWeeks, setEditCalendarWeeks] = useState<CalendarWeekMapping[]>([]);
+  const [weeksDialogOpen, setWeeksDialogOpen] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -1520,6 +1522,15 @@ export default function InstitutionMainPage() {
             <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', mb: 2 }}>
               <Typography variant="h5" sx={{ fontWeight: 700 }}>{institution.name}</Typography>
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<CalendarViewWeekIcon />}
+                  onClick={() => setWeeksDialogOpen(true)}
+                  sx={{ borderRadius: 2 }}
+                >
+                  Calendar weeks
+                </Button>
                 {canManageInstitution && (
                   <>
                     <Button
@@ -2564,6 +2575,35 @@ export default function InstitutionMainPage() {
           <Button onClick={handleScheduleDelete} color="error" variant="contained" disabled={scheduleDeleteLoading} sx={{ borderRadius: 2 }}>
             {scheduleDeleteLoading ? <CircularProgress size={18} color="inherit" /> : 'Delete'}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Calendar weeks (read-only, anyone) */}
+      <Dialog open={weeksDialogOpen} onClose={() => setWeeksDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Calendar weeks</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 1.5 }}>
+            Which real weeks map to each rotation pattern. Reservations can only be made on these weeks.
+          </DialogContentText>
+          {(institution.time_grid_config.calendar_weeks ?? []).length === 0 ? (
+            <Alert severity="info" sx={{ borderRadius: 2 }}>
+              No calendar weeks configured yet{canManageInstitution ? ' — set them up via Edit.' : '.'}
+            </Alert>
+          ) : (
+            <Stack spacing={1}>
+              {[...(institution.time_grid_config.calendar_weeks ?? [])]
+                .sort((a, b) => a.start_date.localeCompare(b.start_date))
+                .map((w) => (
+                  <Stack key={w.start_date} direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                    <Typography variant="body2">{weekRangeLabel(w.start_date, institution.time_grid_config.days)}</Typography>
+                    <Chip size="small" label={`Week ${w.week_number}`} sx={{ borderRadius: 1 }} />
+                  </Stack>
+                ))}
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setWeeksDialogOpen(false)} sx={{ borderRadius: 2 }}>Close</Button>
         </DialogActions>
       </Dialog>
     </PageContainer>
