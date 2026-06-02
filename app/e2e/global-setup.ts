@@ -527,12 +527,10 @@ async function globalSetup(): Promise<void> {
     // absolute start_timeslot.
     complexPinnedActivityId: pinnedActivityId,
     complexPinnedStartTimeslot: PINNED_START,
-    // Room-reservation fixtures (calendar week 1 starts 2026-06-01):
-    //  - a non-school day (day 5) that the schedule never occupies → always free
-    //  - day 0 (2026-06-01) where the pinned activity sits → used to prove the
-    //    active schedule blocks reservations.
-    complexReservationFreeDate: '2026-06-06',
-    complexReservationScheduleDate: '2026-06-01',
+    // Room-reservation fixtures. Calendar week 1 is the ISO week of 2026-06-01
+    // (Monday). The institution's start_day isn't Monday, so the test computes
+    // exact dates from weekdays rather than assuming a fixed school-day layout.
+    complexWeek1Monday: '2026-06-01',
     complexReservationRoomId: hallAId,
     complexRooms: {
       hallAId,
