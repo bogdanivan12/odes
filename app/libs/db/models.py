@@ -196,3 +196,30 @@ class ScheduledActivity(BaseModel):
 
     class Config:
         populate_by_name = True
+
+
+class ReservationStatus(str, Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REFUSED = "refused"
+
+
+class Reservation(BaseModel):
+    id: str = Field(default_factory=generate_id, alias="_id")
+    institution_id: str
+    room_id: str
+    requester_id: str
+    date: str                 # ISO "YYYY-MM-DD" — must fall inside a configured calendar week
+    start_minute: int         # minutes from midnight
+    end_minute: int           # minutes from midnight (exclusive)
+    reason: str
+    status: ReservationStatus = ReservationStatus.PENDING
+    decided_by: Optional[str] = None        # admin who approved/refused
+    decision_reason: Optional[str] = None   # optional reason given on refusal
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    decided_at: Optional[datetime] = None
+
+    COLLECTION_NAME: ClassVar[str] = "reservations"
+
+    class Config:
+        populate_by_name = True

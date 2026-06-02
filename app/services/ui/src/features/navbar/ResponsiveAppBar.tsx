@@ -51,6 +51,7 @@ const NAV_PAGES = [
   { key: 'rooms', label: 'Rooms' },
   { key: 'activities', label: 'Activities' },
   { key: 'schedules', label: 'Schedules' },
+  { key: 'requests', label: 'Reservations' },
 ] as const;
 
 export default function ResponsiveAppBar() {

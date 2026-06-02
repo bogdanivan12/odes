@@ -17,6 +17,7 @@ from app.services.api.src.repositories import (
     activities as activities_repo,
     institutions as institutions_repo,
     scheduled_activities as scheduled_activities_repo,
+    reservations as reservations_repo,
 )
 
 logger = get_logger()
@@ -156,6 +157,7 @@ def delete_institution(db: Database, institution_id: str, current_user_id: str) 
             )
 
         schedules_repo.delete_schedules_by_institution_id(db, institution_id)
+        reservations_repo.delete_reservations_by_institution_id(db, institution_id)
 
         for user in institution_users:
             if institution_id not in user["user_roles"]:
