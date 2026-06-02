@@ -386,10 +386,15 @@ function NewReservationDialog({
           </TextField>
 
           <TextField select label="Day" value={dayIdx} onChange={(e) => setDayIdx(e.target.value)} fullWidth>
-            {Array.from({ length: 7 }, (_, d) => {
-              const iso = selectedWeek ? addDaysIso(selectedWeek.start_date, d) : '';
-              return <MenuItem key={d} value={String(d)}>{dayLabel(d, tg)} · {iso ? formatDayMonthYear(iso) : ''}</MenuItem>;
-            })}
+            {/* Show all 7 days, ordered Monday→Sunday regardless of the institution's
+                start day. The value stays the day-offset from the week start, which the
+                conflict check relies on. */}
+            {Array.from({ length: 7 }, (_, d) => d)
+              .sort((a, b) => ((tg.start_day + a) % 7) - ((tg.start_day + b) % 7))
+              .map((d) => {
+                const iso = selectedWeek ? addDaysIso(selectedWeek.start_date, d) : '';
+                return <MenuItem key={d} value={String(d)}>{dayLabel(d, tg)} · {iso ? formatDayMonthYear(iso) : ''}</MenuItem>;
+              })}
           </TextField>
           <Stack direction="row" spacing={2}>
             <TextField select label="From" value={startHour} onChange={(e) => setStartHour(e.target.value)} fullWidth>
