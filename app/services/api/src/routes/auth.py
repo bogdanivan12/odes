@@ -56,6 +56,18 @@ async def google_login(response: Response, db: DB, request: dto_in.GoogleSignIn)
     return dto_out.AccessToken(access_token=access_token)
 
 
+@router.post("/microsoft", status_code=status.HTTP_200_OK, response_model=dto_out.AccessToken)
+async def microsoft_login(response: Response, db: DB, request: dto_in.MicrosoftSignIn):
+    """Sign in with Microsoft.
+
+    Verifies the Microsoft Entra ID token, finds/creates/links the user, and
+    returns the same access token (+ refresh cookie) as a password login.
+    """
+    access_token, refresh_token = service.get_microsoft_login_token(db, request.credential)
+    _set_refresh_cookie(response, refresh_token, max_age=token_utils.REFRESH_EXPIRES_DELTA * 60)
+    return dto_out.AccessToken(access_token=access_token)
+
+
 @router.post("/refresh", status_code=status.HTTP_200_OK, response_model=dto_out.AccessToken)
 async def refresh_access_token(request: Request):
     """Exchange the refresh-token cookie for a new access token."""

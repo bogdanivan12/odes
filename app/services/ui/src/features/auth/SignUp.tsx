@@ -11,8 +11,9 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import Divider from '@mui/material/Divider';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { SignUpRequest } from './types';
-import { signUp, googleSignIn } from '../../api/auth.ts';
+import { signUp, googleSignIn, microsoftSignIn } from '../../api/auth.ts';
 import GoogleSignInButton from './GoogleSignInButton';
+import MicrosoftSignInButton from './MicrosoftSignInButton';
 import { AuthToken } from '../../types/token.ts';
 import { setAccessToken, clearTokens } from '../../utils/auth.ts';
 import { USER_LOGIN_ROUTE } from '../../config/routes.ts';
@@ -67,16 +68,20 @@ export function SignUp() {
     }
   };
 
-  const handleGoogleCredential = async (credential: string) => {
+  const handleProviderCredential = async (
+    exchange: (credential: string) => Promise<unknown>,
+    provider: string,
+    credential: string,
+  ) => {
     setError(null);
     setLoading(true);
     try {
-      const data = await googleSignIn(credential);
+      const data = await exchange(credential);
       const token = AuthToken.fromApi(data);
       setAccessToken(token.accessToken);
       navigate('/', { replace: true });
     } catch (err) {
-      setError((err as Error).message || 'Google sign in failed');
+      setError((err as Error).message || `${provider} sign in failed`);
     } finally {
       setLoading(false);
     }
@@ -208,7 +213,11 @@ export function SignUp() {
                 </Divider>
 
                 <GoogleSignInButton
-                  onCredential={handleGoogleCredential}
+                  onCredential={(c) => handleProviderCredential(googleSignIn, 'Google', c)}
+                  onError={(msg) => setError(msg)}
+                />
+                <MicrosoftSignInButton
+                  onCredential={(c) => handleProviderCredential(microsoftSignIn, 'Microsoft', c)}
                   onError={(msg) => setError(msg)}
                 />
               </Stack>
