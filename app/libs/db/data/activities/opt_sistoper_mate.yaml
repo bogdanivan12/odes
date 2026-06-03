@@ -1,4 +1,4 @@
 group: Sisteme de operare
 activities:
-  - { course: "Sisteme de operare", type: course,     duration_slots: 2, frequency: weekly, professor: "Paul Irofti" }
+  - { course: "Sisteme de operare", type: lecture,     duration_slots: 2, frequency: weekly, professor: "Paul Irofti" }
   - { course: "Sisteme de operare", type: laboratory, duration_slots: 2, frequency: weekly, professor: "Horatiu Cheval" }

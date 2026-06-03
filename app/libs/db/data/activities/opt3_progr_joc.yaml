@@ -1,3 +1,3 @@
 group: Introducere in programarea jocurilor pe calculator
 activities:
-  - { course: "Introducere in programarea jocurilor pe calculator", type: course, duration_slots: 2, frequency: weekly, professor: "Stefan Popescu" }
+  - { course: "Introducere in programarea jocurilor pe calculator", type: lecture, duration_slots: 2, frequency: weekly, professor: "Stefan Popescu" }

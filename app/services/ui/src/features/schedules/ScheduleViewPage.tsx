@@ -81,7 +81,7 @@ function scheduleStatusColor(status?: string): 'success' | 'warning' | 'error' |
 
 function formatTimestamp(ts?: string): string {
   if (!ts) return '';
-  // Parse as UTC — backend emits UTC datetimes and may omit the trailing Z.
+  // Parse as UTC - backend emits UTC datetimes and may omit the trailing Z.
   const date = parseServerTimestamp(ts);
   if (!date) return '';
   return date.toLocaleString(undefined, {
@@ -452,7 +452,8 @@ export default function ScheduleViewPage() {
 
       // Activity type → [fill, text] colors matching the web calendar
       const activityColors: Record<string, { fill: [number,number,number]; text: [number,number,number] }> = {
-        course:     { fill: [220, 221, 255], text: [72,  73,  174] }, // indigo
+        lecture:    { fill: [220, 221, 255], text: [72,  73,  174] }, // indigo
+        course:     { fill: [220, 221, 255], text: [72,  73,  174] }, // indigo (legacy alias)
         seminar:    { fill: [200, 240, 252], text: [5,   138, 162] }, // cyan
         laboratory: { fill: [255, 237, 213], text: [180, 108,  10] }, // amber/orange
       };

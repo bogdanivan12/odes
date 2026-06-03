@@ -1,4 +1,4 @@
 group: Seria 34
 activities:
-  - { course: "Calculabilitate si complexitate", type: course, duration_slots: 2, frequency: weekly, professor: "Bogdan Dumitru" }
-  - { course: "Inginerie software",              type: course, duration_slots: 2, frequency: weekly, professor: "Rares Cristea" }
+  - { course: "Calculabilitate si complexitate", type: lecture, duration_slots: 2, frequency: weekly, professor: "Bogdan Dumitru" }
+  - { course: "Inginerie software",              type: lecture, duration_slots: 2, frequency: weekly, professor: "Rares Cristea" }

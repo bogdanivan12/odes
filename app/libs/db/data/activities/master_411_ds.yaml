@@ -1,3 +1,3 @@
 group: 411 DS
 activities:
-  - { course: "Analiza exploratorie a datelor", type: course, duration_slots: 2, frequency: weekly, professor: "Bogdan-Nicolae Ichim", additional_groups: ["Analiza exploratorie a datelor"] }
+  - { course: "Analiza exploratorie a datelor", type: lecture, duration_slots: 2, frequency: weekly, professor: "Bogdan-Nicolae Ichim", additional_groups: ["Analiza exploratorie a datelor"] }

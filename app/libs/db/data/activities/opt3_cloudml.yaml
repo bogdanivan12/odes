@@ -1,3 +1,3 @@
 group: Tehnologii Cloud Computing Aplicate in Machine Learning
 activities:
-  - { course: "Tehnologii Cloud Computing Aplicate in Machine Learning", type: course, duration_slots: 2, frequency: weekly, professor: "Cristian Kevorchian" }
+  - { course: "Tehnologii Cloud Computing Aplicate in Machine Learning", type: lecture, duration_slots: 2, frequency: weekly, professor: "Cristian Kevorchian" }

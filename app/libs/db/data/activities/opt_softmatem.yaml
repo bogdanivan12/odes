@@ -1,4 +1,4 @@
 group: Software matematic
 activities:
-  - { course: "Software matematic", type: course,     duration_slots: 2, frequency: weekly, professor: "Iuliana Munteanu" }
+  - { course: "Software matematic", type: lecture,     duration_slots: 2, frequency: weekly, professor: "Iuliana Munteanu" }
   - { course: "Software matematic", type: laboratory, duration_slots: 2, frequency: weekly, professor: "Iuliana Munteanu" }

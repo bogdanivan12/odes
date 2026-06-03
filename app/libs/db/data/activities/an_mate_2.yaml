@@ -1,6 +1,6 @@
 group: MATE Anul 2
 activities:
-  - { course: "Algebra III",                       type: course, duration_slots: 2, frequency: weekly, professor: "Daniel Bulacu" }
-  - { course: "Teoria masurarii si a integrarii",  type: course, duration_slots: 2, frequency: weekly, professor: "Cristian Bereanu" }
-  - { course: "Ecuatii diferentiale",              type: course, duration_slots: 2, frequency: weekly, professor: "Aurelian Cernea" }
-  - { course: "Geometrie diferentiala I",          type: course, duration_slots: 2, frequency: weekly, professor: "Catalin Gherghe" }
+  - { course: "Algebra III",                       type: lecture, duration_slots: 2, frequency: weekly, professor: "Daniel Bulacu" }
+  - { course: "Teoria masurarii si a integrarii",  type: lecture, duration_slots: 2, frequency: weekly, professor: "Cristian Bereanu" }
+  - { course: "Ecuatii diferentiale",              type: lecture, duration_slots: 2, frequency: weekly, professor: "Aurelian Cernea" }
+  - { course: "Geometrie diferentiala I",          type: lecture, duration_slots: 2, frequency: weekly, professor: "Catalin Gherghe" }

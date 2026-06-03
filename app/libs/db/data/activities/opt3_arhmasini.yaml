@@ -1,3 +1,3 @@
 group: Arheologia masinilor inteligente
 activities:
-  - { course: "Arheologia masinilor inteligente", type: course, duration_slots: 2, frequency: weekly, professor: "Sergiu Nisioi" }
+  - { course: "Arheologia masinilor inteligente", type: lecture, duration_slots: 2, frequency: weekly, professor: "Sergiu Nisioi" }

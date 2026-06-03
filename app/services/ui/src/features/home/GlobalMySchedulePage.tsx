@@ -551,7 +551,9 @@ export default function GlobalMySchedulePage() {
           {/* ── Header ── */}
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, flexWrap: 'wrap' }}>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="h5" sx={{ fontWeight: 700 }}>My Schedule</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Typography variant="h5" sx={{ fontWeight: 700 }}>My Schedule</Typography>
+              </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
                 Your personal timetable across all institutions
               </Typography>
@@ -560,7 +562,7 @@ export default function GlobalMySchedulePage() {
               <Tooltip
                 title={
                   exportableInstitutionCount === 0
-                    ? 'No institution has calendar weeks configured yet — an admin needs to set them up.'
+                    ? 'No institution has calendar weeks configured yet - an admin needs to set them up.'
                     : 'Download an .ics file for Apple / Google / Outlook calendars'
                 }
               >
@@ -648,7 +650,7 @@ export default function GlobalMySchedulePage() {
                 </Stack>
               )}
 
-              {/* Group filter chips — shown whenever the user is a student with direct groups */}
+              {/* Group filter chips - shown whenever the user is a student with direct groups */}
               {myDirectGroupIds.size > 0 && isStudent && (
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
                   <SchoolRoundedIcon sx={{ fontSize: '0.9rem', color: 'text.secondary' }} />

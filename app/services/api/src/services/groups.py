@@ -53,7 +53,7 @@ def _would_create_cycle(db: Database, group_id: str, new_parent_id: str) -> bool
         if current_id == group_id:
             return True
         if current_id in visited:
-            # Existing cycle in the data — stop to avoid an infinite loop
+            # Existing cycle in the data - stop to avoid an infinite loop
             break
         visited.add(current_id)
         row = groups_repo.find_group_by_id(db, current_id)
@@ -321,7 +321,7 @@ def add_student_to_group(
       - The caller is an admin of the group's institution.
       - The target user exists and has STUDENT role in the group's
         institution.  Promoting non-students to group membership is
-        intentionally rejected — group membership is an academic-
+        intentionally rejected - group membership is an academic-
         enrollment concept.
     """
     logger.info(f"Adding user {user_id} to group {group_id}")

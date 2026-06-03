@@ -30,7 +30,7 @@ test.describe('My Schedule', () => {
     //   (a) a schedule calendar when there is an active schedule, OR
     //   (b) a "No active schedules" message when none exist yet
     // Institution filter chips only appear when the student belongs to
-    // multiple institutions with active schedules — not a reliable CI invariant.
+    // multiple institutions with active schedules - not a reliable CI invariant.
     const content = studentPage
       .getByText('No active schedules')
       .or(studentPage.getByText('None of your institutions have an active schedule'))

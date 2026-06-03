@@ -1,4 +1,4 @@
 group: Modele markoviene si aplicatii in simulare
 activities:
-  - { course: "Modele markoviene si aplicatii in simulare", type: course,   duration_slots: 2, frequency: weekly, professor: "Iulian Cimpean" }
+  - { course: "Modele markoviene si aplicatii in simulare", type: lecture,   duration_slots: 2, frequency: weekly, professor: "Iulian Cimpean" }
   - { course: "Modele markoviene si aplicatii in simulare", type: seminar,  duration_slots: 2, frequency: weekly, professor: "Iulian Cimpean" }

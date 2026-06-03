@@ -39,7 +39,7 @@ import { useInstitutionSync } from '../../utils/useInstitutionSync';
 import { useTheme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
 
-const activityTypePriority: Record<string, number> = { course: 0, seminar: 1, laboratory: 2 };
+const activityTypePriority: Record<string, number> = { lecture: 0, course: 0, seminar: 1, laboratory: 2 };
 const compareActivityTypes = (a: string, b: string) => {
   const aRank = activityTypePriority[a.trim().toLowerCase()] ?? Number.MAX_SAFE_INTEGER;
   const bRank = activityTypePriority[b.trim().toLowerCase()] ?? Number.MAX_SAFE_INTEGER;

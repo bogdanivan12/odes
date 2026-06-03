@@ -1,8 +1,8 @@
 group: Seria 36
 activities:
-  - { course: "Compilatoare",                      type: course, duration_slots: 2, frequency: weekly, professor: "Gianina Georgescu" }
-  - { course: "Procesarea semnalelor",              type: course, duration_slots: 2, frequency: weekly, professor: "Paul Irofti" }
-  - { course: "Inteligenta Artificiala",            type: course, duration_slots: 2, frequency: weekly, professor: "Bogdan Alexe" }
-  - { course: "Introducere in robotica",            type: course, duration_slots: 2, frequency: weekly, professor: "Dan Tudose" }
-  - { course: "Sisteme avansate de baze de date",   type: course, duration_slots: 2, frequency: weekly, professor: "Florentin Ipate" }
-  - { course: "Sisteme de operare",                 type: course, duration_slots: 2, frequency: weekly, professor: "Dumitru-Daniel Dragulici" }
+  - { course: "Compilatoare",                      type: lecture, duration_slots: 2, frequency: weekly, professor: "Gianina Georgescu" }
+  - { course: "Procesarea semnalelor",              type: lecture, duration_slots: 2, frequency: weekly, professor: "Paul Irofti" }
+  - { course: "Inteligenta Artificiala",            type: lecture, duration_slots: 2, frequency: weekly, professor: "Bogdan Alexe" }
+  - { course: "Introducere in robotica",            type: lecture, duration_slots: 2, frequency: weekly, professor: "Dan Tudose" }
+  - { course: "Sisteme avansate de baze de date",   type: lecture, duration_slots: 2, frequency: weekly, professor: "Florentin Ipate" }
+  - { course: "Sisteme de operare",                 type: lecture, duration_slots: 2, frequency: weekly, professor: "Dumitru-Daniel Dragulici" }

@@ -1,5 +1,5 @@
 /**
- * ScheduleEditPage — drag-and-drop schedule editor.
+ * ScheduleEditPage - drag-and-drop schedule editor.
  *
  * Architecture
  * ────────────
@@ -613,8 +613,8 @@ export default function ScheduleEditPage() {
     (schedRecId: string): string => {
       const entry = effectiveEntries.find((e) => e.schedRecId === schedRecId);
       if (!entry) return schedRecId;
-      const course = coursesById.get(entry.courseId)?.name ?? '—';
-      const groups = entry.allGroupIds.map((gid) => groupsById.get(gid)?.name ?? gid).join(', ') || '—';
+      const course = coursesById.get(entry.courseId)?.name ?? '-';
+      const groups = entry.allGroupIds.map((gid) => groupsById.get(gid)?.name ?? gid).join(', ') || '-';
       return `${course} (${groups})`;
     },
     [effectiveEntries, coursesById, groupsById],
@@ -638,9 +638,9 @@ export default function ScheduleEditPage() {
         const other = effectiveEntries.find((e) => e.schedRecId === c.conflicting_record_id);
         let description = c.description; // fallback to backend text
         if (other) {
-          const course = coursesById.get(other.courseId)?.name ?? '—';
-          const groups = other.allGroupIds.map((gid) => groupsById.get(gid)?.name ?? gid).join(', ') || '—';
-          const room = roomsById.get(other.roomId)?.name ?? '—';
+          const course = coursesById.get(other.courseId)?.name ?? '-';
+          const groups = other.allGroupIds.map((gid) => groupsById.get(gid)?.name ?? gid).join(', ') || '-';
+          const room = roomsById.get(other.roomId)?.name ?? '-';
           const prof = other.professorId
             ? (usersById.get(other.professorId)?.name ??
                usersById.get(other.professorId)?.email ??
@@ -1142,7 +1142,7 @@ export default function ScheduleEditPage() {
                           <Box component="span" sx={{ fontWeight: 700, color: 'error.main' }}>
                             {row.movedLabel}
                           </Box>
-                          {' — '}
+                          {' - '}
                           <Box component="span" sx={{ color: 'text.secondary' }}>
                             {row.description}
                           </Box>
@@ -1163,7 +1163,7 @@ export default function ScheduleEditPage() {
         {activeEntry && (
           <OverlayCard
             entry={activeEntry}
-            courseName={coursesById.get(activeEntry.courseId)?.name ?? '—'}
+            courseName={coursesById.get(activeEntry.courseId)?.name ?? '-'}
           />
         )}
       </DragOverlay>

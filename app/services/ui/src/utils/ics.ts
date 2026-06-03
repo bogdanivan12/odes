@@ -1,5 +1,5 @@
 // Minimal RFC 5545 (.ics) builder.  Events use floating local time (no TZID),
-// so each calendar app shows them in the viewer's local timezone — correct for
+// so each calendar app shows them in the viewer's local timezone - correct for
 // a single-location institution and free of VTIMEZONE complexity.
 
 export interface CalendarEvent {
@@ -53,7 +53,7 @@ export function buildIcs(events: CalendarEvent[], calendarName: string): string 
     lines.push(`DTSTAMP:${stamp}`);
     // Emit as UTC instants (…Z).  The start/end Dates are built in the user's
     // local timezone, so each calendar app converts the UTC time back to that
-    // same local wall-clock — 8:00 at the institution shows as 8:00 locally.
+    // same local wall-clock - 8:00 at the institution shows as 8:00 locally.
     // (Floating, un-zoned times get misread as UTC by some apps and shift.)
     lines.push(`DTSTART:${fmtUtc(e.start)}`);
     lines.push(`DTEND:${fmtUtc(e.end)}`);

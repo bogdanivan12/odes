@@ -1,5 +1,5 @@
 group: 507 AI
 activities:
-  - { course: "Natural Language Processing 2",       type: course, duration_slots: 2, frequency: weekly, professor: "Liviu Dinu",            additional_groups: ["Natural Language Processing 2"] }
-  - { course: "Information Retrieval and Text Mining", type: course, duration_slots: 2, frequency: weekly, professor: "Marius Popescu",       additional_groups: ["511 DS", "512 NLP", "Information Retrieval and Text Mining"] }
-  - { course: "Deep Learning",                        type: course, duration_slots: 2, frequency: weekly, professor: "Radu Ionescu",          additional_groups: ["511 DS", "Deep Learning"] }
+  - { course: "Natural Language Processing 2",       type: lecture, duration_slots: 2, frequency: weekly, professor: "Liviu Dinu",            additional_groups: ["Natural Language Processing 2"] }
+  - { course: "Information Retrieval and Text Mining", type: lecture, duration_slots: 2, frequency: weekly, professor: "Marius Popescu",       additional_groups: ["511 DS", "512 NLP", "Information Retrieval and Text Mining"] }
+  - { course: "Deep Learning",                        type: lecture, duration_slots: 2, frequency: weekly, professor: "Radu Ionescu",          additional_groups: ["511 DS", "Deep Learning"] }

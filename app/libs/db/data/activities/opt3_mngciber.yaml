@@ -1,4 +1,4 @@
 group: Managementul Amenintarilor Cibernetice
 activities:
-  - { course: "Managementul Amenintarilor Cibernetice", type: course,     duration_slots: 2, frequency: weekly, professor: "Mihaita Dragan" }
+  - { course: "Managementul Amenintarilor Cibernetice", type: lecture,     duration_slots: 2, frequency: weekly, professor: "Mihaita Dragan" }
   - { course: "Managementul Amenintarilor Cibernetice", type: laboratory, duration_slots: 2, frequency: weekly, professor: "Mihaita Dragan" }

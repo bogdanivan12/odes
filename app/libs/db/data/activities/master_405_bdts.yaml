@@ -1,5 +1,5 @@
 group: 405 BDTS
 activities:
-  - { course: "Sisteme de baze de date",                  type: course, duration_slots: 2, frequency: weekly, professor: "Sorina-Nicoleta Predut", additional_groups: ["Sisteme de baze de date"] }
-  - { course: "Programare Web utilizand tehnologii Java", type: course, duration_slots: 2, frequency: weekly, professor: "Daniela-Mihaela Spilca",  additional_groups: ["Programare Web utilizand tehnologii Java"] }
-  - { course: "Data Mining si Knowledge Discovery",       type: course, duration_slots: 2, frequency: weekly, professor: "Alexandru Tache",           additional_groups: ["Data Mining si Knowledge Discovery"] }
+  - { course: "Sisteme de baze de date",                  type: lecture, duration_slots: 2, frequency: weekly, professor: "Sorina-Nicoleta Predut", additional_groups: ["Sisteme de baze de date"] }
+  - { course: "Programare Web utilizand tehnologii Java", type: lecture, duration_slots: 2, frequency: weekly, professor: "Daniela-Mihaela Spilca",  additional_groups: ["Programare Web utilizand tehnologii Java"] }
+  - { course: "Data Mining si Knowledge Discovery",       type: lecture, duration_slots: 2, frequency: weekly, professor: "Alexandru Tache",           additional_groups: ["Data Mining si Knowledge Discovery"] }

@@ -47,7 +47,7 @@ test.describe('Groups CRUD', () => {
 
     // Group items are plain div rows (not list items or Paper).
     // Find the innermost div that contains the group name AND has action buttons,
-    // then click the last button (Delete — Open/Edit/Delete order).
+    // then click the last button (Delete - Open/Edit/Delete order).
     const groupRow = adminPage
       .locator('div')
       .filter({ has: adminPage.getByText(deleteName, { exact: true }) })

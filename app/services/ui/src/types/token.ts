@@ -2,7 +2,7 @@
  * Represents the JSON body returned by the login endpoint.
  *
  * The refresh token is delivered as an HttpOnly cookie by the server and is
- * therefore NOT present in this object — JavaScript cannot read it.
+ * therefore NOT present in this object - JavaScript cannot read it.
  */
 export class AuthToken {
   accessToken: string;

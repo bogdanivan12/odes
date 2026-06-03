@@ -57,7 +57,7 @@ function formatScheduleLabel(
   // legacy schedules that pre-date the name field.
   const primary = schedule.name ?? `Schedule #${fallbackIndex + 1}`;
   if (schedule.timestamp) {
-    // Parse as UTC — backend emits UTC and may omit trailing Z.
+    // Parse as UTC - backend emits UTC and may omit trailing Z.
     const date = parseServerTimestamp(schedule.timestamp);
     if (!date) return { primary };
     const formatted = date.toLocaleString(undefined, {
@@ -138,7 +138,7 @@ export default function InstitutionSchedules() {
   // completed/failed), tick once per second (for the progress bar) and poll
   // the schedule list every 5 s to pick up status transitions.
   // 'draft' is the initial state before the solver picks up the job, so we
-  // must poll then too — otherwise the UI stays stale until a manual refresh.
+  // must poll then too - otherwise the UI stays stale until a manual refresh.
   const hasInProgressSchedule = useMemo(
     () => schedules.some((s) => {
       const st = s.status?.toLowerCase();
@@ -152,7 +152,7 @@ export default function InstitutionSchedules() {
     const tick = setInterval(() => setNowMs(Date.now()), 1000);
     const poll = setInterval(() => {
       if (!institutionId) return;
-      // Quietly refresh the schedules list — ignore errors here, the main
+      // Quietly refresh the schedules list - ignore errors here, the main
       // load path handles them.
       getInstitutionSchedules(institutionId).then((data) => {
         const sorted = [...data].sort((a, b) => {
@@ -369,7 +369,7 @@ export default function InstitutionSchedules() {
                       <Chip size="small" label={schedule.status} color={statusColor} sx={{ flexShrink: 0, borderRadius: 1.5, fontSize: '0.72rem', height: 22 }} />
                     )}
 
-                    {/* Set/unset active — admins only, only on completed schedules */}
+                    {/* Set/unset active - admins only, only on completed schedules */}
                     {canManage && isCompleted && (
                       <Tooltip title={isActive ? 'Unset as active' : 'Set as active'}>
                         <span>
@@ -417,7 +417,7 @@ export default function InstitutionSchedules() {
                       />
                       <Typography variant="caption" color="text.secondary">
                         {isDraft
-                          ? 'Queued — waiting for solver…'
+                          ? 'Queued - waiting for solver…'
                           : (remainingLabel ?? 'Generating…')}
                         {isRunning && eta && ` · estimated total ${formatDuration(eta.eta_seconds)} (${eta.num_activities} activities)`}
                       </Typography>

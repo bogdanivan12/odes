@@ -47,7 +47,7 @@ import { getCurrentUserData, isInstitutionAdmin } from '../../utils/institutionA
 import { useTheme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
 
-const ACTIVITY_TYPE_OPTIONS = ['course', 'seminar', 'laboratory', 'other'];
+const ACTIVITY_TYPE_OPTIONS = ['lecture', 'seminar', 'laboratory', 'other'];
 const FREQUENCY_OPTIONS = ['weekly', 'biweekly', 'biweekly_odd', 'biweekly_even'];
 
 export default function InstitutionActivities() {
@@ -91,7 +91,7 @@ export default function InstitutionActivities() {
   const [formCourseId, setFormCourseId] = useState('');
   const [formGroupIds, setFormGroupIds] = useState<string[]>([]);
   const [formProfessorId, setFormProfessorId] = useState('');
-  const [formActivityType, setFormActivityType] = useState('course');
+  const [formActivityType, setFormActivityType] = useState('lecture');
   const [formFrequency, setFormFrequency] = useState('weekly');
   const [formDurationSlots, setFormDurationSlots] = useState('2');
   const [formRequiredFeatures, setFormRequiredFeatures] = useState('');
@@ -104,7 +104,7 @@ export default function InstitutionActivities() {
     setFormCourseId('');
     setFormGroupIds([]);
     setFormProfessorId('');
-    setFormActivityType('course');
+    setFormActivityType('lecture');
     setFormFrequency('weekly');
     setFormDurationSlots('2');
     setFormRequiredFeatures('');
@@ -611,10 +611,10 @@ export default function InstitutionActivities() {
         <MenuItem value="">Unassigned</MenuItem>
         {users.map((u) => { const id = String(u.id ?? u._id ?? ''); return <MenuItem key={id} value={id}>{u.name ?? 'Unknown'}{u.email ? ` (${u.email})` : ''}</MenuItem>; })}
       </TextField>
-      <TextField select label="Activity type" value={formActivityType} onChange={(e) => setFormActivityType(e.target.value)} fullWidth disabled={disabled}>
+      <TextField select label="Activity type" value={formActivityType} onChange={(e) => setFormActivityType(e.target.value)} fullWidth disabled={disabled} helperText="Lecture, seminar or laboratory">
         {ACTIVITY_TYPE_OPTIONS.map((v) => <MenuItem key={v} value={v}>{toTitleLabel(v)}</MenuItem>)}
       </TextField>
-      <TextField select label="Frequency" value={formFrequency} onChange={(e) => setFormFrequency(e.target.value)} fullWidth disabled={disabled}>
+      <TextField select label="Frequency" value={formFrequency} onChange={(e) => setFormFrequency(e.target.value)} fullWidth disabled={disabled} helperText="How often it repeats">
         {FREQUENCY_OPTIONS.map((v) => <MenuItem key={v} value={v}>{toTitleLabel(v)}</MenuItem>)}
       </TextField>
       <TextField label="Duration slots" type="number" value={formDurationSlots} onChange={(e) => setFormDurationSlots(e.target.value)} fullWidth disabled={disabled} slotProps={{ htmlInput: { min: 1 } }} />

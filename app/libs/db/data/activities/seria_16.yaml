@@ -1,8 +1,8 @@
 group: Seria 16
 activities:
-  - { course: "Programarea calculatoarelor I", type: course, duration_slots: 2, frequency: weekly, professor: "Camelia Obreja" }
-  - { course: "Utilizarea sistemelor de operare", type: course, duration_slots: 2, frequency: weekly, professor: "Dumitru-Daniel Dragulici" }
-  - { course: "Algebra si geometrie",          type: course, duration_slots: 3, frequency: weekly, professor: "Iulia Hirica" }
-  - { course: "Analiza matematica",            type: course, duration_slots: 2, frequency: weekly, professor: "Alexandru Mihail" }
-  - { course: "Fizica",           type: course, duration_slots: 2, frequency: weekly, professor: "Tiberiu Cheche",      selected_timeslot: { start: 28, weeks: [0, 1] } }
-  - { course: "Proiectare logica", type: course, duration_slots: 2, frequency: weekly, professor: "Alecsandru Chirosca", selected_timeslot: { start: 30, weeks: [0, 1] } }
+  - { course: "Programarea calculatoarelor I", type: lecture, duration_slots: 2, frequency: weekly, professor: "Camelia Obreja" }
+  - { course: "Utilizarea sistemelor de operare", type: lecture, duration_slots: 2, frequency: weekly, professor: "Dumitru-Daniel Dragulici" }
+  - { course: "Algebra si geometrie",          type: lecture, duration_slots: 3, frequency: weekly, professor: "Iulia Hirica" }
+  - { course: "Analiza matematica",            type: lecture, duration_slots: 2, frequency: weekly, professor: "Alexandru Mihail" }
+  - { course: "Fizica",           type: lecture, duration_slots: 2, frequency: weekly, professor: "Tiberiu Cheche",      selected_timeslot: { start: 28, weeks: [0, 1] } }
+  - { course: "Proiectare logica", type: lecture, duration_slots: 2, frequency: weekly, professor: "Alecsandru Chirosca", selected_timeslot: { start: 30, weeks: [0, 1] } }

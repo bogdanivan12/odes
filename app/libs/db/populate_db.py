@@ -34,7 +34,7 @@ def insert_admin(institution_id: str, restored_emails: set) -> Optional[str]:
     email = admin_data["email"]
 
     if email in restored_emails:
-        print(f"Admin '{email}' already restored — skipping insert.")
+        print(f"Admin '{email}' already restored - skipping insert.")
         return None
 
     admin = models.User(
@@ -113,8 +113,8 @@ def insert_professors(institution_id: str) -> Dict[str, str]:
 
 # ── Per-subtree default timeslot preferences ─────────────────────────────────
 # Applied at populate time to a named group AND every descendant of it, so the
-# preference lands directly on each group's own document — every master group
-# and master optional subgroup an activity might target — rather than relying on
+# preference lands directly on each group's own document - every master group
+# and master optional subgroup an activity might target - rather than relying on
 # any ancestor look-up.
 #
 # Windows are keyed by slot-in-day.  With the institution grid (start_hour=8,

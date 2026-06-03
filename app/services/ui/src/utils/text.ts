@@ -16,7 +16,7 @@ export const toTitleLabel = (value: string): string => value
  *   that fewer words get more characters each, targeting ~12 chars total:
  *     1 word  → up to 12 chars   ("Informatica" → "Informatica" unchanged ≤16)
  *     2 words → 6 chars each     ("Programare Avansata" → "PrograAvansa")
- *     3 words → 4 chars each     ("Structuri de Date" → "StruDate" — "de" dropped)
+ *     3 words → 4 chars each     ("Structuri de Date" → "StruDate" - "de" dropped)
  *     4 words → 3 chars each     ("Dezvoltarea Aplicatiilor Web PHP" → "DezAplWebPHP")
  *     5+ words → 2–3 chars each
  *

@@ -58,7 +58,7 @@ async function login(email: string, password: string): Promise<string> {
 
 // ── Pre-cleanup ───────────────────────────────────────────────────────────────
 // Runs before every setup to remove leftovers from a previous failed run.
-// All errors are swallowed — if nothing exists yet, that's fine.
+// All errors are swallowed - if nothing exists yet, that's fine.
 
 const TEST_INSTITUTION_NAMES = ['E2E Test University', 'E2E Complex University', 'E2E CRUD Institution'];
 
@@ -78,7 +78,7 @@ const TEST_USERS: { email: string; password: string }[] = [
 async function preCleanup(): Promise<void> {
   console.log('[global-setup] Pre-cleanup: removing any leftover test data...');
 
-  // Delete test institutions (requires admin token — do this first, before
+  // Delete test institutions (requires admin token - do this first, before
   // deleting the admin user).
   try {
     const adminToken = await login('e2e-admin@test.odes', 'E2eAdmin1234!');
@@ -93,7 +93,7 @@ async function preCleanup(): Promise<void> {
         } catch { /* ignore */ }
       }
     }
-  } catch { /* admin doesn't exist yet — nothing to clean up */ }
+  } catch { /* admin doesn't exist yet - nothing to clean up */ }
 
   // Delete every test user (each must be deleted via their own token).
   for (const { email, password } of TEST_USERS) {
@@ -101,7 +101,7 @@ async function preCleanup(): Promise<void> {
       const token = await login(email, password);
       await apiCall('DELETE', '/api/v1/users/me', undefined, token);
       console.log(`[global-setup] Deleted user: ${email}`);
-    } catch { /* user doesn't exist — nothing to do */ }
+    } catch { /* user doesn't exist - nothing to do */ }
   }
 
   console.log('[global-setup] Pre-cleanup done.');
@@ -413,7 +413,7 @@ async function globalSetup(): Promise<void> {
   await createActivity(adminToken, complexInstitutionId, cSEId, 'seminar', year3aId, profGammaId, 2, 'biweekly', []);
   await createActivity(adminToken, complexInstitutionId, cSEId, 'seminar', year3bId, profGammaId, 2, 'biweekly', []);
 
-  // Shared lecture taught to Year3-A and Year3-B together — one activity with
+  // Shared lecture taught to Year3-A and Year3-B together - one activity with
   // two group_ids.  Exercises the multi-group scheduling path (cross-group
   // no-overlap + summed room-capacity requirement).
   const cSharedId = await createCourse(adminToken, complexInstitutionId, 'Shared Elective');
@@ -519,7 +519,7 @@ async function globalSetup(): Promise<void> {
       year3bId,
     },
     // Timeslot-preference fixture: Year1-A is UNAVAILABLE in these slot-in-day
-    // indices on every day — used by schedules/preferences.spec.ts.
+    // indices on every day - used by schedules/preferences.spec.ts.
     complexTimeslotsPerDay: COMPLEX_TPD,
     complexPreferenceGroupId: year1aId,
     complexUnavailableSlotsInDay,

@@ -31,7 +31,7 @@ export function addDaysIso(iso: string, n: number): string {
 }
 
 /**
- * Snap an arbitrary picked date back to the start of its real week — i.e. the
+ * Snap an arbitrary picked date back to the start of its real week - i.e. the
  * most recent `startDay` weekday on or before the date.  Selecting any day thus
  * selects the whole week.
  */
@@ -41,7 +41,7 @@ export function snapToWeekStart(iso: string, startDay: number): string {
   return addDaysIso(iso, -offset);
 }
 
-/** "1 Jun 2026" — day, 3-letter month, year. */
+/** "1 Jun 2026" - day, 3-letter month, year. */
 export function formatDayMonthYear(iso: string): string {
   if (!iso) return '';
   const d = isoToLocalDate(iso);

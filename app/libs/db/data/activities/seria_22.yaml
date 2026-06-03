@@ -1,3 +1,3 @@
 group: Seria 22 (MATE APLICATE)
 activities:
-  - { course: "Cercetari operationale", type: course, duration_slots: 2, frequency: weekly, professor: "Cristian Niculescu" }
+  - { course: "Cercetari operationale", type: lecture, duration_slots: 2, frequency: weekly, professor: "Cristian Niculescu" }

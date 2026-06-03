@@ -1,4 +1,4 @@
 group: Elemente de analiza clasica
 activities:
-  - { course: "Elemente de analiza clasica I", type: course,  duration_slots: 2, frequency: weekly, professor: "Ovidiu Preda" }
+  - { course: "Elemente de analiza clasica I", type: lecture,  duration_slots: 2, frequency: weekly, professor: "Ovidiu Preda" }
   - { course: "Elemente de analiza clasica I", type: seminar, duration_slots: 2, frequency: weekly, professor: "Ovidiu Preda" }

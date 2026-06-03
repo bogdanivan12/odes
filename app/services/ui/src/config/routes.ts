@@ -23,6 +23,7 @@ export const ROOM_ROUTE = '/rooms/:roomId';
 export const ACTIVITY_ROUTE = '/activities/:activityId';
 export const USER_ROUTE = '/users/:memberId';
 export const PROFILE_ROUTE = '/profile';
+export const HELP_ROUTE = '/help';
 
 export const institutionRoute = (institutionId: string) => `/institutions/${institutionId}`;
 

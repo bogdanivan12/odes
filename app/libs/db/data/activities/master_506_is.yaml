@@ -1,5 +1,5 @@
 group: 506 IS
 activities:
-  - { course: "Testarea Sistemelor Software",                   type: course, duration_slots: 2, frequency: weekly, professor: "Florentin Ipate",    additional_groups: ["Testarea Sistemelor Software"] }
-  - { course: "Teme Speciale in Inginerie Software I",          type: course, duration_slots: 2, frequency: weekly, professor: "Liviu Bouruc",        additional_groups: ["Teme Speciale in Inginerie Software I"] }
-  - { course: "Managementul Echipelor de Dezvoltare Software",  type: course, duration_slots: 2, frequency: weekly, professor: "Radu Gramatovici",    additional_groups: ["Managementul Echipelor de Dezvoltare Software"] }
+  - { course: "Testarea Sistemelor Software",                   type: lecture, duration_slots: 2, frequency: weekly, professor: "Florentin Ipate",    additional_groups: ["Testarea Sistemelor Software"] }
+  - { course: "Teme Speciale in Inginerie Software I",          type: lecture, duration_slots: 2, frequency: weekly, professor: "Liviu Bouruc",        additional_groups: ["Teme Speciale in Inginerie Software I"] }
+  - { course: "Managementul Echipelor de Dezvoltare Software",  type: lecture, duration_slots: 2, frequency: weekly, professor: "Radu Gramatovici",    additional_groups: ["Managementul Echipelor de Dezvoltare Software"] }

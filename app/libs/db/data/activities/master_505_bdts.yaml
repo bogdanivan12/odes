@@ -1,5 +1,5 @@
 group: 505 BDTS
 activities:
-  - { course: "Securitatea bazelor de date",               type: course, duration_slots: 2, frequency: weekly,   professor: "Letitia Marin",      additional_groups: ["Securitatea bazelor de date"] }
-  - { course: "Data Warehousing and Business Intelligence", type: course, duration_slots: 2, frequency: weekly,   professor: "Gabriela Mihai",      additional_groups: ["Data Warehousing and Business Intelligence"] }
-  - { course: "Cloud Computing",                           type: course, duration_slots: 2, frequency: biweekly, professor: "Cristian Kevorchian", additional_groups: ["Cloud Computing"] }
+  - { course: "Securitatea bazelor de date",               type: lecture, duration_slots: 2, frequency: weekly,   professor: "Letitia Marin",      additional_groups: ["Securitatea bazelor de date"] }
+  - { course: "Data Warehousing and Business Intelligence", type: lecture, duration_slots: 2, frequency: weekly,   professor: "Gabriela Mihai",      additional_groups: ["Data Warehousing and Business Intelligence"] }
+  - { course: "Cloud Computing",                           type: lecture, duration_slots: 2, frequency: biweekly, professor: "Cristian Kevorchian", additional_groups: ["Cloud Computing"] }

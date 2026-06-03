@@ -70,7 +70,7 @@ def trigger_schedule_generation(
     # "Schedule #N" sequence.
     access_verifiers.raise_schedule_forbidden(db, current_user_id, schedule, admin_only=True)
 
-    # Authorized — safe to atomically reserve the next number.  The counter
+    # Authorized - safe to atomically reserve the next number.  The counter
     # only ever goes up, so deleting an existing schedule does not free its
     # number.
     next_number = institutions_repo.get_next_schedule_number(db, institution_id)
@@ -306,7 +306,7 @@ def _run_conflict_check(
     changes: List[dto_in.ScheduleChangeItem],
 ) -> List[dto_out.RecordConflicts]:
     """
-    Core conflict-detection logic (no auth — callers must have already verified access).
+    Core conflict-detection logic (no auth - callers must have already verified access).
 
     Applies all proposed changes as overrides on top of the current schedule state,
     then checks every changed record against every other record for:
@@ -314,7 +314,7 @@ def _run_conflict_check(
       • professor double-booking
       • group overlap (including ancestor/descendant groups)
 
-    Only NEW conflicts are returned — conflicts that already existed between the same
+    Only NEW conflicts are returned - conflicts that already existed between the same
     pair of records in the original schedule are silently skipped.  This means moving
     an activity away from a slot it was already sharing with another activity is never
     flagged, and all pending moves are evaluated simultaneously so that swapping two
@@ -407,7 +407,7 @@ def _run_conflict_check(
 
             # Determine whether this pair already conflicted in the original schedule.
             # A conflict is pre-existing when both records overlapped at their original
-            # positions — if so, the current move did not introduce it and we skip it.
+            # positions - if so, the current move did not introduce it and we skip it.
             orig_b = original_map.get(rec_b["id"])
             orig_weeks_a = _get_effective_weeks(orig_a, act_a, total_weeks)
             orig_weeks_b = _get_effective_weeks(orig_b, act_b, total_weeks) if orig_b else set()

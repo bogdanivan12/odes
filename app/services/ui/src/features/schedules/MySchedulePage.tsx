@@ -53,7 +53,7 @@ import { alpha } from '@mui/material/styles';
 
 function formatTimestamp(ts?: string): string {
   if (!ts) return '';
-  // Parse as UTC — backend emits UTC datetimes and may omit trailing Z.
+  // Parse as UTC - backend emits UTC datetimes and may omit trailing Z.
   const date = parseServerTimestamp(ts);
   if (!date) return '';
   return date.toLocaleString(undefined, {
@@ -145,7 +145,7 @@ export default function MySchedulePage() {
 
         const activeScheduleId = inst.active_schedule_id;
         if (!activeScheduleId) {
-          // No active schedule — stop here, show the "no active schedule" state
+          // No active schedule - stop here, show the "no active schedule" state
           setLoading(false);
           return;
         }
@@ -397,7 +397,7 @@ export default function MySchedulePage() {
     const instName = institution?.name ?? 'Schedule';
     downloadIcs(
       `${instName.replace(/[^a-z0-9]+/gi, '_')}_my_schedule.ics`,
-      buildIcs(events, `${instName} — My Schedule`),
+      buildIcs(events, `${instName} - My Schedule`),
     );
   };
 
@@ -510,7 +510,7 @@ export default function MySchedulePage() {
             </Alert>
           )}
 
-          {/* Tabs — shown when schedule is active and user has at least one role */}
+          {/* Tabs - shown when schedule is active and user has at least one role */}
           {!error && institution?.active_schedule_id && (isStudent || isProfessor) && (
             <Paper variant="outlined" sx={{ borderRadius: 2.5, overflow: 'hidden' }}>
               <Tabs

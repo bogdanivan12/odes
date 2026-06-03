@@ -20,14 +20,14 @@ APP_BASE_URL = os.getenv("APP_BASE_URL", "https://webodes.app")
 # Minimum password length enforced on reset (mirrors sign-up rules).
 _MIN_PASSWORD_LENGTH = 8
 
-# Google OAuth Web client ID — also the expected audience of the ID token.
+# Google OAuth Web client ID - also the expected audience of the ID token.
 # Public value (it ships in the frontend too); override via env if needed.
 GOOGLE_CLIENT_ID = os.getenv(
     "GOOGLE_CLIENT_ID",
     "941006428883-ig2s9kbmkgjdg8ahtciagrdbu2h55agi.apps.googleusercontent.com",
 )
 
-# Microsoft Entra ID (Azure AD) application (client) id — also the expected
+# Microsoft Entra ID (Azure AD) application (client) id - also the expected
 # audience of the ID token.  Public value (it ships in the frontend too).
 MICROSOFT_CLIENT_ID = os.getenv(
     "MICROSOFT_CLIENT_ID",
@@ -56,7 +56,7 @@ def _find_or_create_provider_user(
 
     1) Match by the provider's subject id; 2) else link to an existing account
     by *verified* email; 3) else create a new account.  Returns an
-    (access_token, refresh_token) tuple — the same session as a password login.
+    (access_token, refresh_token) tuple - the same session as a password login.
     """
     user_data = users_repo.find_user_by_provider(db, provider, subject)
     if not user_data and email and email_verified:
@@ -94,7 +94,7 @@ def _verify_google_credential(credential: str) -> dict:
     """Verify a Google ID token and return its claims (sub, email, …).
 
     Checks the signature against Google's public keys plus issuer, audience
-    (our client id) and expiry — the security-critical step.
+    (our client id) and expiry - the security-critical step.
     """
     try:
         from google.oauth2 import id_token
@@ -114,7 +114,7 @@ def _verify_google_credential(credential: str) -> dict:
 
 def get_google_login_token(db: Database, credential: str) -> tuple[str, str]:
     """Verify a Google sign-in, find/create/link the user, and return an
-    (access_token, refresh_token) tuple — the same session as a password login."""
+    (access_token, refresh_token) tuple - the same session as a password login."""
     idinfo = _verify_google_credential(credential)
     sub = idinfo.get("sub")
     email = idinfo.get("email")
@@ -130,7 +130,7 @@ def _verify_microsoft_credential(credential: str) -> dict:
 
     Validates the RS256 signature against Microsoft's published keys and the
     audience (our client id).  Because the app is multitenant + personal, the
-    issuer differs per tenant, so we don't pin one issuer — we instead require
+    issuer differs per tenant, so we don't pin one issuer - we instead require
     the issuer to match the tenant declared in the token's own ``tid`` claim.
     """
     global _ms_jwks_client
@@ -168,7 +168,7 @@ def _verify_microsoft_credential(credential: str) -> dict:
 
 def get_microsoft_login_token(db: Database, credential: str) -> tuple[str, str]:
     """Verify a Microsoft sign-in, find/create/link the user, and return an
-    (access_token, refresh_token) tuple — the same session as a password login."""
+    (access_token, refresh_token) tuple - the same session as a password login."""
     claims = _verify_microsoft_credential(credential)
     sub = claims.get("sub")
     # Work/school tokens often carry the address in `preferred_username` (the
@@ -241,7 +241,7 @@ def _reset_email_html(name: str, link: str) -> str:
         </a>
       </p>
       <p style="font-size:13px;color:#6b7280">If you didn't request this, you can safely
-         ignore this email — your password won't change.</p>
+         ignore this email - your password won't change.</p>
       <p style="font-size:12px;color:#9ca3af;word-break:break-all">{link}</p>
     </div>
     """
@@ -250,7 +250,7 @@ def _reset_email_html(name: str, link: str) -> str:
 def request_password_reset(db: Database, email: str) -> None:
     """Email a reset link if a *password* account exists for ``email``.
 
-    Always returns without signalling whether the email exists — the route
+    Always returns without signalling whether the email exists - the route
     responds identically in every case to avoid leaking which emails are
     registered (account-enumeration protection).
     """
@@ -289,7 +289,7 @@ def reset_password(db: Database, token: str, new_password: str) -> None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid reset token.")
 
     user = models.User(**user_data)
-    # The fingerprint must still match — rejects links already used or issued
+    # The fingerprint must still match - rejects links already used or issued
     # before a later password change.
     if not user.hashed_password or payload.get("pwh") != _password_fingerprint(user.hashed_password):
         raise HTTPException(

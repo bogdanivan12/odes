@@ -41,7 +41,7 @@ function getInitials(name?: string): string {
 
 // ─── Preference config ───────────────────────────────────────────────────────
 
-// No "unset" — cycle wraps around between the three states
+// No "unset" - cycle wraps around between the three states
 const PREF_CYCLE: TimeslotPreferenceValue[] = ['desired', 'not_ideal', 'unavailable'];
 
 const PREF_CONFIG: Record<TimeslotPreferenceValue, { label: string; bg: string; border: string; text: string }> = {
@@ -91,7 +91,7 @@ function AvailabilityGrid({ institution, initialPrefs, initialMaxPerDay, onSaved
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Personal daily cap — defaults to tpd (no real restriction) when not explicitly saved
+  // Personal daily cap - defaults to tpd (no real restriction) when not explicitly saved
   const instDefaultMax = tpd;
   const [maxPerDay, setMaxPerDay] = useState<number>(
     initialMaxPerDay != null && initialMaxPerDay > 0 ? initialMaxPerDay : instDefaultMax,
@@ -169,7 +169,7 @@ function AvailabilityGrid({ institution, initialPrefs, initialMaxPerDay, onSaved
 
   return (
     <Box>
-      {/* Max timeslots per day — compact stepper */}
+      {/* Max timeslots per day - compact stepper */}
       <Box
         sx={{
           display: 'inline-flex', alignItems: 'center', gap: 1.5,
@@ -219,7 +219,7 @@ function AvailabilityGrid({ institution, initialPrefs, initialMaxPerDay, onSaved
         ))}
       </Stack>
 
-      {/* Grid — table-like: single DOM tree so header and body columns are identical */}
+      {/* Grid - table-like: single DOM tree so header and body columns are identical */}
       <Box
         sx={{ overflowX: 'auto', userSelect: 'none' }}
         onDragStart={(e) => e.preventDefault()}
@@ -231,7 +231,7 @@ function AvailabilityGrid({ institution, initialPrefs, initialMaxPerDay, onSaved
             {/* Day label column spacer */}
             <Box sx={{ width: DAY_COL_W, flexShrink: 0 }} />
 
-            {/* One label per timeslot, exactly cellW wide — no margin, no padding */}
+            {/* One label per timeslot, exactly cellW wide - no margin, no padding */}
             {Array.from({ length: tpd }, (_, i) => (
               <Box
                 key={i}
@@ -291,7 +291,7 @@ function AvailabilityGrid({ institution, initialPrefs, initialMaxPerDay, onSaved
                 return (
                   <Tooltip
                     key={slotIdx}
-                    title={`${cfg.label} — click or drag to change`}
+                    title={`${cfg.label} - click or drag to change`}
                     placement="top"
                     arrow
                     disableInteractive
@@ -376,7 +376,7 @@ export default function ProfilePage() {
     { institution: Institution; initialPrefs: Record<number, TimeslotPreferenceValue>; initialMaxPerDay: number | null }[]
   >([]);
 
-  // Collapsed by default — track which institution IDs are expanded
+  // Collapsed by default - track which institution IDs are expanded
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const toggleExpanded = (instId: string) =>
     setExpandedIds((prev) => {
@@ -548,7 +548,7 @@ export default function ProfilePage() {
             </Box>
           </Paper>
 
-          {/* ── Professor work hour preferences — one card per institution ── */}
+          {/* ── Professor work hour preferences - one card per institution ── */}
           {professorInstitutions.map(({ institution, initialPrefs, initialMaxPerDay }) => {
             const instId = String((institution as any).id ?? (institution as any)._id ?? '');
             const instName = (institution as any).name ?? 'Institution';
@@ -578,7 +578,9 @@ export default function ProfilePage() {
                     <AccessTimeRoundedIcon />
                   </Box>
                   <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 700 }}>Work hour preferences</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 700 }}>Work hour preferences</Typography>
+                    </Box>
                     <Typography variant="body2" color="text.secondary" noWrap>{instName}</Typography>
                   </Box>
                   <IconButton size="small" sx={{ color: 'text.secondary', flexShrink: 0 }}>
@@ -597,15 +599,15 @@ export default function ProfilePage() {
                     <Stack direction="row" spacing={2} sx={{ mb: 2.5 }} flexWrap="wrap" useFlexGap>
                       <Stack direction="row" spacing={0.75} alignItems="center">
                         <CheckCircleOutlineRoundedIcon sx={{ fontSize: '1rem', color: '#15803d' }} />
-                        <Typography variant="caption" color="text.secondary">Desired — strongly prefer</Typography>
+                        <Typography variant="caption" color="text.secondary">Desired - strongly prefer</Typography>
                       </Stack>
                       <Stack direction="row" spacing={0.75} alignItems="center">
                         <RemoveCircleOutlineRoundedIcon sx={{ fontSize: '1rem', color: '#a16207' }} />
-                        <Typography variant="caption" color="text.secondary">Not ideal — can work, not preferred</Typography>
+                        <Typography variant="caption" color="text.secondary">Not ideal - can work, not preferred</Typography>
                       </Stack>
                       <Stack direction="row" spacing={0.75} alignItems="center">
                         <CancelOutlinedIcon sx={{ fontSize: '1rem', color: '#b91c1c' }} />
-                        <Typography variant="caption" color="text.secondary">Unavailable — cannot attend</Typography>
+                        <Typography variant="caption" color="text.secondary">Unavailable - cannot attend</Typography>
                       </Stack>
                     </Stack>
 

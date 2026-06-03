@@ -35,7 +35,7 @@ export function slotToTime(slotIndex: number, startHour: number, durationMinutes
 
 export function getActivityTypeColor(type: string): string {
   const t = type.toLowerCase();
-  if (t === 'course') return '#6366F1';    // indigo
+  if (t === 'course' || t === 'lecture') return '#6366F1';    // indigo
   if (t === 'seminar') return '#06B6D4';   // cyan
   if (t === 'laboratory') return '#F59E0B'; // amber
   return '#8B5CF6';
@@ -234,7 +234,7 @@ export default function CalendarGrid({
                 </Typography>
               </Box>
 
-              {/* Slots area — relative container for absolute activity cards */}
+              {/* Slots area - relative container for absolute activity cards */}
               <Box sx={{ position: 'relative', width: timeslotsPerDay * SLOT_W, height: DAY_H, flexShrink: 0 }}>
                 {/* Vertical slot dividers */}
                 {Array.from({ length: timeslotsPerDay }, (_, i) => (
@@ -249,16 +249,16 @@ export default function CalendarGrid({
                   />
                 ))}
 
-                {/* Activity cards — span horizontally, stacked vertically when overlapping */}
+                {/* Activity cards - span horizontally, stacked vertically when overlapping */}
                 {assignLanes(dayEntries, timeslotsPerDay).map(({ entry: e, lane, laneCount }) => {
                   const slotIdx = e.startTimeslot % timeslotsPerDay;
                   const typeColor = getTypeColor(e.activityType);
-                  const courseName = coursesById.get(e.courseId)?.name ?? '—';
-                  const groupName = e.allGroupIds.map((gid) => groupsById.get(gid)?.name ?? gid).join(', ') || '—';
+                  const courseName = coursesById.get(e.courseId)?.name ?? '-';
+                  const groupName = e.allGroupIds.map((gid) => groupsById.get(gid)?.name ?? gid).join(', ') || '-';
                   const profName = e.professorId
-                    ? (usersById.get(e.professorId)?.name ?? usersById.get(e.professorId)?.email ?? '—')
+                    ? (usersById.get(e.professorId)?.name ?? usersById.get(e.professorId)?.email ?? '-')
                     : null;
-                  const roomName = roomsById.get(e.roomId)?.name ?? '—';
+                  const roomName = roomsById.get(e.roomId)?.name ?? '-';
                   const laneH = DAY_H / laneCount;
                   return (
                     <Box

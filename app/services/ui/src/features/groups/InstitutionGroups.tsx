@@ -392,7 +392,9 @@ export default function InstitutionGroups() {
         {/* Page header */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
           <Box>
-            <Typography variant="h5" sx={{ fontWeight: 700 }}>Groups</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Typography variant="h5" sx={{ fontWeight: 700 }}>Groups</Typography>
+            </Box>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
               {groups.length} group{groups.length !== 1 ? 's' : ''} in this institution
             </Typography>
@@ -512,6 +514,7 @@ export default function InstitutionGroups() {
               select
               fullWidth
               disabled={createLoading}
+              helperText="Optional"
             >
               <MenuItem value="">No parent (root group)</MenuItem>
               {groups.map((group) => {
@@ -550,6 +553,7 @@ export default function InstitutionGroups() {
               select
               fullWidth
               disabled={editLoading}
+              helperText="Optional"
             >
               <MenuItem value="">No parent (root group)</MenuItem>
               {groups

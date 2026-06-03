@@ -1,4 +1,4 @@
 group: Prelucrarea Semnalelor
 activities:
-  - { course: "Prelucrarea Semnalelor", type: course,     duration_slots: 2, frequency: weekly, professor: "Cristian Rusu" }
+  - { course: "Prelucrarea Semnalelor", type: lecture,     duration_slots: 2, frequency: weekly, professor: "Cristian Rusu" }
   - { course: "Prelucrarea Semnalelor", type: laboratory, duration_slots: 2, frequency: weekly, professor: "Cristian Rusu" }

@@ -1,4 +1,4 @@
 group: Tehnici de simulare
 activities:
-  - { course: "Tehnici de simulare", type: course,     duration_slots: 2, frequency: weekly, professor: "Florentina Suter" }
+  - { course: "Tehnici de simulare", type: lecture,     duration_slots: 2, frequency: weekly, professor: "Florentina Suter" }
   - { course: "Tehnici de simulare", type: laboratory, duration_slots: 2, frequency: weekly, professor: "Florentina Suter" }

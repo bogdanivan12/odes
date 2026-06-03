@@ -16,11 +16,14 @@ import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownR
 import DarkModeRoundedIcon from '@mui/icons-material/DarkModeRounded';
 import LightModeRoundedIcon from '@mui/icons-material/LightModeRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
+import HelpOutlineRoundedIcon from '@mui/icons-material/HelpOutlineRounded';
+import ExploreRoundedIcon from '@mui/icons-material/ExploreRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
-import { institutionRoute, MY_SCHEDULE_ROUTE, PROFILE_ROUTE, USER_LOGIN_ROUTE } from '../../config/routes';
+import { institutionRoute, MY_SCHEDULE_ROUTE, PROFILE_ROUTE, HELP_ROUTE, USER_LOGIN_ROUTE } from '../../config/routes';
 import { getInstitutions } from '../../api/institutions';
 import { getCurrentUserProfile } from '../../api/users';
+import { startTour } from '../help/tour';
 import TextField from '@mui/material/TextField';
 import Divider from '@mui/material/Divider';
 import SearchIcon from '@mui/icons-material/Search';
@@ -113,7 +116,7 @@ export default function ResponsiveAppBar() {
 
   const handleLogout = () => {
     // Tell the server to clear the HttpOnly refresh-token cookie.
-    // Fire-and-forget — we don't wait for the response so the UI stays snappy
+    // Fire-and-forget - we don't wait for the response so the UI stays snappy
     // even if the network is slow or the server is unreachable.
     fetch(`${API_URL}/api/v1/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {});
     try { clearTokens(); } catch (e) { /* ignore */ }
@@ -210,7 +213,7 @@ export default function ResponsiveAppBar() {
     let mounted = true;
     getCurrentUserProfile()
       .then((me) => { if (mounted) setCurrentUser({ name: me.name ?? '', email: me.email ?? '' }); })
-      .catch(() => { /* not signed in / network — leave header minimal */ });
+      .catch(() => { /* not signed in / network - leave header minimal */ });
     return () => { mounted = false; };
   }, []);
 
@@ -247,7 +250,7 @@ export default function ResponsiveAppBar() {
   }, [institutions, syncSelectedInstitutionFromStorage]);
 
   // Auto-sync selected institution from the URL for /institutions/:id/* routes.
-  // This fires synchronously on navigation — no API call needed.
+  // This fires synchronously on navigation - no API call needed.
   React.useEffect(() => {
     const match = location.pathname.match(/^\/institutions\/([^/]+)/);
     if (!match) return;
@@ -340,6 +343,7 @@ export default function ResponsiveAppBar() {
             const isMyScheduleActive = location.pathname === MY_SCHEDULE_ROUTE;
             return (
               <Button
+                data-tour="my-schedule"
                 onClick={() => navigate(MY_SCHEDULE_ROUTE)}
                 startIcon={<CalendarMonthIcon sx={{ fontSize: '1rem !important' }} />}
                 sx={{
@@ -366,6 +370,7 @@ export default function ResponsiveAppBar() {
 
           {/* ── Institution selector ── */}
           <Button
+            data-tour="institution-selector"
             onClick={handleOpenInstitutionsMenu}
             endIcon={
               institutionsLoading
@@ -500,7 +505,7 @@ export default function ResponsiveAppBar() {
 
           {/* ── Desktop nav buttons ── */}
           {selectedInstitution && (
-            <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'stretch', ml: 0.5 }}>
+            <Box data-tour="nav-pages" sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'stretch', ml: 0.5 }}>
               {NAV_PAGES.map((page) => {
                 const isActive = activePageKey === page.key;
                 return (
@@ -558,7 +563,7 @@ export default function ResponsiveAppBar() {
 
           {/* ── User avatar ── */}
           <Tooltip title="Account">
-            <IconButton onClick={handleOpenUserMenu} sx={{ ml: 0.5, p: 0.5 }}>
+            <IconButton data-tour="account" onClick={handleOpenUserMenu} sx={{ ml: 0.5, p: 0.5 }}>
               <Avatar
                 sx={{
                   width: 32,
@@ -616,6 +621,14 @@ export default function ResponsiveAppBar() {
             <MenuItem onClick={handleOpenProfile}>
               <ListItemIcon><SettingsRoundedIcon fontSize="small" /></ListItemIcon>
               Settings
+            </MenuItem>
+            <MenuItem onClick={() => { handleCloseUserMenu(); navigate(HELP_ROUTE); }}>
+              <ListItemIcon><HelpOutlineRoundedIcon fontSize="small" /></ListItemIcon>
+              Help &amp; guide
+            </MenuItem>
+            <MenuItem onClick={() => { handleCloseUserMenu(); setTimeout(() => startTour(), 200); }}>
+              <ListItemIcon><ExploreRoundedIcon fontSize="small" /></ListItemIcon>
+              Take a tour
             </MenuItem>
             <Divider sx={{ my: 0.5 }} />
             <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>

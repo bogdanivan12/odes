@@ -11,7 +11,7 @@ Decision variables (per activity ``a``):
   - ``interval[a]``    : Required IntervalVar(start, dur, end).  Used as the
                          "always-there" interval for an activity's time
                          placement.  The interval *itself* doesn't represent
-                         a resource use directly — we derive optional
+                         a resource use directly - we derive optional
                          per-(week, room) and per-week intervals from it for
                          each resource constraint.
   - ``day[a]``         : IntVar = start // tpd, channelled via
@@ -34,14 +34,14 @@ Hard constraints
                         is_present = pool_indicator[a][pk] AND presence[a][w]),
                       demand=1, capacity=#rooms-in-pool)
         (degenerates to AddNoOverlap for pools of a single room).
-        Concrete rooms are coloured greedily post-solve — the cumulative
+        Concrete rooms are coloured greedily post-solve - the cumulative
         bounds the max clique by the room count, so colouring always succeeds.
   - Professor no-overlap per (week, prof):
         AddNoOverlap(OptionalIntervalVar(..., is_present = presence[a][w])
                      for each activity a taught by prof)
   - Group no-overlap per (week, leaf_group): iterate leaves only (by
         transitivity covers internal groups).  An activity on an ancestor
-        group counts toward every descendant leaf — per the user's
+        group counts toward every descendant leaf - per the user's
         clarification, "descendant is busy when ancestor is busy".
   - Professor unavailable slots and group unavailable slots (own + ancestor)
         are pre-filtered out of allowed_starts.  No solver-time constraint
@@ -102,7 +102,7 @@ logger = get_logger()
 def refresh_worker_token(original_token: str) -> str:
     """Issue a long-lived JWT for worker→API calls during a single job.
 
-    The user's original token typically expires in 30 minutes — too short for
+    The user's original token typically expires in 30 minutes - too short for
     long-running schedule generation.  We decode it (ignoring expiry), pull
     the ``sub`` claim, and mint a fresh token tied to the same user with a
     4-hour TTL.
@@ -238,7 +238,7 @@ def filter_rooms_for_activity(
 
     ``min_capacity`` is the number of students who will attend the activity,
     which equals the size of the activity's group (counting students whose
-    ``group_ids`` contain that group — descendants count because we
+    ``group_ids`` contain that group - descendants count because we
     propagate enrollment up to ancestors).  When the group has zero
     students, ``min_capacity`` is 0 and the capacity filter is a no-op."""
     return [
@@ -281,7 +281,7 @@ def replace_scheduled_activities(
     """Atomically replace scheduled activities for a schedule.
 
     The API endpoint deletes existing entries for this schedule_id and
-    inserts the new ones — used for the final save (no intermediate saves
+    inserts the new ones - used for the final save (no intermediate saves
     in this rewrite)."""
     response = requests.put(
         f"{API_URL}/api/v1/schedules/{schedule_id}/scheduled-activities",
@@ -541,8 +541,8 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
         raw = time_helpers.allowed_starts(institution.time_grid_config, a.duration_slots)
 
         # Pinned timeslot: an admin explicitly fixed this activity to a specific
-        # start slot.  Honour it as a hard constraint — its domain collapses to
-        # that single start — overriding soft/unavailable preferences (the pin
+        # start slot.  Honour it as a hard constraint - its domain collapses to
+        # that single start - overriding soft/unavailable preferences (the pin
         # is a deliberate override).  The week pattern is still governed by the
         # activity's frequency; only the within-week start is pinned.  The slot
         # must remain grid-valid (fit within a day, in range), so it must be one
@@ -584,7 +584,7 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
     # Rooms with identical (features, capacity) are fully interchangeable for
     # scheduling.  Instead of giving each activity one Boolean per candidate
     # *room* and a per-room disjunctive no-overlap (which created ~52k optional
-    # intervals and a brutal room-relabelling symmetry — 27! for the lab rooms
+    # intervals and a brutal room-relabelling symmetry - 27! for the lab rooms
     # alone), we model each pool as ONE cumulative resource of capacity =
     # pool size.  An activity picks a pool (Boolean per candidate pool, usually
     # just one) and consumes one unit of it; concrete rooms are assigned in a
@@ -636,7 +636,7 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
         end_var[a.id] = e
         interval_var[a.id] = iv
 
-        # day = start // tpd — channel via AllowedAssignments
+        # day = start // tpd - channel via AllowedAssignments
         d = model.NewIntVar(0, days - 1, f"day_{a.id}")
         day_var[a.id] = d
         model.AddAllowedAssignments([s, d], [(st, st // tpd) for st in starts])
@@ -649,7 +649,7 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
             is_day_bv[(a.id, di)] = b
 
         # Exactly-one-pool.  With a single candidate pool there's nothing to
-        # decide — store the constant 1 so downstream gating collapses cleanly.
+        # decide - store the constant 1 so downstream gating collapses cleanly.
         pks = possible_pools[a.id]
         if len(pks) == 1:
             pool_indicator[(a.id, pks[0])] = 1
@@ -660,7 +660,7 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
                 )
             model.AddExactlyOne(pool_indicator[(a.id, pk)] for pk in pks)
 
-        # Presence per week — populated for every w in range(weeks) so we
+        # Presence per week - populated for every w in range(weeks) so we
         # never KeyError downstream.  Semantics generalise via w % 2:
         #   WEEKLY         → active in every week.
         #   BIWEEKLY_ODD   → active on even-indexed weeks  (0, 2, 4, …).
@@ -669,7 +669,7 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
         #                    parity); a single ``phase`` BoolVar selects
         #                    which side is active and the other becomes
         #                    ``phase.Not()``.  This naturally handles
-        #                    weeks > 2 — e.g. with weeks=4 and phase=1,
+        #                    weeks > 2 - e.g. with weeks=4 and phase=1,
         #                    the activity is active in weeks 0 and 2.
         if a.frequency == models.Frequency.WEEKLY:
             for w in range(weeks):
@@ -680,7 +680,7 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
         elif a.frequency == models.Frequency.BIWEEKLY_EVEN:
             for w in range(weeks):
                 presence[(a.id, w)] = 1 if w % 2 == 1 else 0
-        else:   # plain BIWEEKLY — solver picks the phase
+        else:   # plain BIWEEKLY - solver picks the phase
             if weeks <= 1:
                 # Only one week available; the activity must be in it.
                 presence[(a.id, 0)] = 1
@@ -701,7 +701,7 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
                     can_be_active = True
                     break
             else:
-                # Variable presence — could be 1
+                # Variable presence - could be 1
                 can_be_active = True
                 break
         if not can_be_active:
@@ -717,7 +717,7 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
     # The no-overlap loops below iterate per week.  When *every* activity in a
     # set is unconditionally present in *every* week (presence == 1 for all w),
     # the per-week constraints are byte-for-byte identical copies and we can
-    # emit a single one.  This is purely structural — it reads the actual
+    # emit a single one.  This is purely structural - it reads the actual
     # ``presence`` values built above, so a set containing any biweekly /
     # solver-chosen-phase activity (presence differs across weeks, or is a
     # BoolVar) keeps the full per-week split and stays correct.
@@ -736,7 +736,7 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
     # when an activity is pinned (selected_timeslot), its start collapses to a
     # constant and presolve's "merge constant contiguous intervals" rewrites the
     # interval inside one constraint, corrupting the shared reference in the
-    # others — CP-SAT then rejects the model with MODEL_INVALID.  Creating fresh
+    # others - CP-SAT then rejects the model with MODEL_INVALID.  Creating fresh
     # intervals is correct; presolve de-duplicates the identical copies on its
     # own ("duplicate: remapped duplicate intervals"), so the solved model is no
     # larger.
@@ -852,7 +852,7 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
                     bv = present_in_day(a, w, d)
                     if isinstance(bv, int) and bv == 0: continue
                     if isinstance(bv, int) and bv == 1:
-                        # Always in this (week, day) — counts unconditionally
+                        # Always in this (week, day) - counts unconditionally
                         terms.append((a.duration_slots, None))
                     else:
                         terms.append((a.duration_slots, bv))
@@ -895,7 +895,7 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
                     model.Add(expr <= group_cap)
 
     # ── Two-phase solve setup ────────────────────────────────────────────────
-    # Phase 1 solves the *hard-constraint model only* (no objective) — a pure
+    # Phase 1 solves the *hard-constraint model only* (no objective) - a pure
     # feasibility search on the leanest model, which is what reliably yields a
     # first valid timetable fast.  Phase 2 then adds the soft objective
     # (preferred hours + gap compactness), warm-starts from the phase-1 solution
@@ -954,7 +954,7 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
                         model.AddImplication(bv, any_used)
                     model.AddBoolOr([any_used.Not()] + real_bvs)
                 else:
-                    # presents is empty after filter — already handled above
+                    # presents is empty after filter - already handled above
                     continue
 
                 first = model.NewIntVar(0, tpd - 1, f"first_{tag}_w{w}_d{d}")
@@ -980,7 +980,7 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
 
     def build_objective():
         """Populate pref_terms / span_vars / any_used_vars and set the Minimize
-        objective.  Called only for phase 2 — phase 1 is a pure feasibility
+        objective.  Called only for phase 2 - phase 1 is a pure feasibility
         search, so none of this machinery (and its ~9k vars + reified
         constraints) burdens the first-solution search."""
         # Preferred-hours violations: overlap_count * (start[a] == s).
@@ -1031,7 +1031,7 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
 
     def _make_solver(max_seconds: float, stop_after_first: bool = False) -> cp_model.CpSolver:
         s = cp_model.CpSolver()
-        # Search parallelism — read from env so compose (8 CPUs) and k8s (3 CPU)
+        # Search parallelism - read from env so compose (8 CPUs) and k8s (3 CPU)
         # tune independently.  Default 1 fits the k8s node budget.
         s.parameters.num_search_workers = int(os.getenv("NUM_SEARCH_WORKERS", "1"))
         s.parameters.max_time_in_seconds = float(max_seconds)
@@ -1044,7 +1044,7 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
         # deterministic-time cap never bites and probing devoured the entire
         # budget before search even started (booleans:0 branches:0 "Stopped
         # after presolve").  Feasibility search doesn't need probing, and
-        # phase 2 is warm-started — so turn it off and let search run.
+        # phase 2 is warm-started - so turn it off and let search run.
         # Guarded: the field name can vary across OR-Tools versions.
         try:
             s.parameters.cp_model_probing_level = 0
@@ -1081,7 +1081,7 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
 
     logger.info(f"Phase 1 found a feasible schedule in {feas_elapsed:.1f}s.")
 
-    # Solver we extract from — upgraded to phase 2 only if it returns a solution.
+    # Solver we extract from - upgraded to phase 2 only if it returns a solution.
     solver = phase1_solver
 
     # ── Phase 2: optimise (warm-started from phase 1) ────────────────────────
@@ -1095,7 +1095,7 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
                 if not isinstance(pv_pool, int):
                     hints.append((pv_pool, phase1_solver.Value(pv_pool)))
             # A plain-BIWEEKLY activity has ONE phase BoolVar, exposed as
-            # presence[(a,0)] = phase and presence[(a,odd)] = phase.Not() — the
+            # presence[(a,0)] = phase and presence[(a,odd)] = phase.Not() - the
             # same underlying variable.  Hinting more than one of these feeds
             # CP-SAT the same variable twice and makes the whole hint invalid
             # ("solution hint contains duplicate variables"), which silently
@@ -1158,10 +1158,10 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
     # activities, i.e. the interval graph's max clique ≤ #rooms.  So the
     # classic interval-colouring greedy (process by start time, take the
     # lowest-indexed room that's free) is guaranteed to find a room within the
-    # pool — it never needs more colours than the clique number.  This makes the
+    # pool - it never needs more colours than the clique number.  This makes the
     # cumulative relaxation exact: a valid room assignment always exists and we
     # construct it.  Rooms are assigned independently per week, so an activity
-    # may (rarely) use different rooms in different weeks — we emit one
+    # may (rarely) use different rooms in different weeks - we emit one
     # ScheduledActivity row per (room, weeks) group, which the data model
     # already supports via active_weeks.
     placements: Dict[str, Tuple[object, int, int, List[int]]] = {}
@@ -1188,7 +1188,7 @@ def generate_schedule(institution_id: str, schedule_id: str, token: str):
     # the timetable (no per-week duplication).  Process activities by start time
     # and pick the lowest-indexed room that is free in *every* active week of
     # the activity.  If the pool is so saturated that no single room is free
-    # across all those weeks, fall back to independent per-week assignment — the
+    # across all those weeks, fall back to independent per-week assignment - the
     # cumulative guarantees a free room exists within each individual week.
     room_of: Dict[Tuple[str, int], str] = {}
     for pk, rms in pool_rooms.items():

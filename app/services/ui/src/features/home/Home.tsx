@@ -23,7 +23,7 @@ const FEATURES = [
   {
     icon: <GroupsIcon />,
     title: 'Group-aware scheduling',
-    description: 'Activities inherit parent group schedules automatically — no manual merging.',
+    description: 'Activities inherit parent group schedules automatically - no manual merging.',
   },
   {
     icon: <AutoAwesomeIcon />,
@@ -82,7 +82,7 @@ export function LandingPage({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
             color="text.secondary"
             sx={{ fontWeight: 400, lineHeight: 1.6, mb: 4, maxWidth: 520, mx: 'auto' }}
           >
-            Create, manage and visualise complex university schedules — collaboratively and without the spreadsheets.
+            Create, manage and visualise complex university schedules - collaboratively and without the spreadsheets.
           </Typography>
 
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} justifyContent="center">

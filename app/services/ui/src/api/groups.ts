@@ -85,7 +85,7 @@ export async function updateGroupTimeslotPreferences(
   return GroupClass.from(groupData);
 }
 
-// Lightweight student record shape — mirrors a subset of the User model.
+// Lightweight student record shape - mirrors a subset of the User model.
 // We don't need every field; only what the group page renders.
 export interface GroupStudent {
   id?: string;

@@ -48,7 +48,7 @@ def get_next_schedule_number(db: Database, institution_id: str) -> int:
 
     # Step 1: backfill (one-time, only if counter is missing/0 AND legacy
     # schedules exist).  The match clause makes this safe under concurrent
-    # callers — only one will succeed in setting the initial value.
+    # callers - only one will succeed in setting the initial value.
     existing_count = sched_coll.count_documents({"institution_id": institution_id})
     if existing_count > 0:
         inst_coll.update_one(

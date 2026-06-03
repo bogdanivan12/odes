@@ -1,7 +1,7 @@
 group: 402 MD
 activities:
-  - { course: "Matematica discreta",                                    type: course, duration_slots: 2, frequency: weekly, professor: "Alexandru Gica"   }
-  - { course: "Teoria invatarii la tineri si adulti",                   type: course, duration_slots: 2, frequency: weekly, professor: "Silvia Fat"       }
-  - { course: "Rezolvarea si propunerea problemelor de matematica",      type: course, duration_slots: 2, frequency: weekly, professor: "Cornel Baetica"  }
-  - { course: "Metode si algoritmi de calcul",                          type: course, duration_slots: 2, frequency: weekly, professor: "Victor Vuletescu" }
-  - { course: "Introducere in cercetarea didactica",                    type: course, duration_slots: 2, frequency: weekly, professor: "Cristian Voica"  }
+  - { course: "Matematica discreta",                                    type: lecture, duration_slots: 2, frequency: weekly, professor: "Alexandru Gica"   }
+  - { course: "Teoria invatarii la tineri si adulti",                   type: lecture, duration_slots: 2, frequency: weekly, professor: "Silvia Fat"       }
+  - { course: "Rezolvarea si propunerea problemelor de matematica",      type: lecture, duration_slots: 2, frequency: weekly, professor: "Cornel Baetica"  }
+  - { course: "Metode si algoritmi de calcul",                          type: lecture, duration_slots: 2, frequency: weekly, professor: "Victor Vuletescu" }
+  - { course: "Introducere in cercetarea didactica",                    type: lecture, duration_slots: 2, frequency: weekly, professor: "Cristian Voica"  }

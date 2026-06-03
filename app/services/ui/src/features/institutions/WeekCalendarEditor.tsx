@@ -128,7 +128,7 @@ export default function WeekCalendarEditor({ weeks, days, startDay, value, onCha
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontSize: '0.875rem' }}>
         Calendar mapping {' '}
         <Typography component="span" variant="caption" color="text.secondary">
-          (optional — needed for personal-calendar export)
+          (optional - needed for personal-calendar export)
         </Typography>
       </Typography>
 
@@ -162,7 +162,7 @@ export default function WeekCalendarEditor({ weeks, days, startDay, value, onCha
         </Alert>
       )}
 
-      {/* Mapped weeks list — the field shows the full week and is click-to-edit */}
+      {/* Mapped weeks list - the field shows the full week and is click-to-edit */}
       {value.length > 0 && (
         <Stack spacing={1} sx={{ mb: 1.5 }}>
           {value.map((w, i) => (

@@ -13,7 +13,7 @@ class CalendarWeekMapping(BaseModel):
     Used by the calendar export so a scheduled activity active in week pattern
     ``N`` is placed on every real week the admin assigned to pattern ``N``.
     """
-    start_date: str   # ISO "YYYY-MM-DD" — the first day (start_day) of the real week
+    start_date: str   # ISO "YYYY-MM-DD" - the first day (start_day) of the real week
     week_number: int  # 1-based week pattern within the rotation (1..weeks)
 
 
@@ -39,7 +39,7 @@ class Institution(BaseModel):
     # Monotonically-increasing counter for "Schedule #N" labels.  Never
     # decremented, so deleting Schedule #3 does not free up the number 3.
     # Backfilled the first time a schedule is generated for an institution
-    # that pre-dates this field — see institutions_repo.get_next_schedule_number.
+    # that pre-dates this field - see institutions_repo.get_next_schedule_number.
     last_schedule_number: int = 0
 
     COLLECTION_NAME: ClassVar[str] = "institutions"
@@ -125,10 +125,19 @@ class Room(BaseModel):
 
 
 class ActivityType(str, Enum):
-    COURSE = "course"
+    LECTURE = "lecture"
     SEMINAR = "seminar"
     LABORATORY = "laboratory"
     OTHER = "other"
+
+    @classmethod
+    def _missing_(cls, value):
+        # Backwards-compat: the lecture type was historically stored as
+        # "course".  Coerce any legacy value so old DB documents / YAML seeds
+        # still parse after the rename.
+        if isinstance(value, str) and value.lower() == "course":
+            return cls.LECTURE
+        return None
 
 
 class Course(BaseModel):
@@ -222,7 +231,7 @@ class Reservation(BaseModel):
     institution_id: str
     room_id: str
     requester_id: str
-    date: str                 # ISO "YYYY-MM-DD" — must fall inside a configured calendar week
+    date: str                 # ISO "YYYY-MM-DD" - must fall inside a configured calendar week
     start_minute: int         # minutes from midnight
     end_minute: int           # minutes from midnight (exclusive)
     reason: str

@@ -1,5 +1,5 @@
 group: 508 SD
 activities:
-  - { course: "Programare Paralela si Concurenta Avansata", type: course, duration_slots: 2, frequency: weekly, professor: "Ciprian Paduraru",     additional_groups: ["Programare Paralela si Concurenta Avansata"] }
-  - { course: "Algoritmi Paraleli si Distribuiti",          type: course, duration_slots: 2, frequency: weekly, professor: "Andrei-Mihai Patrascu", additional_groups: ["Algoritmi Paraleli si Distribuiti"] }
-  - { course: "Cloud Computing",                           type: course, duration_slots: 2, frequency: weekly, professor: "Cristian Kevorchian",   additional_groups: ["Cloud Computing"] }
+  - { course: "Programare Paralela si Concurenta Avansata", type: lecture, duration_slots: 2, frequency: weekly, professor: "Ciprian Paduraru",     additional_groups: ["Programare Paralela si Concurenta Avansata"] }
+  - { course: "Algoritmi Paraleli si Distribuiti",          type: lecture, duration_slots: 2, frequency: weekly, professor: "Andrei-Mihai Patrascu", additional_groups: ["Algoritmi Paraleli si Distribuiti"] }
+  - { course: "Cloud Computing",                           type: lecture, duration_slots: 2, frequency: weekly, professor: "Cristian Kevorchian",   additional_groups: ["Cloud Computing"] }

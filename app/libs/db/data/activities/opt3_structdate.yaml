@@ -1,4 +1,4 @@
 group: Structuri de date avansate
 activities:
-  - { course: "Structuri de date avansate", type: course,     duration_slots: 2, frequency: weekly, professor: "Marius-Adrian Dumitran" }
+  - { course: "Structuri de date avansate", type: lecture,     duration_slots: 2, frequency: weekly, professor: "Marius-Adrian Dumitran" }
   - { course: "Structuri de date avansate", type: laboratory, duration_slots: 2, frequency: weekly, professor: "Marius-Adrian Dumitran" }

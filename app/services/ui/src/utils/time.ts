@@ -6,7 +6,7 @@
  * may or may not carry a trailing ``Z`` / ``+00:00``.  JavaScript's
  * ``new Date(...)`` parses an ISO string **without a timezone marker as
  * local time**, which silently shifts the displayed time by the user's
- * UTC offset — breaking ETA countdowns and "started X ago" labels.
+ * UTC offset - breaking ETA countdowns and "started X ago" labels.
  *
  * Strategy: if the string has no timezone marker, append "Z" so JS treats
  * it as UTC.  Otherwise use the string as-is.

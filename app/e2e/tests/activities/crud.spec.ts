@@ -9,7 +9,7 @@ function loadFixtures(): Record<string, string> {
 }
 
 test.describe('Activities', () => {
-  // The activities page fires 4 parallel API calls before rendering — give each
+  // The activities page fires 4 parallel API calls before rendering - give each
   // test a generous overall budget so the 30 s global default isn't hit while
   // beforeEach + data-load are still in progress.
   test.setTimeout(90_000);
@@ -23,7 +23,7 @@ test.describe('Activities', () => {
 
   test('shows existing activities', async ({ adminPage }) => {
     // The Tabs ("By group" / "By professor" / "By course") only mount once
-    // activities are fetched from the API — waiting for the tab is a reliable
+    // activities are fetched from the API - waiting for the tab is a reliable
     // data-loaded gate.
     await expect(adminPage.getByRole('tab', { name: 'By group' })).toBeVisible({ timeout: 30_000 });
 

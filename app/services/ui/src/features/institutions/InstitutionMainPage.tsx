@@ -234,7 +234,7 @@ function getInstitutionRoles(user: InstitutionUser, institutionId: string): Inst
 
 function formatCreatedAt(timestamp?: string): string | undefined {
   if (!timestamp) return undefined;
-  // Parse as UTC — backend emits UTC datetimes and may omit the trailing Z.
+  // Parse as UTC - backend emits UTC datetimes and may omit the trailing Z.
   const date = parseServerTimestamp(timestamp);
   if (!date) return timestamp;
   const datePart = date.toLocaleDateString();
@@ -604,14 +604,14 @@ export default function InstitutionMainPage() {
   const [groupDeleteError, setGroupDeleteError] = useState<string | null>(null);
 
   // ── Activity CRUD state ────────────────────────────────────────────────────
-  const ACTIVITY_TYPE_OPTIONS = ['course', 'seminar', 'laboratory', 'other'];
+  const ACTIVITY_TYPE_OPTIONS = ['lecture', 'seminar', 'laboratory', 'other'];
   const FREQUENCY_OPTIONS = ['weekly', 'biweekly', 'biweekly_odd', 'biweekly_even'];
 
   const [isActivityCreateOpen, setIsActivityCreateOpen] = useState(false);
   const [actCreateCourseId, setActCreateCourseId] = useState('');
   const [actCreateGroupIds, setActCreateGroupIds] = useState<string[]>([]);
   const [actCreateProfId, setActCreateProfId] = useState('');
-  const [actCreateType, setActCreateType] = useState('course');
+  const [actCreateType, setActCreateType] = useState('lecture');
   const [actCreateFrequency, setActCreateFrequency] = useState('weekly');
   const [actCreateDuration, setActCreateDuration] = useState('2');
   const [actCreateFeatures, setActCreateFeatures] = useState('');
@@ -622,7 +622,7 @@ export default function InstitutionMainPage() {
   const [actEditCourseId, setActEditCourseId] = useState('');
   const [actEditGroupIds, setActEditGroupIds] = useState<string[]>([]);
   const [actEditProfId, setActEditProfId] = useState('');
-  const [actEditType, setActEditType] = useState('course');
+  const [actEditType, setActEditType] = useState('lecture');
   const [actEditFrequency, setActEditFrequency] = useState('weekly');
   const [actEditDuration, setActEditDuration] = useState('2');
   const [actEditFeatures, setActEditFeatures] = useState('');
@@ -887,7 +887,7 @@ export default function InstitutionMainPage() {
       setActivitiesState({ data: updated, loading: false, error: null });
       setIsActivityCreateOpen(false);
       setActCreateCourseId(''); setActCreateGroupIds([]); setActCreateProfId('');
-      setActCreateType('course'); setActCreateFrequency('weekly');
+      setActCreateType('lecture'); setActCreateFrequency('weekly');
       setActCreateDuration('2'); setActCreateFeatures('');
     } catch (err) { setActCreateError((err as Error).message || 'Failed to create activity.'); }
     finally { setActCreateLoading(false); }
@@ -1624,7 +1624,7 @@ export default function InstitutionMainPage() {
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
                 {institution.active_schedule_id
                   ? 'View your personal timetable for the active schedule'
-                  : 'No active schedule yet — an admin needs to activate one first'}
+                  : 'No active schedule yet - an admin needs to activate one first'}
               </Typography>
             </Box>
             <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1851,7 +1851,7 @@ export default function InstitutionMainPage() {
               ) : undefined}
               navigationRoute={`${institutionBase}/activities`}
               headerAction={canManageInstitution ? (
-                <Button size="small" variant="contained" startIcon={<AddRoundedIcon />} onClick={() => { setActCreateCourseId(''); setActCreateGroupIds([]); setActCreateProfId(''); setActCreateType('course'); setActCreateFrequency('weekly'); setActCreateDuration('2'); setActCreateFeatures(''); setIsActivityCreateOpen(true); }} sx={{ borderRadius: 2, fontSize: '0.8rem', py: 0.5 }}>
+                <Button size="small" variant="contained" startIcon={<AddRoundedIcon />} onClick={() => { setActCreateCourseId(''); setActCreateGroupIds([]); setActCreateProfId(''); setActCreateType('lecture'); setActCreateFrequency('weekly'); setActCreateDuration('2'); setActCreateFeatures(''); setIsActivityCreateOpen(true); }} sx={{ borderRadius: 2, fontSize: '0.8rem', py: 0.5 }}>
                   Create
                 </Button>
               ) : undefined}
@@ -1908,7 +1908,7 @@ export default function InstitutionMainPage() {
               />
 
               <Box>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontSize: '0.875rem' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontSize: '0.875rem', display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
                   Days per week
                 </Typography>
                 <ToggleButtonGroup
@@ -2276,6 +2276,7 @@ export default function InstitutionMainPage() {
               onChange={(e) => setGroupCreateParentId(e.target.value)}
               fullWidth
               disabled={groupCreateLoading}
+              helperText="Optional"
             >
               <MenuItem value="">(None)</MenuItem>
               {groupsState.data.map((g) => (
@@ -2313,6 +2314,7 @@ export default function InstitutionMainPage() {
               onChange={(e) => setGroupEditParentId(e.target.value)}
               fullWidth
               disabled={groupEditLoading}
+              helperText="Optional"
             >
               <MenuItem value="">(None)</MenuItem>
               {groupsState.data
@@ -2434,7 +2436,6 @@ export default function InstitutionMainPage() {
               onChange={(e) => setActCreateFeatures(e.target.value)}
               fullWidth
               disabled={actCreateLoading}
-              helperText="Comma-separated list of room features"
             />
             {actCreateError && <Alert severity="error">{actCreateError}</Alert>}
           </Stack>
@@ -2532,7 +2533,6 @@ export default function InstitutionMainPage() {
               onChange={(e) => setActEditFeatures(e.target.value)}
               fullWidth
               disabled={actEditLoading}
-              helperText="Comma-separated list of room features"
             />
             {actEditError && <Alert severity="error">{actEditError}</Alert>}
           </Stack>
@@ -2587,7 +2587,7 @@ export default function InstitutionMainPage() {
           </DialogContentText>
           {(institution.time_grid_config.calendar_weeks ?? []).length === 0 ? (
             <Alert severity="info" sx={{ borderRadius: 2 }}>
-              No calendar weeks configured yet{canManageInstitution ? ' — set them up via Edit.' : '.'}
+              No calendar weeks configured yet{canManageInstitution ? ' - set them up via Edit.' : '.'}
             </Alert>
           ) : (
             <Stack spacing={1}>
