@@ -59,7 +59,7 @@ export default function MicrosoftSignInButton({
       if (result.idToken) onCredential(result.idToken);
       else onError?.('Microsoft did not return a token.');
     } catch (e) {
-      // The user closing the popup is not a real error — stay quiet for those.
+      // The user closing the popup is not a real error - stay quiet for those.
       const code = (e as { errorCode?: string }).errorCode ?? '';
       if (!['user_cancelled', 'popup_window_error', 'interaction_in_progress'].includes(code)) {
         onError?.((e as Error).message || 'Microsoft sign-in failed.');

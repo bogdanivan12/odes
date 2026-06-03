@@ -7,7 +7,7 @@ import { login, apiCall } from '../../helpers/api';
 // rewrite and the group timeslot-preference feature:
 //   1. UNAVAILABLE group preferences are hard-honoured in the generated schedule.
 //   2. No room is double-booked (the room-pooling + greedy colouring must keep
-//      each room used by at most one activity per (week, time) — the soundness
+//      each room used by at most one activity per (week, time) - the soundness
 //      property of the cumulative reformulation).
 //
 // Reads the schedule produced by schedules/generate.spec.ts (which runs first
@@ -54,7 +54,7 @@ test.describe('Schedule honours constraints', () => {
     const fixtures = loadFixtures();
     const token = await login(fixtures.adminEmail, fixtures.adminPassword);
     const scheduled = await completedScheduleActivities(token, fixtures.complexInstitutionId);
-    test.skip(!scheduled, 'No completed schedule — generate.spec.ts must run first');
+    test.skip(!scheduled, 'No completed schedule - generate.spec.ts must run first');
 
     const tpd = fixtures.complexTimeslotsPerDay as number;
     const blocked = new Set<number>(fixtures.complexUnavailableSlotsInDay as number[]);
@@ -91,7 +91,7 @@ test.describe('Schedule honours constraints', () => {
     const fixtures = loadFixtures();
     const token = await login(fixtures.adminEmail, fixtures.adminPassword);
     const scheduled = await completedScheduleActivities(token, fixtures.complexInstitutionId);
-    test.skip(!scheduled, 'No completed schedule — generate.spec.ts must run first');
+    test.skip(!scheduled, 'No completed schedule - generate.spec.ts must run first');
 
     const rows = scheduled!.filter(
       (sa) => sa.activity_id === fixtures.complexPinnedActivityId,
@@ -109,7 +109,7 @@ test.describe('Schedule honours constraints', () => {
     const fixtures = loadFixtures();
     const token = await login(fixtures.adminEmail, fixtures.adminPassword);
     const scheduled = await completedScheduleActivities(token, fixtures.complexInstitutionId);
-    test.skip(!scheduled, 'No completed schedule — generate.spec.ts must run first');
+    test.skip(!scheduled, 'No completed schedule - generate.spec.ts must run first');
 
     const allActs = (await apiCall(
       'GET',
@@ -137,7 +137,7 @@ test.describe('Schedule honours constraints', () => {
       }
     }
 
-    // Brute-force overlap check — small dataset.  Two spans in the same room and
+    // Brute-force overlap check - small dataset.  Two spans in the same room and
     // week must not overlap in time.
     for (let i = 0; i < spans.length; i++) {
       for (let j = i + 1; j < spans.length; j++) {

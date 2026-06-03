@@ -161,7 +161,9 @@ export default function InstitutionRequests() {
         <Stack spacing={2.5}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="h5" sx={{ fontWeight: 700 }}>Room requests</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Typography variant="h5" sx={{ fontWeight: 700 }}>Room requests</Typography>
+              </Box>
               <Typography variant="body2" color="text.secondary">
                 {institution?.name} · request a room and an admin will approve or refuse it.
               </Typography>
@@ -376,11 +378,13 @@ function NewReservationDialog({
       <DialogTitle sx={{ fontWeight: 700 }}>New reservation</DialogTitle>
       <DialogContent>
         <Stack spacing={2.5} sx={{ mt: 0.5 }}>
-          <TextField select label="Room" value={roomId} onChange={(e) => setRoomId(e.target.value)} fullWidth>
+          <TextField select label="Room" value={roomId} onChange={(e) => setRoomId(e.target.value)} fullWidth
+>
             {rooms.map((r) => <MenuItem key={idOf(r)} value={idOf(r)}>{r.name}</MenuItem>)}
           </TextField>
 
-          <TextField select label="Week" value={weekIdx} onChange={(e) => setWeekIdx(e.target.value)} fullWidth>
+          <TextField select label="Week" value={weekIdx} onChange={(e) => setWeekIdx(e.target.value)} fullWidth
+>
             {weeks.map((w, i) => (
               <MenuItem key={w.start_date} value={String(i)}>
                 {weekRangeLabel(addDaysIso(w.start_date, -tg.start_day), 7)} · Week {w.week_number}
@@ -388,7 +392,8 @@ function NewReservationDialog({
             ))}
           </TextField>
 
-          <TextField select label="Day" value={weekday} onChange={(e) => setWeekday(e.target.value)} fullWidth>
+          <TextField select label="Day" value={weekday} onChange={(e) => setWeekday(e.target.value)} fullWidth
+>
             {/* Natural Monday→Sunday week; dates are contiguous from that week's Monday. */}
             {WEEKDAY_NAMES.map((name, m) => {
               const iso = monday ? addDaysIso(monday, m) : '';
@@ -396,15 +401,18 @@ function NewReservationDialog({
             })}
           </TextField>
           <Stack direction="row" spacing={2}>
-            <TextField select label="From" value={startHour} onChange={(e) => setStartHour(e.target.value)} fullWidth>
+            <TextField select label="From" value={startHour} onChange={(e) => setStartHour(e.target.value)} fullWidth
+>
               {Array.from({ length: 24 }, (_, h) => <MenuItem key={h} value={String(h)}>{String(h).padStart(2, '0')}:00</MenuItem>)}
             </TextField>
-            <TextField select label="To" value={endHour} onChange={(e) => setEndHour(e.target.value)} fullWidth>
+            <TextField select label="To" value={endHour} onChange={(e) => setEndHour(e.target.value)} fullWidth
+>
               {Array.from({ length: 24 }, (_, h) => h + 1).map((h) => <MenuItem key={h} value={String(h)}>{String(h).padStart(2, '0')}:00</MenuItem>)}
             </TextField>
           </Stack>
 
-          <TextField label="Reason" value={reason} onChange={(e) => setReason(e.target.value)} fullWidth multiline minRows={2} placeholder="What is the room for?" />
+          <TextField label="Reason" value={reason} onChange={(e) => setReason(e.target.value)} fullWidth multiline minRows={2} placeholder="What is the room for?"
+ />
 
           {!timesValid && <Alert severity="warning" sx={{ borderRadius: 2 }}>End time must be after start time.</Alert>}
           {timesValid && checking && (

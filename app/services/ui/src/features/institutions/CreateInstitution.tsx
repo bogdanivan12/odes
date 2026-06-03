@@ -252,9 +252,11 @@ export default function CreateInstitution() {
                 />
 
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', mb: 1.5 }}>
-                    Time grid configuration
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.5 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      Time grid configuration
+                    </Typography>
+                  </Box>
                   <Stack spacing={2}>
 
                     <TextField
@@ -268,7 +270,7 @@ export default function CreateInstitution() {
                     />
 
                     <Box>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontSize: '0.875rem' }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontSize: '0.875rem', display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
                         Days per week
                       </Typography>
                       <ToggleButtonGroup

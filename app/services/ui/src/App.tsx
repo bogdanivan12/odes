@@ -30,6 +30,7 @@ import {
   USER_REGISTER_ROUTE,
   FORGOT_PASSWORD_ROUTE,
   RESET_PASSWORD_ROUTE,
+  HELP_ROUTE,
 } from "./config/routes.ts";
 import RootPage from "./features/home/RootPage.tsx";
 import GlobalMySchedulePage from "./features/home/GlobalMySchedulePage.tsx";
@@ -54,6 +55,7 @@ import InstitutionRequests from './features/requests/InstitutionRequests';
 import InstitutionMembers from './features/members/InstitutionMembers';
 import MemberMainPage from './features/members/MemberMainPage';
 import ProfilePage from './features/members/ProfilePage';
+import HelpCenter from './features/help/HelpCenter';
 
 function App() {
   return (
@@ -87,6 +89,7 @@ function App() {
           <Route path={ROOM_ROUTE} element={<RoomMainPage />} />
           <Route path={ACTIVITY_ROUTE} element={<ActivityMainPage />} />
           <Route path={PROFILE_ROUTE} element={<ProfilePage />} />
+          <Route path={HELP_ROUTE} element={<HelpCenter />} />
           <Route path={USER_ROUTE} element={<MemberMainPage />} />
           {/* Other protected routes can be nested here and will inherit the layout */}
         </Route>

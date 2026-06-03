@@ -11,13 +11,13 @@ export const RESET_PASSWORD_URL = `${API_URL}/api/v1/auth/reset-password`;
 export const GOOGLE_SIGNIN_URL = `${API_URL}/api/v1/auth/google`;
 export const MICROSOFT_SIGNIN_URL = `${API_URL}/api/v1/auth/microsoft`;
 
-// Google OAuth Web client ID (public — also embedded in the backend as the
+// Google OAuth Web client ID (public - also embedded in the backend as the
 // expected token audience). Override at build time with VITE_GOOGLE_CLIENT_ID.
 export const GOOGLE_CLIENT_ID =
   import.meta.env.VITE_GOOGLE_CLIENT_ID ??
   "941006428883-ig2s9kbmkgjdg8ahtciagrdbu2h55agi.apps.googleusercontent.com";
 
-// Microsoft Entra ID application (client) ID — public, same value the backend
+// Microsoft Entra ID application (client) ID - public, same value the backend
 // uses as the token audience. Override at build time with VITE_MICROSOFT_CLIENT_ID.
 export const MICROSOFT_CLIENT_ID =
   import.meta.env.VITE_MICROSOFT_CLIENT_ID ??

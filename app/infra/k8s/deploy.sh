@@ -28,7 +28,7 @@ kubectl apply -f "$REPO_ROOT/app/infra/k8s/rabbitmq.yaml"
 kubectl apply -f "$REPO_ROOT/app/infra/k8s/api.yaml"
 kubectl apply -f "$REPO_ROOT/app/infra/k8s/worker.yaml"
 kubectl apply -f "$REPO_ROOT/app/infra/k8s/ui.yaml"
-# keda.yaml is intentionally not applied — worker runs at replicas: 1 permanently.
+# keda.yaml is intentionally not applied - worker runs at replicas: 1 permanently.
 # The node has enough resources (8 GiB / 4 vCPU) to keep the worker alive at all times.
 
 echo ""

@@ -13,7 +13,7 @@ export interface ApiRequestOptions {
   body?: any;
   headers?: Record<string, string>;
   raw?: boolean; // If true, return raw text even if JSON parse succeeds
-  _retried?: boolean; // Internal flag — prevents infinite refresh loops
+  _retried?: boolean; // Internal flag - prevents infinite refresh loops
 }
 
 export interface ApiError extends Error {
@@ -80,7 +80,7 @@ export async function apiRequest<T = any>(opts: ApiRequestOptions): Promise<T> {
   // exactly once. If the refresh itself fails the user is logged out.
   if (res.status === 401 && !_retried && !isAuthEndpoint) {
     try {
-      // The refresh token is an HttpOnly cookie — the browser attaches it
+      // The refresh token is an HttpOnly cookie - the browser attaches it
       // automatically via credentials:'include'.  No body needed.
       const refreshRes = await fetch(`${API_URL}/api/v1/auth/refresh`, {
         method: 'POST',
@@ -96,7 +96,7 @@ export async function apiRequest<T = any>(opts: ApiRequestOptions): Promise<T> {
         }
       }
     } catch { /* fall through to logout */ }
-    // Refresh failed — end the session.
+    // Refresh failed - end the session.
     clearTokens();
     if (typeof window !== 'undefined') window.location.href = '/login';
   }

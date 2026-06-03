@@ -1,5 +1,5 @@
 group: 510 SAL
 activities:
-  - { course: "Database Security",                          type: course, duration_slots: 2, frequency: weekly, professor: "Letitia Marin",                          additional_groups: ["Database Security"] }
-  - { course: "Modele si Tehnici in Securitatea Informatiei", type: course, duration_slots: 1, frequency: weekly, professor: "Mihaita Dragan",                        additional_groups: ["Modele si Tehnici in Securitatea Informatiei"] }
-  - { course: "Special Topics in Security and Applied Logic I", type: course, duration_slots: 1, frequency: weekly, professor: "Ioana Leustean",        additional_groups: ["Special Topics in Security and Applied Logic I"] }
+  - { course: "Database Security",                          type: lecture, duration_slots: 2, frequency: weekly, professor: "Letitia Marin",                          additional_groups: ["Database Security"] }
+  - { course: "Modele si Tehnici in Securitatea Informatiei", type: lecture, duration_slots: 1, frequency: weekly, professor: "Mihaita Dragan",                        additional_groups: ["Modele si Tehnici in Securitatea Informatiei"] }
+  - { course: "Special Topics in Security and Applied Logic I", type: lecture, duration_slots: 1, frequency: weekly, professor: "Ioana Leustean",        additional_groups: ["Special Topics in Security and Applied Logic I"] }

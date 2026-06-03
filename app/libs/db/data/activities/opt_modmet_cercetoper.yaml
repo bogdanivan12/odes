@@ -1,4 +1,4 @@
 group: Modele si metode in cercetarea operationala
 activities:
-  - { course: "Modele si metode in cercetarea operationala", type: course,   duration_slots: 2, frequency: weekly, professor: "Monica Patriche" }
+  - { course: "Modele si metode in cercetarea operationala", type: lecture,   duration_slots: 2, frequency: weekly, professor: "Monica Patriche" }
   - { course: "Modele si metode in cercetarea operationala", type: seminar,  duration_slots: 2, frequency: weekly, professor: "Monica Patriche" }

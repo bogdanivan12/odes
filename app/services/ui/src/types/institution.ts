@@ -1,7 +1,7 @@
 // Type definitions for Institution model (matches app.libs.db.models.Institution)
 
 export interface CalendarWeekMapping {
-  start_date: string; // ISO "YYYY-MM-DD" — first day (start_day) of the real week
+  start_date: string; // ISO "YYYY-MM-DD" - first day (start_day) of the real week
   week_number: number; // 1-based week pattern within the rotation
 }
 

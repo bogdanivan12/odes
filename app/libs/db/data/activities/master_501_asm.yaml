@@ -1,7 +1,7 @@
 group: 501 ASM
 activities:
-  - { course: "Symplectic Geometry and Topology",     type: course, duration_slots: 2, frequency: weekly, professor: "Miron-Ion Stanciu"    }
-  - { course: "Introduction to Knot Theory",          type: course, duration_slots: 2, frequency: weekly, professor: "Radu-Clement Popescu" }
-  - { course: "Complex Analysis in Several Variables", type: course, duration_slots: 2, frequency: weekly, professor: "Ovidiu Preda"         }
-  - { course: "Criptografie",                          type: course, duration_slots: 2, frequency: weekly, professor: "Diana Maimut",         additional_groups: ["503 PSFS"] }
-  - { course: "Algebraic Geometry II",                 type: course, duration_slots: 2, frequency: weekly, professor: "Marian Aprodu"        }
+  - { course: "Symplectic Geometry and Topology",     type: lecture, duration_slots: 2, frequency: weekly, professor: "Miron-Ion Stanciu"    }
+  - { course: "Introduction to Knot Theory",          type: lecture, duration_slots: 2, frequency: weekly, professor: "Radu-Clement Popescu" }
+  - { course: "Complex Analysis in Several Variables", type: lecture, duration_slots: 2, frequency: weekly, professor: "Ovidiu Preda"         }
+  - { course: "Criptografie",                          type: lecture, duration_slots: 2, frequency: weekly, professor: "Diana Maimut",         additional_groups: ["503 PSFS"] }
+  - { course: "Algebraic Geometry II",                 type: lecture, duration_slots: 2, frequency: weekly, professor: "Marian Aprodu"        }

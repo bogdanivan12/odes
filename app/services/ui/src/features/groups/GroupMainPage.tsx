@@ -236,7 +236,7 @@ function GroupPreferenceGrid({ groupId, institution, initialPrefs, readOnly, onS
                 return (
                   <Tooltip
                     key={slotIdx}
-                    title={readOnly ? cfg.label : `${cfg.label} — click or drag to change`}
+                    title={readOnly ? cfg.label : `${cfg.label} - click or drag to change`}
                     placement="top"
                     arrow
                     disableInteractive
@@ -300,7 +300,7 @@ function GroupPreferenceGrid({ groupId, institution, initialPrefs, readOnly, onS
   );
 }
 
-const activityTypePriority: Record<string, number> = { course: 0, seminar: 1, laboratory: 2 };
+const activityTypePriority: Record<string, number> = { lecture: 0, course: 0, seminar: 1, laboratory: 2 };
 
 const compareActivityTypes = (a: string, b: string) => {
   const aRank = activityTypePriority[a.trim().toLowerCase()] ?? Number.MAX_SAFE_INTEGER;
@@ -342,7 +342,7 @@ export default function GroupMainPage() {
   // ── Student roster state ───────────────────────────────────────────────
   const [students, setStudents] = useState<GroupStudent[]>([]);
   const [studentsError, setStudentsError] = useState<string | null>(null);
-  // "Add student" picker — only rendered for admins.
+  // "Add student" picker - only rendered for admins.
   const [studentToAdd, setStudentToAdd] = useState<InstitutionUser | null>(null);
   const [addingStudent, setAddingStudent] = useState(false);
   // Per-row "removing" tracker so multiple removes can be in-flight.
@@ -1137,7 +1137,7 @@ export default function GroupMainPage() {
         <DialogContent>
           <Stack spacing={2.5} sx={{ mt: 0.5 }}>
             <TextField label="Group name" value={editName} onChange={(e) => setEditName(e.target.value)} fullWidth autoFocus disabled={editLoading} />
-            <TextField label="Parent group" value={editParentGroupId} onChange={(e) => setEditParentGroupId(e.target.value)} select fullWidth disabled={editLoading}>
+            <TextField label="Parent group" value={editParentGroupId} onChange={(e) => setEditParentGroupId(e.target.value)} select fullWidth disabled={editLoading} helperText="Optional">
               <MenuItem value="">No parent (root group)</MenuItem>
               {allGroups
                 .filter((item) => String(item.id ?? item._id ?? '') !== group.id)

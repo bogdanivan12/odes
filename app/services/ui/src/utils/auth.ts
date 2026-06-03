@@ -1,15 +1,15 @@
 /**
  * Centralised auth-token helpers.
  *
- * Access token  — short-lived JWT (30 min), stored in localStorage, sent as
+ * Access token  - short-lived JWT (30 min), stored in localStorage, sent as
  *                 the Authorization header on every API call.
- * Refresh token — long-lived JWT (7 days), stored in an HttpOnly cookie set
+ * Refresh token - long-lived JWT (7 days), stored in an HttpOnly cookie set
  *                 by the server.  JavaScript cannot read or steal it.
  *
  * When the access token expires the API returns 401.  apiClient.ts intercepts
  * this, POSTs to /auth/refresh (the browser attaches the cookie automatically
  * via credentials:'include'), receives a new access token, stores it, and
- * replays the original request — all transparently.
+ * replays the original request - all transparently.
  *
  * isAuthenticated() is a UI gate only (not a security check).  It returns true
  * as long as an access token sits in localStorage.  If the refresh cookie has

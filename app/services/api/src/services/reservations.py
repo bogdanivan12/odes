@@ -240,7 +240,7 @@ def approve_reservation(db: Database, reservation_id: str, current_user_id: str)
     if conflicts:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Cannot approve — it now conflicts with: "
+            detail="Cannot approve - it now conflicts with: "
                    + "; ".join(c.description for c in conflicts),
         )
 

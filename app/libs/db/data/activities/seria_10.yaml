@@ -1,7 +1,7 @@
 group: Seria 10
 activities:
-  - { course: "Analiza matematica I",   type: course, duration_slots: 3, frequency: weekly, professor: "Speranta Vladoiu" }
-  - { course: "Geometrie I",            type: course, duration_slots: 2, frequency: weekly, professor: "Victor Vuletescu" }
-  - { course: "Programare procedurala", type: course, duration_slots: 2, frequency: weekly, professor: "Ruxandra Marinescu" }
-  - { course: "Algebra liniara",        type: course, duration_slots: 3, frequency: weekly, professor: "Sorin Dascalescu" }
-  - { course: "Algebra I",              type: course, duration_slots: 2, frequency: weekly, professor: "Gigel Militaru" }
+  - { course: "Analiza matematica I",   type: lecture, duration_slots: 3, frequency: weekly, professor: "Speranta Vladoiu" }
+  - { course: "Geometrie I",            type: lecture, duration_slots: 2, frequency: weekly, professor: "Victor Vuletescu" }
+  - { course: "Programare procedurala", type: lecture, duration_slots: 2, frequency: weekly, professor: "Ruxandra Marinescu" }
+  - { course: "Algebra liniara",        type: lecture, duration_slots: 3, frequency: weekly, professor: "Sorin Dascalescu" }
+  - { course: "Algebra I",              type: lecture, duration_slots: 2, frequency: weekly, professor: "Gigel Militaru" }

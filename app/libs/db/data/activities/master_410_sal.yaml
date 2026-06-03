@@ -1,5 +1,5 @@
 group: 410 SAL
 activities:
-  - { course: "Sisteme de operare: proiectare si securitate", type: course, duration_slots: 2, frequency: weekly, professor: "Paul Irofti",          additional_groups: ["Sisteme de operare: proiectare si securitate"] }
-  - { course: "Criptografie avansata",                        type: course, duration_slots: 2, frequency: weekly, professor: "Mihai Prunescu",        additional_groups: ["Criptografie avansata"] }
-  - { course: "Logica pentru sisteme multi-agent",            type: course, duration_slots: 2, frequency: weekly, professor: "Laurentiu Leustean",    additional_groups: ["Logica pentru sisteme multi-agent"] }
+  - { course: "Sisteme de operare: proiectare si securitate", type: lecture, duration_slots: 2, frequency: weekly, professor: "Paul Irofti",          additional_groups: ["Sisteme de operare: proiectare si securitate"] }
+  - { course: "Criptografie avansata",                        type: lecture, duration_slots: 2, frequency: weekly, professor: "Mihai Prunescu",        additional_groups: ["Criptografie avansata"] }
+  - { course: "Logica pentru sisteme multi-agent",            type: lecture, duration_slots: 2, frequency: weekly, professor: "Laurentiu Leustean",    additional_groups: ["Logica pentru sisteme multi-agent"] }

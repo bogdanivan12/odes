@@ -45,7 +45,7 @@ def find_activities_by_institution_id(db: Database, institution_id: str):
 
 def find_activities_by_group_id(db: Database, group_id: str):
     collection = db.get_collection(models.Activity.COLLECTION_NAME)
-    # group_ids is a list — MongoDB matches if group_id appears anywhere in it.
+    # group_ids is a list - MongoDB matches if group_id appears anywhere in it.
     return collection.find({"group_ids": group_id}).to_list()
 
 

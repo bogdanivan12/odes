@@ -23,7 +23,7 @@ spec:
             - secretRef:
                 name: odes-secret
           env:
-            # CP-SAT search parallelism — 3 workers on the 4 vCPU node.
+            # CP-SAT search parallelism - 3 workers on the 4 vCPU node.
             # Leaves ~1 vCPU headroom for the API and UI pods on the same node.
             # Override to 8 in compose (12 GB / 8 CPUs available there).
             - name: NUM_SEARCH_WORKERS

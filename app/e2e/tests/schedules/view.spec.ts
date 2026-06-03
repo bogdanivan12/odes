@@ -24,7 +24,7 @@ test.describe('Schedule View', () => {
 
     const scheduleCount = await completedSchedule.count();
     if (scheduleCount === 0) {
-      test.skip(true, 'No completed schedule found — run generate.spec.ts first');
+      test.skip(true, 'No completed schedule found - run generate.spec.ts first');
     }
 
     await completedSchedule.click();
@@ -49,7 +49,7 @@ test.describe('Schedule View', () => {
 
     const scheduleCount = await completedSchedule.count();
     if (scheduleCount === 0) {
-      test.skip(true, 'No completed schedule found — run generate.spec.ts first');
+      test.skip(true, 'No completed schedule found - run generate.spec.ts first');
     }
 
     await completedSchedule.click();

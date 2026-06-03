@@ -1,8 +1,8 @@
 group: Seria 14
 activities:
-  - { course: "Structuri algebrice in informatica",            type: course, duration_slots: 2, frequency: weekly, professor: "Sorin Dascalescu" }
-  - { course: "Calcul diferential si integral",               type: course, duration_slots: 3, frequency: weekly, professor: "Razvan Sfetcu" }
-  - { course: "Tehnici web",                                  type: course, duration_slots: 2, frequency: weekly, professor: "Claudia-Elena Chirita" }
-  - { course: "Programarea algoritmilor",                     type: course, duration_slots: 2, frequency: weekly, professor: "Ruxandra Marinescu" }
-  - { course: "Arhitectura sistemelor de calcul",             type: course, duration_slots: 2, frequency: weekly, professor: "Cristian Rusu" }
-  - { course: "Instrumente si tehnici de baza in Informatica", type: course, duration_slots: 1, frequency: weekly, professor: "Vlad Olaru" }
+  - { course: "Structuri algebrice in informatica",            type: lecture, duration_slots: 2, frequency: weekly, professor: "Sorin Dascalescu" }
+  - { course: "Calcul diferential si integral",               type: lecture, duration_slots: 3, frequency: weekly, professor: "Razvan Sfetcu" }
+  - { course: "Tehnici web",                                  type: lecture, duration_slots: 2, frequency: weekly, professor: "Claudia-Elena Chirita" }
+  - { course: "Programarea algoritmilor",                     type: lecture, duration_slots: 2, frequency: weekly, professor: "Ruxandra Marinescu" }
+  - { course: "Arhitectura sistemelor de calcul",             type: lecture, duration_slots: 2, frequency: weekly, professor: "Cristian Rusu" }
+  - { course: "Instrumente si tehnici de baza in Informatica", type: lecture, duration_slots: 1, frequency: weekly, professor: "Vlad Olaru" }

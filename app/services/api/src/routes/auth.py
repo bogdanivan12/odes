@@ -13,7 +13,7 @@ from app.services.api.src.dtos.input import auth as dto_in
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
-# Path shared by the cookie — covers /refresh and /logout under /api/v1/auth
+# Path shared by the cookie - covers /refresh and /logout under /api/v1/auth
 _COOKIE_PATH = "/api/v1/auth"
 # Set SECURE_COOKIES=true in production (HTTPS).
 _SECURE_COOKIES = os.getenv("SECURE_COOKIES", "false").lower() == "true"

@@ -22,8 +22,8 @@ worker_app = Celery("worker", broker=CELERY_BROKER_URL)
 def generate_schedule(institution_id: str, schedule_id: str, token: str) -> None:
     """Generate schedule"""
     # Replace the user's short-lived token (default 30 min) with a 4-hour
-    # service token tied to the same user so the long-running job — plus
-    # its intermediate-save callbacks and final error reporting — can keep
+    # service token tied to the same user so the long-running job - plus
+    # its intermediate-save callbacks and final error reporting - can keep
     # calling the API past the original token's expiry.
     token = schedule_gen.refresh_worker_token(token)
     try:

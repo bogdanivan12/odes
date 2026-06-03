@@ -1,6 +1,6 @@
 # ── KEDA RabbitMQ scaler ──────────────────────────────────────────────────────
 # The Secret that holds the RabbitMQ management URL (rabbitmq-keda-secret) is
-# NOT stored here — it contains credentials and must be created separately:
+# NOT stored here - it contains credentials and must be created separately:
 #
 #   kubectl create secret generic rabbitmq-keda-secret \
 #     --namespace odes \

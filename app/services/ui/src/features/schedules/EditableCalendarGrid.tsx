@@ -1,5 +1,5 @@
 /**
- * EditableCalendarGrid — drag-and-drop variant of CalendarGrid for schedule editing.
+ * EditableCalendarGrid - drag-and-drop variant of CalendarGrid for schedule editing.
  *
  * Architecture
  * ────────────
@@ -175,7 +175,7 @@ function DraggableCard({
                 {profName}
               </Typography>
             )}
-            {/* Room — clickable to change */}
+            {/* Room - clickable to change */}
             <Box
               component="span"
               onClick={(e) => {
@@ -429,12 +429,12 @@ export default function EditableCalendarGrid({
                 {/* Activity cards */}
                 {laned.map(({ entry: e, lane, laneCount }) => {
                   const slotIdx = e.startTimeslot % timeslotsPerDay;
-                  const courseName = coursesById.get(e.courseId)?.name ?? '—';
-                  const groupName = e.allGroupIds.map((gid) => groupsById.get(gid)?.name ?? gid).join(', ') || '—';
+                  const courseName = coursesById.get(e.courseId)?.name ?? '-';
+                  const groupName = e.allGroupIds.map((gid) => groupsById.get(gid)?.name ?? gid).join(', ') || '-';
                   const profName = e.professorId
-                    ? (usersById.get(e.professorId)?.name ?? usersById.get(e.professorId)?.email ?? '—')
+                    ? (usersById.get(e.professorId)?.name ?? usersById.get(e.professorId)?.email ?? '-')
                     : null;
-                  const roomName = roomsById.get(e.roomId)?.name ?? '—';
+                  const roomName = roomsById.get(e.roomId)?.name ?? '-';
                   const cardState: CardState = conflictingRecordIds.has(e.schedRecId)
                     ? 'conflict'
                     : pendingRecordIds.has(e.schedRecId)

@@ -1,3 +1,3 @@
 group: Dezvoltarea Aplicatiilor Web ASP.NET
 activities:
-  - { course: "Dezvoltarea Aplicatiilor Web ASP.NET", type: course, duration_slots: 2, frequency: weekly, professor: "Cezara Benegui" }
+  - { course: "Dezvoltarea Aplicatiilor Web ASP.NET", type: lecture, duration_slots: 2, frequency: weekly, professor: "Cezara Benegui" }

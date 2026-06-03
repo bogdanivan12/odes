@@ -30,7 +30,7 @@ test.describe('Rooms CRUD', () => {
     // Fill room name
     await adminPage.getByLabel('Room name').fill(roomName);
 
-    // Fill capacity — use the spinbutton role to avoid ambiguity with "Min capacity"
+    // Fill capacity - use the spinbutton role to avoid ambiguity with "Min capacity"
     const capacityField = adminPage.getByRole('spinbutton', { name: 'Capacity' });
     if (await capacityField.isVisible()) {
       await capacityField.fill('50');

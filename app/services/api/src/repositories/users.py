@@ -17,7 +17,7 @@ def insert_user(db: Database, user: models.User):
     collection = db.get_collection(models.User.COLLECTION_NAME)
     # ensure hashed_password is included
     data = user.model_dump(by_alias=True)
-    # `has_password` is a computed/output-only field — never persist it.
+    # `has_password` is a computed/output-only field - never persist it.
     data.pop("has_password", None)
     if user.hashed_password is not None:
         data["hashed_password"] = user.hashed_password
@@ -64,7 +64,7 @@ def find_students_by_group_id(db: Database, group_id: str, institution_id: str):
     """Users who are members of ``group_id`` AND are flagged STUDENT in
     ``institution_id``.  Used by the group page to render its student
     roster (we deliberately exclude professors/admins of the institution
-    who might also have the group in their group_ids — only students are
+    who might also have the group in their group_ids - only students are
     "members" of a group in the academic sense)."""
     collection = db.get_collection(models.User.COLLECTION_NAME)
     return collection.find({

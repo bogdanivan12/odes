@@ -19,7 +19,7 @@ interface Props {
  * Optional "pin this activity to a fixed timeslot" control.  Shows a day + start
  * time picker (the time is derived from the institution's grid config, so it
  * reads as "Monday 12:00 – 14:00", not a raw slot number).  The week pattern is
- * governed by the activity's frequency, so weeks are not surfaced here — the
+ * governed by the activity's frequency, so weeks are not surfaced here - the
  * value always spans every week.
  */
 export default function PinnedTimeslotField({ timeGrid, durationSlots, value, onChange, disabled }: Props) {

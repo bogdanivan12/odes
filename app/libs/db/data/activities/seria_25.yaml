@@ -1,7 +1,7 @@
 group: Seria 25
 activities:
-  - { course: "Probabilitati si statistica",               type: course, duration_slots: 3, frequency: weekly, professor: "Mihai Bucataru" }
-  - { course: "Algoritmi fundamentali",                    type: course, duration_slots: 2, frequency: weekly, professor: "Marius-Adrian Dumitran" }
-  - { course: "Sisteme de gestiune a bazelor de date",     type: course, duration_slots: 2, frequency: weekly, professor: "Sorina-Nicoleta Predut" }
-  - { course: "Programare functionala",                    type: course, duration_slots: 2, frequency: weekly, professor: "Denisa Diaconescu" }
-  - { course: "Sisteme de operare",                        type: course, duration_slots: 2, frequency: weekly, professor: "Paul Irofti" }
+  - { course: "Probabilitati si statistica",               type: lecture, duration_slots: 3, frequency: weekly, professor: "Mihai Bucataru" }
+  - { course: "Algoritmi fundamentali",                    type: lecture, duration_slots: 2, frequency: weekly, professor: "Marius-Adrian Dumitran" }
+  - { course: "Sisteme de gestiune a bazelor de date",     type: lecture, duration_slots: 2, frequency: weekly, professor: "Sorina-Nicoleta Predut" }
+  - { course: "Programare functionala",                    type: lecture, duration_slots: 2, frequency: weekly, professor: "Denisa Diaconescu" }
+  - { course: "Sisteme de operare",                        type: lecture, duration_slots: 2, frequency: weekly, professor: "Paul Irofti" }

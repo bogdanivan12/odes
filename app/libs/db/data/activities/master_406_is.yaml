@@ -1,5 +1,5 @@
 group: 406 IS
 activities:
-  - { course: "Proiectarea algoritmilor eficienti",               type: course, duration_slots: 2, frequency: weekly, professor: "Alexandru Popa",         additional_groups: ["408 SD", "Proiectarea algoritmilor eficienti"] }
-  - { course: "Analiza si modelarea sistemelor software",         type: course, duration_slots: 2, frequency: weekly, professor: "Claudia-Elena Chirita",  additional_groups: ["Analiza si modelarea sistemelor software"] }
-  - { course: "Managementul si organizarea proiectelor software", type: course, duration_slots: 2, frequency: weekly, professor: "Florentin Ipate",         additional_groups: ["Managementul si organizarea proiectelor software"] }
+  - { course: "Proiectarea algoritmilor eficienti",               type: lecture, duration_slots: 2, frequency: weekly, professor: "Alexandru Popa",         additional_groups: ["408 SD", "Proiectarea algoritmilor eficienti"] }
+  - { course: "Analiza si modelarea sistemelor software",         type: lecture, duration_slots: 2, frequency: weekly, professor: "Claudia-Elena Chirita",  additional_groups: ["Analiza si modelarea sistemelor software"] }
+  - { course: "Managementul si organizarea proiectelor software", type: lecture, duration_slots: 2, frequency: weekly, professor: "Florentin Ipate",         additional_groups: ["Managementul si organizarea proiectelor software"] }

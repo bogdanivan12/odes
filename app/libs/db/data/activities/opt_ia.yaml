@@ -1,3 +1,3 @@
 group: Inteligenta Artificiala
 activities:
-  - { course: "Inteligenta Artificiala", type: course, duration_slots: 2, frequency: weekly, professor: "Ana-Sabina Uban" }
+  - { course: "Inteligenta Artificiala", type: lecture, duration_slots: 2, frequency: weekly, professor: "Ana-Sabina Uban" }

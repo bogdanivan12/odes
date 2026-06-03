@@ -5,7 +5,7 @@ import * as path from 'path';
 import { login, apiCall } from '../../helpers/api';
 
 // Room-reservation coverage, all from the admin account.  Lives in
-// "zz-reservations" so it runs AFTER schedules/ — the conflict engine validates
+// "zz-reservations" so it runs AFTER schedules/ - the conflict engine validates
 // against the *active schedule*, which must already exist and be active.
 
 interface Reservation { _id?: string; id?: string; status: string; decision_reason?: string | null }
@@ -42,7 +42,7 @@ test.describe('Room reservations (admin)', () => {
     const token = await login(fixtures.adminEmail, fixtures.adminPassword);
     const instId = fixtures.complexInstitutionId;
     const roomId = fixtures.complexReservationRoomId;
-    // A day inside calendar week 1, in the evening (20:00+) — outside the
+    // A day inside calendar week 1, in the evening (20:00+) - outside the
     // schedule's daily window (08:00–20:00), so it can't collide with classes
     // regardless of which weekdays the institution runs on.
     const date = addDays(fixtures.complexWeek1Monday, 2);
@@ -94,7 +94,7 @@ test.describe('Room reservations (admin)', () => {
 
     const inst = (await apiCall('GET', `/api/v1/institutions/${instId}`, undefined, token)) as { institution: { active_schedule_id?: string | null; time_grid_config: TimeGrid } };
     const scheduleId = inst.institution.active_schedule_id;
-    test.skip(!scheduleId, 'No active schedule — generate.spec must have run and set one active.');
+    test.skip(!scheduleId, 'No active schedule - generate.spec must have run and set one active.');
     const tg = inst.institution.time_grid_config;
 
     const sa = (await apiCall('GET', `/api/v1/schedules/${scheduleId}/scheduled-activities`, undefined, token)) as { scheduled_activities: SchedRecord[] };

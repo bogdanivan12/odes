@@ -44,7 +44,7 @@ test.describe('Login', () => {
       localStorage.setItem('accessToken', accessToken);
     }, token);
 
-    // Navigate to /login — SignIn clears tokens on mount (intentional logout-on-visit behaviour)
+    // Navigate to /login - SignIn clears tokens on mount (intentional logout-on-visit behaviour)
     await page.goto('/login');
     await page.waitForLoadState('networkidle');
 

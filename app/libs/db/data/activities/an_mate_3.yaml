@@ -1,5 +1,5 @@
 group: MATE Anul 3
 activities:
-  - { course: "Statistica",                          type: course, duration_slots: 2, frequency: weekly, professor: "Alexandru Amarioarei" }
-  - { course: "Analiza numerica si metode numerice I", type: course, duration_slots: 2, frequency: weekly, professor: "Liviu Marin" }
-  - { course: "Ecuatii cu derivate partiale I",       type: course, duration_slots: 2, frequency: weekly, professor: "Cristian-Mihai Cazacu" }
+  - { course: "Statistica",                          type: lecture, duration_slots: 2, frequency: weekly, professor: "Alexandru Amarioarei" }
+  - { course: "Analiza numerica si metode numerice I", type: lecture, duration_slots: 2, frequency: weekly, professor: "Liviu Marin" }
+  - { course: "Ecuatii cu derivate partiale I",       type: lecture, duration_slots: 2, frequency: weekly, professor: "Cristian-Mihai Cazacu" }

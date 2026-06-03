@@ -1,4 +1,4 @@
 group: 412 NLP
 activities:
-  - { course: "Fundamentele procesarii limbajului natural",           type: course, duration_slots: 2, frequency: weekly, professor: "Liviu Dinu", additional_groups: ["Fundamentele procesarii limbajului natural"] }
-  - { course: "Elemente de lingvistica aplicata pentru informatica", type: course, duration_slots: 2, frequency: weekly, professor: "Anca Dinu",  additional_groups: ["Elemente de lingvistica aplicata pentru informatica"] }
+  - { course: "Fundamentele procesarii limbajului natural",           type: lecture, duration_slots: 2, frequency: weekly, professor: "Liviu Dinu", additional_groups: ["Fundamentele procesarii limbajului natural"] }
+  - { course: "Elemente de lingvistica aplicata pentru informatica", type: lecture, duration_slots: 2, frequency: weekly, professor: "Anca Dinu",  additional_groups: ["Elemente de lingvistica aplicata pentru informatica"] }
