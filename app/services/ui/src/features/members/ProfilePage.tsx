@@ -368,6 +368,9 @@ export default function ProfilePage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  // Provider-only accounts (e.g. Google sign-in) have no local password,
+  // so the change-password form is hidden for them.
+  const [hasPassword, setHasPassword] = useState(true);
 
   const [professorInstitutions, setProfessorInstitutions] = useState<
     { institution: Institution; initialPrefs: Record<number, TimeslotPreferenceValue>; initialMaxPerDay: number | null }[]
@@ -392,6 +395,7 @@ export default function ProfilePage() {
         if (!mounted) return;
         setName(me.name ?? '');
         setEmail(me.email ?? '');
+        setHasPassword(me.has_password);
 
         const professorInstIds = Object.entries(me.user_roles ?? {})
           .filter(([, roles]) => roles.includes('professor'))
@@ -514,23 +518,25 @@ export default function ProfilePage() {
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>Account details</Typography>
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Update your name, email address, or password.
+                {hasPassword ? 'Update your name, email address, or password.' : 'Update your name or email address.'}
               </Typography>
               <Divider sx={{ mb: 3 }} />
               <Stack spacing={2.5}>
                 <TextField label="Full name" value={name} onChange={(e) => { setName(e.target.value); setSuccess(null); }} fullWidth disabled={saving} autoComplete="name" />
                 <TextField label="Email address" value={email} onChange={(e) => { setEmail(e.target.value); setSuccess(null); }} fullWidth disabled={saving} autoComplete="email" />
-                <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', mb: 1.5 }}>
-                    Change password
-                  </Typography>
-                  <TextField
-                    label="New password" type="password" value={password}
-                    onChange={(e) => { setPassword(e.target.value); setSuccess(null); }}
-                    fullWidth disabled={saving} placeholder="Leave empty to keep current password"
-                    autoComplete="new-password" helperText="Only fill in if you want to change your password"
-                  />
-                </Box>
+                {hasPassword && (
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', mb: 1.5 }}>
+                      Change password
+                    </Typography>
+                    <TextField
+                      label="New password" type="password" value={password}
+                      onChange={(e) => { setPassword(e.target.value); setSuccess(null); }}
+                      fullWidth disabled={saving} placeholder="Leave empty to keep current password"
+                      autoComplete="new-password" helperText="Only fill in if you want to change your password"
+                    />
+                  </Box>
+                )}
                 {error && <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>}
                 {success && <Alert severity="success" sx={{ borderRadius: 2 }}>{success}</Alert>}
                 <Stack direction="row" justifyContent="flex-end" sx={{ pt: 0.5 }}>

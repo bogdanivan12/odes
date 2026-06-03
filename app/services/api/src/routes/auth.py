@@ -8,6 +8,7 @@ from app.libs.db.db import DB
 from app.services.api.src.auth import token_utils
 from app.services.api.src.services import auth as service
 from app.services.api.src.dtos.output import auth as dto_out
+from app.services.api.src.dtos.input import auth as dto_in
 
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
@@ -39,6 +40,18 @@ async def get_login_token(response: Response, db: DB, form_data: OAuth2PasswordR
     Sets the long-lived refresh token as an HttpOnly cookie (inaccessible to JS).
     """
     access_token, refresh_token = service.get_login_token(db, form_data.username, form_data.password)
+    _set_refresh_cookie(response, refresh_token, max_age=token_utils.REFRESH_EXPIRES_DELTA * 60)
+    return dto_out.AccessToken(access_token=access_token)
+
+
+@router.post("/google", status_code=status.HTTP_200_OK, response_model=dto_out.AccessToken)
+async def google_login(response: Response, db: DB, request: dto_in.GoogleSignIn):
+    """Sign in with Google.
+
+    Verifies the Google ID-token credential, finds/creates/links the user, and
+    returns the same access token (+ refresh cookie) as a password login.
+    """
+    access_token, refresh_token = service.get_google_login_token(db, request.credential)
     _set_refresh_cookie(response, refresh_token, max_age=token_utils.REFRESH_EXPIRES_DELTA * 60)
     return dto_out.AccessToken(access_token=access_token)
 

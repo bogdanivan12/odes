@@ -8,9 +8,11 @@ import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import Divider from '@mui/material/Divider';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { SignInRequest } from './types';
-import { signIn } from '../../api/auth.ts';
+import { signIn, googleSignIn } from '../../api/auth.ts';
+import GoogleSignInButton from './GoogleSignInButton';
 import { AuthToken } from '../../types/token.ts';
 import { setAccessToken, clearTokens } from '../../utils/auth.ts';
 import { USER_REGISTER_ROUTE } from '../../config/routes.ts';
@@ -54,6 +56,21 @@ export function SignIn() {
       navigate('/', { replace: true });
     } catch (err) {
       setError((err as Error).message || 'Sign in failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleCredential = async (credential: string) => {
+    setError(null);
+    setLoading(true);
+    try {
+      const data = await googleSignIn(credential);
+      const token = AuthToken.fromApi(data);
+      setAccessToken(token.accessToken);
+      navigate('/', { replace: true });
+    } catch (err) {
+      setError((err as Error).message || 'Google sign in failed');
     } finally {
       setLoading(false);
     }
@@ -143,6 +160,15 @@ export function SignIn() {
               >
                 {loading ? <CircularProgress size={22} color="inherit" /> : 'Sign in'}
               </Button>
+
+              <Divider sx={{ my: 0.5 }}>
+                <Typography variant="caption" color="text.secondary">or</Typography>
+              </Divider>
+
+              <GoogleSignInButton
+                onCredential={handleGoogleCredential}
+                onError={(msg) => setError(msg)}
+              />
             </Stack>
           </Box>
         </Paper>

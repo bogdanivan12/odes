@@ -2,7 +2,7 @@ from enum import Enum
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, ClassVar
 
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, computed_field
 
 from app.libs.stringproc.stringproc import generate_id
 
@@ -78,6 +78,19 @@ class User(BaseModel):
     timeslot_preferences: Dict[str, List[TimeslotPreference]] = Field(default_factory=dict)
     # professor personal max active timeslots per day, keyed by institution_id
     max_timeslots_per_day: Dict[str, int] = Field(default_factory=dict)
+    # External identity-provider subject IDs, e.g. {"google": "<sub>"}.  Lets a
+    # user sign in with Google/Microsoft; password may be unset for such accounts.
+    provider_identities: Dict[str, str] = Field(default_factory=dict)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def has_password(self) -> bool:
+        """True when the account has a local password (vs. provider-only sign-in).
+
+        Exposed in API responses so the UI can hide the change-password form for
+        accounts that only sign in through an external identity provider.
+        """
+        return bool(self.hashed_password)
 
     COLLECTION_NAME: ClassVar[str] = "users"
 
