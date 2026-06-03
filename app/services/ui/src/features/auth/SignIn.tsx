@@ -16,7 +16,7 @@ import GoogleSignInButton from './GoogleSignInButton';
 import MicrosoftSignInButton from './MicrosoftSignInButton';
 import { AuthToken } from '../../types/token.ts';
 import { setAccessToken, clearTokens } from '../../utils/auth.ts';
-import { USER_REGISTER_ROUTE } from '../../config/routes.ts';
+import { USER_REGISTER_ROUTE, FORGOT_PASSWORD_ROUTE } from '../../config/routes.ts';
 import { useTheme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
 
@@ -152,6 +152,15 @@ export function SignIn() {
                 autoComplete="current-password"
                 disabled={loading}
               />
+
+              <Box sx={{ textAlign: 'right', mt: -1 }}>
+                <RouterLink
+                  to={FORGOT_PASSWORD_ROUTE}
+                  style={{ color: theme.palette.text.secondary, fontSize: '0.8125rem', textDecoration: 'none' }}
+                >
+                  Forgot password?
+                </RouterLink>
+              </Box>
 
               {error && <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>}
 

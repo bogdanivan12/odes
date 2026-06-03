@@ -1,5 +1,7 @@
 export const USER_REGISTER_ROUTE = '/register';
 export const USER_LOGIN_ROUTE = '/login';
+export const FORGOT_PASSWORD_ROUTE = '/forgot-password';
+export const RESET_PASSWORD_ROUTE = '/reset-password';
 export const HOME_ROUTE = '/';
 export const MY_SCHEDULE_ROUTE = '/my-schedule';
 export const INSTITUTIONS_ROUTE = '/institutions';

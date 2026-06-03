@@ -11,6 +11,7 @@ import datetime
 DEFAULT_ALGORITHM = os.getenv('DEFAULT_ALGORITHM', 'HS256')
 EXPIRES_DELTA = int(os.getenv('EXPIRES_DELTA', 30))
 REFRESH_EXPIRES_DELTA = int(os.getenv('REFRESH_EXPIRES_DELTA', 10080))  # 7 days
+RESET_EXPIRES_DELTA = int(os.getenv('RESET_EXPIRES_DELTA', 30))  # 30 minutes
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 
@@ -47,6 +48,23 @@ def create_refresh_token(
     to_encode = data.copy()
     expire = datetime.datetime.now(datetime.UTC) + datetime.timedelta(minutes=expires_delta)
     to_encode.update({"exp": expire, "type": "refresh"})
+    return jwt.encode(to_encode, secret_key, algorithm=algorithm)
+
+
+def create_reset_token(
+        data: dict,
+        secret_key: str = SECRET_KEY,
+        algorithm: str = DEFAULT_ALGORITHM,
+        expires_delta: int = RESET_EXPIRES_DELTA
+) -> str:
+    """Create a short-lived password-reset JWT (30 min by default).
+
+    Carries a ``type: "reset"`` claim so the reset endpoint can reject access /
+    refresh tokens passed by mistake.
+    """
+    to_encode = data.copy()
+    expire = datetime.datetime.now(datetime.UTC) + datetime.timedelta(minutes=expires_delta)
+    to_encode.update({"exp": expire, "type": "reset"})
     return jwt.encode(to_encode, secret_key, algorithm=algorithm)
 
 
