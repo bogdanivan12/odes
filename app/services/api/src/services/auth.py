@@ -1,4 +1,5 @@
 import os
+import hashlib
 
 from starlette import status
 from fastapi.exceptions import HTTPException
@@ -9,9 +10,15 @@ from app.libs.stringproc import stringproc
 from app.libs.logging.logger import get_logger
 from app.services.api.src.repositories import users as users_repo
 from app.services.api.src.auth import token_utils
+from app.services.api.src.services import email as email_service
 
 
 logger = get_logger()
+
+# Base URL of the frontend, used to build the reset link in emails.
+APP_BASE_URL = os.getenv("APP_BASE_URL", "https://webodes.app")
+# Minimum password length enforced on reset (mirrors sign-up rules).
+_MIN_PASSWORD_LENGTH = 8
 
 # Google OAuth Web client ID — also the expected audience of the ID token.
 # Public value (it ships in the frontend too); override via env if needed.
@@ -209,3 +216,92 @@ def get_login_token(db: Database, email: str, password: str) -> tuple[str, str]:
     access_token = token_utils.create_jwt_token(payload)
     refresh_token = token_utils.create_refresh_token(payload)
     return access_token, refresh_token
+
+
+def _password_fingerprint(hashed_password: str) -> str:
+    """Short, non-reversible fingerprint of the current password hash.
+
+    Embedded in the reset token so a link becomes invalid as soon as the
+    password is changed (i.e. single-use) without needing any server-side state.
+    """
+    return hashlib.sha256(hashed_password.encode("utf-8")).hexdigest()[:16]
+
+
+def _reset_email_html(name: str, link: str) -> str:
+    return f"""
+    <div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:auto;color:#1f2937">
+      <h2 style="color:#111827">Reset your ODES password</h2>
+      <p>Hi {name or 'there'},</p>
+      <p>We received a request to reset your password. Click the button below to
+         choose a new one. This link expires in 30 minutes and can only be used once.</p>
+      <p style="text-align:center;margin:28px 0">
+        <a href="{link}" style="background:#4f46e5;color:#fff;text-decoration:none;
+           padding:12px 22px;border-radius:8px;font-weight:600;display:inline-block">
+          Reset password
+        </a>
+      </p>
+      <p style="font-size:13px;color:#6b7280">If you didn't request this, you can safely
+         ignore this email — your password won't change.</p>
+      <p style="font-size:12px;color:#9ca3af;word-break:break-all">{link}</p>
+    </div>
+    """
+
+
+def request_password_reset(db: Database, email: str) -> None:
+    """Email a reset link if a *password* account exists for ``email``.
+
+    Always returns without signalling whether the email exists — the route
+    responds identically in every case to avoid leaking which emails are
+    registered (account-enumeration protection).
+    """
+    try:
+        user_data = users_repo.find_user_by_email(db, email)
+    except Exception as e:
+        logger.error(f"DB error during password-reset lookup for {email}: {e}")
+        return
+
+    if not user_data:
+        return
+    user = models.User(**user_data)
+    # Provider-only accounts (Google/Microsoft) have no password to reset.
+    if not user.hashed_password:
+        logger.info(f"Password-reset requested for provider-only account {user.id}; skipping.")
+        return
+
+    token = token_utils.create_reset_token({
+        "sub": str(user.id),
+        "email": user.email,
+        "pwh": _password_fingerprint(user.hashed_password),
+    })
+    link = f"{APP_BASE_URL}/reset-password?token={token}"
+    email_service.send_email(user.email, "Reset your ODES password", _reset_email_html(user.name, link))
+
+
+def reset_password(db: Database, token: str, new_password: str) -> None:
+    """Validate a reset token and set the user's new password."""
+    payload = token_utils.decode_jwt_token(token)
+    if payload.get("type") != "reset":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid reset token.")
+
+    user_id = payload.get("sub")
+    user_data = users_repo.find_user_by_id(db, user_id) if user_id else None
+    if not user_data:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid reset token.")
+
+    user = models.User(**user_data)
+    # The fingerprint must still match — rejects links already used or issued
+    # before a later password change.
+    if not user.hashed_password or payload.get("pwh") != _password_fingerprint(user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This reset link is no longer valid. Please request a new one.",
+        )
+
+    if not new_password or len(new_password) < _MIN_PASSWORD_LENGTH:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Password must be at least {_MIN_PASSWORD_LENGTH} characters.",
+        )
+
+    users_repo.update_user_by_id(db, user_id, {"hashed_password": stringproc.hash_password(new_password)})
+    logger.info(f"Password reset completed for user {user_id}")

@@ -6,6 +6,8 @@ export const API_URL = import.meta.env.VITE_API_URL ?? "";
 export const API_INSTITUTIONS_PATH = "/api/v1/institutions";
 export const SIGNUP_URL = `${API_URL}/api/v1/users`;
 export const SIGNIN_URL = `${API_URL}/api/v1/auth/token`;
+export const FORGOT_PASSWORD_URL = `${API_URL}/api/v1/auth/forgot-password`;
+export const RESET_PASSWORD_URL = `${API_URL}/api/v1/auth/reset-password`;
 export const GOOGLE_SIGNIN_URL = `${API_URL}/api/v1/auth/google`;
 export const MICROSOFT_SIGNIN_URL = `${API_URL}/api/v1/auth/microsoft`;
 

@@ -68,6 +68,24 @@ async def microsoft_login(response: Response, db: DB, request: dto_in.MicrosoftS
     return dto_out.AccessToken(access_token=access_token)
 
 
+@router.post("/forgot-password", status_code=status.HTTP_200_OK)
+async def forgot_password(db: DB, request: dto_in.ForgotPassword):
+    """Request a password-reset email.
+
+    Always returns the same response whether or not the email is registered, so
+    the endpoint can't be used to discover which emails have accounts.
+    """
+    service.request_password_reset(db, str(request.email))
+    return {"message": "If an account exists for that email, a reset link has been sent."}
+
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+async def reset_password(db: DB, request: dto_in.ResetPassword):
+    """Set a new password using a valid reset token."""
+    service.reset_password(db, request.token, request.new_password)
+    return {"message": "Your password has been updated. You can now sign in."}
+
+
 @router.post("/refresh", status_code=status.HTTP_200_OK, response_model=dto_out.AccessToken)
 async def refresh_access_token(request: Request):
     """Exchange the refresh-token cookie for a new access token."""

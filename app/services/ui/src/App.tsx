@@ -2,6 +2,8 @@ import './App.css';
 import {BrowserRouter, Route, Routes} from "react-router-dom";
 import {SignUp} from "./features/auth/SignUp.tsx";
 import {SignIn} from "./features/auth/SignIn.tsx";
+import {ForgotPassword} from "./features/auth/ForgotPassword.tsx";
+import {ResetPassword} from "./features/auth/ResetPassword.tsx";
 import {
   ACTIVITY_ROUTE,
   COURSE_ROUTE,
@@ -26,6 +28,8 @@ import {
   USER_ROUTE,
   USER_LOGIN_ROUTE,
   USER_REGISTER_ROUTE,
+  FORGOT_PASSWORD_ROUTE,
+  RESET_PASSWORD_ROUTE,
 } from "./config/routes.ts";
 import RootPage from "./features/home/RootPage.tsx";
 import GlobalMySchedulePage from "./features/home/GlobalMySchedulePage.tsx";
@@ -59,6 +63,8 @@ function App() {
         <Route path={HOME_ROUTE} element={<RootPage />} />
         <Route path={USER_REGISTER_ROUTE} element={<SignUp />} />
         <Route path={USER_LOGIN_ROUTE} element={<SignIn />} />
+        <Route path={FORGOT_PASSWORD_ROUTE} element={<ForgotPassword />} />
+        <Route path={RESET_PASSWORD_ROUTE} element={<ResetPassword />} />
 
         {/* protected routes - use MainLayout to show ResponsiveAppBar */}
         <Route element={<RequireAuth><MainLayout /></RequireAuth>}>
