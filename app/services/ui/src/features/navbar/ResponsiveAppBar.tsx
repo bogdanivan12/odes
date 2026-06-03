@@ -20,6 +20,7 @@ import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { institutionRoute, MY_SCHEDULE_ROUTE, PROFILE_ROUTE, USER_LOGIN_ROUTE } from '../../config/routes';
 import { getInstitutions } from '../../api/institutions';
+import { getCurrentUserProfile } from '../../api/users';
 import TextField from '@mui/material/TextField';
 import Divider from '@mui/material/Divider';
 import SearchIcon from '@mui/icons-material/Search';
@@ -42,6 +43,11 @@ import { clearTokens } from '../../utils/auth';
 import { API_URL } from '../../config/constants';
 
 type Institution = InstitutionClass;
+
+function getInitials(name?: string): string {
+  if (!name) return '';
+  return name.trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+}
 
 const NAV_PAGES = [
   { key: '', label: 'Overview' },
@@ -71,6 +77,7 @@ export default function ResponsiveAppBar() {
   const [searchQuery, setSearchQuery] = React.useState<string>('');
   const navigate = useNavigate();
   const [mobileSelectInstOpen, setMobileSelectInstOpen] = React.useState(false);
+  const [currentUser, setCurrentUser] = React.useState<{ name: string; email: string } | null>(null);
 
   const activePageKey = React.useMemo(() => {
     if (!selectedInstitution) return null;
@@ -114,6 +121,7 @@ export default function ResponsiveAppBar() {
     setInstitutions([]);
     setSearchQuery('');
     setInstitutionsError(null);
+    setCurrentUser(null);
     try { localStorage.removeItem('selectedInstitutionId'); } catch (e) { /* ignore */ }
     setAnchorElUser(null);
     setAnchorElInstitutions(null);
@@ -197,6 +205,14 @@ export default function ResponsiveAppBar() {
   }, [navigate]);
 
   React.useEffect(() => { fetchInstitutions(); }, [fetchInstitutions]);
+
+  React.useEffect(() => {
+    let mounted = true;
+    getCurrentUserProfile()
+      .then((me) => { if (mounted) setCurrentUser({ name: me.name ?? '', email: me.email ?? '' }); })
+      .catch(() => { /* not signed in / network — leave header minimal */ });
+    return () => { mounted = false; };
+  }, []);
 
   React.useEffect(() => {
     const onInstitutionsChanged = () => { fetchInstitutions(); };
@@ -552,7 +568,9 @@ export default function ResponsiveAppBar() {
                   fontSize: '0.875rem',
                   fontWeight: 700,
                 }}
-              />
+              >
+                {getInitials(currentUser?.name)}
+              </Avatar>
             </IconButton>
           </Tooltip>
 
@@ -580,7 +598,20 @@ export default function ResponsiveAppBar() {
             }}
           >
             <Box sx={{ px: 2, py: 1.25, borderBottom: '1px solid', borderColor: 'divider', mb: 0.5 }}>
-              <Typography variant="caption" color="text.secondary">Account</Typography>
+              {currentUser ? (
+                <>
+                  <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.3 }} noWrap>
+                    {currentUser.name || 'Account'}
+                  </Typography>
+                  {currentUser.email && (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }} noWrap>
+                      {currentUser.email}
+                    </Typography>
+                  )}
+                </>
+              ) : (
+                <Typography variant="caption" color="text.secondary">Account</Typography>
+              )}
             </Box>
             <MenuItem onClick={handleOpenProfile}>
               <ListItemIcon><SettingsRoundedIcon fontSize="small" /></ListItemIcon>

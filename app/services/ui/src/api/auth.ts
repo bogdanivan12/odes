@@ -1,6 +1,6 @@
 import {SignInRequest, SignUpRequest} from "../features/auth/types.ts";
 import { apiPost } from "../utils/apiClient.ts";
-import {SIGNIN_URL, SIGNUP_URL} from "../config/constants.ts";
+import {GOOGLE_SIGNIN_URL, MICROSOFT_SIGNIN_URL, SIGNIN_URL, SIGNUP_URL} from "../config/constants.ts";
 
 export async function signUp(request: SignUpRequest) {
   return apiPost(SIGNUP_URL, {
@@ -19,4 +19,14 @@ export async function signIn(request: SignInRequest) {
   return apiPost(SIGNIN_URL, params.toString(), {
     'Content-Type': 'application/x-www-form-urlencoded',
   });
+}
+
+/** Exchange a Google ID-token credential for the app's access token. */
+export async function googleSignIn(credential: string) {
+  return apiPost(GOOGLE_SIGNIN_URL, { credential });
+}
+
+/** Exchange a Microsoft (Entra ID) ID token for the app's access token. */
+export async function microsoftSignIn(credential: string) {
+  return apiPost(MICROSOFT_SIGNIN_URL, { credential });
 }

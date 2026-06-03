@@ -14,6 +14,7 @@ export interface UserData {
   group_ids?: string[];
   timeslot_preferences?: Record<string, TimeslotPreference[]>;
   max_timeslots_per_day?: Record<string, number>;
+  has_password?: boolean;
 }
 
 export class User {
@@ -24,6 +25,7 @@ export class User {
   group_ids: string[];
   timeslot_preferences: Record<string, TimeslotPreference[]>;
   max_timeslots_per_day: Record<string, number>;
+  has_password: boolean;
 
   constructor(data: UserData) {
     this.id = data.id ?? data._id ?? '';
@@ -33,6 +35,8 @@ export class User {
     this.group_ids = data.group_ids ?? [];
     this.timeslot_preferences = data.timeslot_preferences ?? {};
     this.max_timeslots_per_day = data.max_timeslots_per_day ?? {};
+    // Default true so the password form is shown unless the API says otherwise.
+    this.has_password = data.has_password ?? true;
   }
 
   static from(data: UserData): User {

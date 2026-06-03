@@ -8,16 +8,21 @@ import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import { Link as RouterLink } from 'react-router-dom';
+import Divider from '@mui/material/Divider';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { SignUpRequest } from './types';
-import { signUp } from '../../api/auth.ts';
+import { signUp, googleSignIn, microsoftSignIn } from '../../api/auth.ts';
+import GoogleSignInButton from './GoogleSignInButton';
+import MicrosoftSignInButton from './MicrosoftSignInButton';
+import { AuthToken } from '../../types/token.ts';
+import { setAccessToken, clearTokens } from '../../utils/auth.ts';
 import { USER_LOGIN_ROUTE } from '../../config/routes.ts';
-import { clearTokens } from '../../utils/auth.ts';
 import { useTheme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
 
 export function SignUp() {
   const theme = useTheme();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -58,6 +63,25 @@ export function SignUp() {
       setSuccess(true);
     } catch (err) {
       setError((err as Error).message || 'Sign up failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleProviderCredential = async (
+    exchange: (credential: string) => Promise<unknown>,
+    provider: string,
+    credential: string,
+  ) => {
+    setError(null);
+    setLoading(true);
+    try {
+      const data = await exchange(credential);
+      const token = AuthToken.fromApi(data);
+      setAccessToken(token.accessToken);
+      navigate('/', { replace: true });
+    } catch (err) {
+      setError((err as Error).message || `${provider} sign in failed`);
     } finally {
       setLoading(false);
     }
@@ -183,6 +207,19 @@ export function SignUp() {
                 >
                   {loading ? <CircularProgress size={22} color="inherit" /> : 'Create account'}
                 </Button>
+
+                <Divider sx={{ my: 0.5 }}>
+                  <Typography variant="caption" color="text.secondary">or</Typography>
+                </Divider>
+
+                <GoogleSignInButton
+                  onCredential={(c) => handleProviderCredential(googleSignIn, 'Google', c)}
+                  onError={(msg) => setError(msg)}
+                />
+                <MicrosoftSignInButton
+                  onCredential={(c) => handleProviderCredential(microsoftSignIn, 'Microsoft', c)}
+                  onError={(msg) => setError(msg)}
+                />
               </Stack>
             </Box>
           )}
