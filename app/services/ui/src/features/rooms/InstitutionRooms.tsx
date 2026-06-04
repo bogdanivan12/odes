@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { staggerSx } from '../../utils/motion';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
@@ -271,7 +272,7 @@ export default function InstitutionRooms() {
                   value={minCapacityFilter}
                   onChange={(e) => setMinCapacityFilter(e.target.value)}
                   slotProps={{ htmlInput: { min: 1 } }}
-                  sx={{ width: 140, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  sx={{ width: { xs: '100%', sm: 140 }, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                 />
                 <TextField
                   select
@@ -282,7 +283,7 @@ export default function InstitutionRooms() {
                     const value = e.target.value;
                     setSelectedRequiredFeatures(Array.isArray(value) ? value : String(value).split(','));
                   }}
-                  sx={{ width: 220, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  sx={{ width: { xs: '100%', sm: 220 }, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                   SelectProps={{ multiple: true, renderValue: (selected) => (selected as string[]).join(', ') }}
                 >
                   {availableRequiredFeatures.length === 0 && <MenuItem disabled>No features available</MenuItem>}
@@ -329,7 +330,7 @@ export default function InstitutionRooms() {
           {/* Room list */}
           {!error && filteredRooms.length > 0 && (
             <Stack spacing={1}>
-              {paginatedRooms.map((room) => {
+              {paginatedRooms.map((room, idx) => {
                 const roomId = String(room.id ?? room._id ?? '');
                 return (
                   <Paper
@@ -337,11 +338,13 @@ export default function InstitutionRooms() {
                     variant="outlined"
                     onClick={() => roomId && navigate(roomRoute(roomId))}
                     sx={{
+                      ...staggerSx(idx),
                       borderRadius: 2.5, cursor: 'pointer',
-                      transition: 'border-color 150ms ease, box-shadow 150ms ease',
+                      transition: 'border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease',
                       '&:hover': {
                         borderColor: 'primary.light',
                         boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.08)}`,
+                        transform: 'translateY(-2px)',
                       },
                     }}
                   >

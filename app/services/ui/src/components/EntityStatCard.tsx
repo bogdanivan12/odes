@@ -2,7 +2,7 @@ import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
-import CircularProgress from '@mui/material/CircularProgress';
+import Skeleton from '@mui/material/Skeleton';
 import { alpha } from '@mui/material/styles';
 import { useTheme } from '@mui/material/styles';
 
@@ -60,7 +60,7 @@ export default function EntityStatCard({
             {label}
           </Typography>
           {loading ? (
-            <CircularProgress size={20} />
+            <Skeleton variant="rounded" width={40} height={28} sx={{ borderRadius: 1 }} />
           ) : shouldWrapValue ? (
             <Typography variant="h5" sx={{ fontWeight: 700, lineHeight: 1, color: 'text.primary' }}>
               {value}

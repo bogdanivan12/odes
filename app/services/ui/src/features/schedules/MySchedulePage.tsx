@@ -73,7 +73,7 @@ function scheduleStatusColor(status?: string): 'success' | 'warning' | 'error' |
 
 function TabPanel({ children, value, index }: { children: React.ReactNode; value: number; index: number }) {
   if (value !== index) return null;
-  return <Box sx={{ pt: 2 }}>{children}</Box>;
+  return <Box sx={{ pt: 2, animation: 'odesFadeIn 0.25s ease both' }}>{children}</Box>;
 }
 
 // ─── Week selector ────────────────────────────────────────────────────────────

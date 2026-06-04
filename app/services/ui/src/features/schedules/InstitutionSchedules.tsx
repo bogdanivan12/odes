@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { staggerSx } from '../../utils/motion';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -325,6 +326,7 @@ export default function InstitutionSchedules() {
                     key={scheduleId || index}
                     variant="outlined"
                     sx={{
+                      ...staggerSx(index),
                       borderRadius: 2.5,
                       display: 'flex',
                       flexDirection: 'column',
@@ -333,10 +335,11 @@ export default function InstitutionSchedules() {
                       py: 1.25,
                       cursor: 'pointer',
                       borderColor: isActive ? 'primary.main' : undefined,
-                      transition: 'border-color 150ms ease, box-shadow 150ms ease',
+                      transition: 'border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease',
                       '&:hover': {
                         borderColor: isActive ? 'primary.main' : 'primary.light',
                         boxShadow: `0 0 0 1px ${alpha(theme.palette.primary.main, 0.15)}`,
+                        transform: 'translateY(-2px)',
                       },
                     }}
                     onClick={() => scheduleId && navigate(scheduleRoute(scheduleId))}

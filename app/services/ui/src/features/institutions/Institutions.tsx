@@ -193,8 +193,8 @@ export default function Institutions() {
                         {inst.name}
                       </Typography>
 
-                      {/* Grid config */}
-                      <Stack direction="row" spacing={2} sx={{ flexShrink: 0 }}>
+                      {/* Grid config (hidden on phones to keep the row uncramped) */}
+                      <Stack direction="row" spacing={2} sx={{ flexShrink: 0, display: { xs: 'none', sm: 'flex' } }}>
                         {[
                           { icon: <CalendarViewWeekIcon sx={{ fontSize: '0.8rem' }} />, label: `${inst.time_grid_config.weeks}w` },
                           { icon: <TodayIcon sx={{ fontSize: '0.8rem' }} />, label: `${inst.time_grid_config.days}d` },

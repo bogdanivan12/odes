@@ -82,6 +82,10 @@ export default function ResponsiveAppBar() {
   const [mobileSelectInstOpen, setMobileSelectInstOpen] = React.useState(false);
   const [currentUser, setCurrentUser] = React.useState<{ name: string; email: string } | null>(null);
 
+  // Sliding underline indicator for the desktop nav tabs.
+  const navItemRefs = React.useRef<Record<string, HTMLButtonElement | null>>({});
+  const [navIndicator, setNavIndicator] = React.useState<{ left: number; width: number; opacity: number }>({ left: 0, width: 0, opacity: 0 });
+
   const activePageKey = React.useMemo(() => {
     if (!selectedInstitution) return null;
     const segments = location.pathname.split('/').filter(Boolean);
@@ -90,6 +94,20 @@ export default function ResponsiveAppBar() {
     }
     return null;
   }, [location.pathname, selectedInstitution]);
+
+  // Position the sliding underline under the active nav tab.
+  const updateNavIndicator = React.useCallback(() => {
+    const el = activePageKey != null ? navItemRefs.current[activePageKey] : null;
+    if (el) setNavIndicator({ left: el.offsetLeft, width: el.offsetWidth, opacity: 1 });
+    else setNavIndicator((p) => ({ ...p, opacity: 0 }));
+  }, [activePageKey]);
+
+  React.useLayoutEffect(() => { updateNavIndicator(); }, [updateNavIndicator, selectedInstitution]);
+
+  React.useEffect(() => {
+    window.addEventListener('resize', updateNavIndicator);
+    return () => window.removeEventListener('resize', updateNavIndicator);
+  }, [updateNavIndicator]);
 
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElNav(event.currentTarget);
@@ -505,12 +523,13 @@ export default function ResponsiveAppBar() {
 
           {/* ── Desktop nav buttons ── */}
           {selectedInstitution && (
-            <Box data-tour="nav-pages" sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'stretch', ml: 0.5 }}>
+            <Box data-tour="nav-pages" sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'stretch', ml: 0.5, position: 'relative' }}>
               {NAV_PAGES.map((page) => {
                 const isActive = activePageKey === page.key;
                 return (
                   <Button
                     key={page.key}
+                    ref={(el: HTMLButtonElement | null) => { navItemRefs.current[page.key] = el; }}
                     onClick={() => handlePageClick(page.key)}
                     sx={{
                       fontSize: '0.875rem',
@@ -520,8 +539,7 @@ export default function ResponsiveAppBar() {
                       px: 1.5,
                       py: 0,
                       minHeight: 64,
-                      borderBottom: isActive ? '2px solid' : '2px solid transparent',
-                      borderColor: isActive ? 'primary.main' : 'transparent',
+                      transition: 'color 200ms ease',
                       '&:hover': {
                         bgcolor: 'action.hover',
                         color: 'text.primary',
@@ -532,6 +550,21 @@ export default function ResponsiveAppBar() {
                   </Button>
                 );
               })}
+              {/* Sliding active-tab underline */}
+              <Box
+                sx={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: navIndicator.left,
+                  width: navIndicator.width,
+                  height: 2,
+                  bgcolor: 'primary.main',
+                  borderRadius: 1,
+                  opacity: navIndicator.opacity,
+                  pointerEvents: 'none',
+                  transition: 'left 260ms cubic-bezier(0.4, 0, 0.2, 1), width 260ms cubic-bezier(0.4, 0, 0.2, 1), opacity 200ms ease',
+                }}
+              />
             </Box>
           )}
 

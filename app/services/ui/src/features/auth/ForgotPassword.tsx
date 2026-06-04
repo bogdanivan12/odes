@@ -42,7 +42,7 @@ export function ForgotPassword() {
   return (
     <Box
       sx={{
-        width: '100vw', minHeight: '100vh', display: 'flex',
+        width: '100%', minHeight: '100vh', display: 'flex',
         alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default',
         background: `radial-gradient(ellipse at 50% -20%, ${alpha(theme.palette.primary.main, theme.palette.mode === 'dark' ? 0.2 : 0.1)} 0%, transparent 65%), ${theme.palette.background.default}`,
         p: 2,

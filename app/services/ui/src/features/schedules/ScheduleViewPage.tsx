@@ -97,7 +97,7 @@ function formatTimestamp(ts?: string): string {
 
 function TabPanel({ children, value, index }: { children: React.ReactNode; value: number; index: number }) {
   if (value !== index) return null;
-  return <Box sx={{ pt: 2 }}>{children}</Box>;
+  return <Box sx={{ pt: 2, animation: 'odesFadeIn 0.25s ease both' }}>{children}</Box>;
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -806,7 +806,7 @@ export default function ScheduleViewPage() {
                 <Stack spacing={2}>
                   <Autocomplete
                     size="small"
-                    sx={{ minWidth: 260 }}
+                    sx={{ minWidth: { xs: 0, sm: 260 } }}
                     options={groupOptions}
                     getOptionLabel={(opt) => opt.label}
                     value={groupOptions.find((o) => o.id === selectedGroupId) ?? null}
@@ -861,7 +861,7 @@ export default function ScheduleViewPage() {
                 <Stack spacing={2}>
                   <Autocomplete
                     size="small"
-                    sx={{ minWidth: 260 }}
+                    sx={{ minWidth: { xs: 0, sm: 260 } }}
                     options={professors}
                     getOptionLabel={(u) => u.name ?? u.email ?? String(u.id ?? u._id ?? '')}
                     value={professors.find((u) => String(u.id ?? u._id ?? '') === selectedProfessorId) ?? null}
@@ -905,7 +905,7 @@ export default function ScheduleViewPage() {
                 <Stack spacing={2}>
                   <Autocomplete
                     size="small"
-                    sx={{ minWidth: 260 }}
+                    sx={{ minWidth: { xs: 0, sm: 260 } }}
                     options={rooms}
                     getOptionLabel={(r) => r.name}
                     value={rooms.find((r) => String(r.id ?? r._id ?? '') === selectedRoomId) ?? null}

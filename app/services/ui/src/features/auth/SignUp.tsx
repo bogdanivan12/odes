@@ -90,7 +90,7 @@ export function SignUp() {
   return (
     <Box
       sx={{
-        width: '100vw',
+        width: '100%',
         minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',

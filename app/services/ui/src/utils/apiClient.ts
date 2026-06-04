@@ -4,6 +4,7 @@ import {
   clearTokens,
   getAuthorizationHeader,
 } from './auth';
+import { startLoading, stopLoading } from './loadingBar';
 
 export type ApiMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -22,6 +23,16 @@ export interface ApiError extends Error {
 }
 
 export async function apiRequest<T = any>(opts: ApiRequestOptions): Promise<T> {
+  // Drive the global top loading bar for every request (balanced start/stop).
+  startLoading();
+  try {
+    return await apiRequestImpl<T>(opts);
+  } finally {
+    stopLoading();
+  }
+}
+
+async function apiRequestImpl<T = any>(opts: ApiRequestOptions): Promise<T> {
   const { method = "GET", url, body, headers = {}, raw = false, _retried = false } = opts;
 
   // Detect if caller already provided a Content-Type (case-insensitive).

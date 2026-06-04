@@ -322,8 +322,8 @@ export default function InstitutionGroups() {
               borderRadius: 2,
               border: '1px solid',
               borderColor: 'divider',
-              transition: 'border-color 150ms ease, background 150ms ease',
-              '&:hover': { borderColor: 'primary.light', bgcolor: alpha(theme.palette.primary.main, 0.03) },
+              transition: 'border-color 150ms ease, background 150ms ease, transform 150ms ease',
+              '&:hover': { borderColor: 'primary.light', bgcolor: alpha(theme.palette.primary.main, 0.03), transform: 'translateX(2px)' },
             }}
           >
             {rowContent}

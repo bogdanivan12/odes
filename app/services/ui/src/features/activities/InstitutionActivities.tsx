@@ -435,8 +435,8 @@ export default function InstitutionActivities() {
         sx={{
           display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 0.9,
           border: '1px solid', borderColor: 'divider', borderRadius: 2,
-          transition: 'border-color 150ms ease',
-          '&:hover': { borderColor: 'primary.light' },
+          transition: 'border-color 150ms ease, transform 150ms ease',
+          '&:hover': { borderColor: 'primary.light', transform: 'translateX(2px)' },
         }}
       >
         <Box sx={{
