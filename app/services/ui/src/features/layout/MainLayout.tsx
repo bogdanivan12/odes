@@ -21,8 +21,9 @@ export const MainLayout: React.FC<{ children?: React.ReactNode }> = ({ children 
   return (
     <Box sx={{ display: 'block' }}>
       <ResponsiveAppBar />
-      {/* Add top padding so content isn't hidden behind fixed AppBar */}
-      <Box component="main" sx={{ pt: 10 }}>
+      {/* Add top padding so content isn't hidden behind fixed AppBar.
+          Keyed by route so each navigation fade-slides the new page in. */}
+      <Box component="main" key={location.pathname} sx={{ pt: 10, animation: 'fadeInUp 0.35s ease both' }}>
         {children ?? <Outlet />}
       </Box>
 

@@ -32,7 +32,38 @@ import {
   RESET_PASSWORD_ROUTE,
   HELP_ROUTE,
 } from "./config/routes.ts";
+import GlobalStyles from "@mui/material/GlobalStyles";
+import GlobalLoadingBar from "./components/GlobalLoadingBar";
 import RootPage from "./features/home/RootPage.tsx";
+
+// App-wide animation keyframes + an accessibility reset that disables motion
+// for users who request it.
+const globalAnimations = (
+  <GlobalStyles
+    styles={{
+      // Guard against any stray element forcing horizontal scroll on phones.
+      // (Wide content like the calendar grid has its own internal scroll.)
+      html: { overflowX: 'hidden' },
+      body: { overflowX: 'hidden', transition: 'background-color 0.3s ease, color 0.3s ease' },
+      '@keyframes fadeInUp': {
+        from: { opacity: 0, transform: 'translateY(8px)' },
+        to: { opacity: 1, transform: 'none' },
+      },
+      '@keyframes odesFadeIn': {
+        from: { opacity: 0 },
+        to: { opacity: 1 },
+      },
+      '@media (prefers-reduced-motion: reduce)': {
+        '*, *::before, *::after': {
+          animationDuration: '0.001ms !important',
+          animationIterationCount: '1 !important',
+          transitionDuration: '0.001ms !important',
+          scrollBehavior: 'auto !important',
+        },
+      },
+    }}
+  />
+);
 import GlobalMySchedulePage from "./features/home/GlobalMySchedulePage.tsx";
 import RequireAuth from './features/auth/RequireAuth';
 import MainLayout from './features/layout/MainLayout';
@@ -60,6 +91,8 @@ import HelpCenter from './features/help/HelpCenter';
 function App() {
   return (
     <BrowserRouter>
+      {globalAnimations}
+      <GlobalLoadingBar />
       <Routes>
         {/* public routes */}
         <Route path={HOME_ROUTE} element={<RootPage />} />

@@ -989,7 +989,7 @@ export default function GroupMainPage() {
                         <Box sx={{ display: 'flex', gap: 1, mb: 2, alignItems: 'center', flexWrap: 'wrap' }}>
                           <Autocomplete
                             size="small"
-                            sx={{ flex: 1, minWidth: 240 }}
+                            sx={{ flex: 1, minWidth: { xs: 0, sm: 240 } }}
                             options={addableStudents}
                             value={studentToAdd}
                             onChange={(_, value) => setStudentToAdd(value)}

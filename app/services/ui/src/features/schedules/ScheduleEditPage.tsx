@@ -95,7 +95,7 @@ function TabPanel({
   index: number;
 }) {
   if (value !== index) return null;
-  return <Box sx={{ pt: 2 }}>{children}</Box>;
+  return <Box sx={{ pt: 2, animation: 'odesFadeIn 0.25s ease both' }}>{children}</Box>;
 }
 
 // ─── Drag overlay card ────────────────────────────────────────────────────────
@@ -790,7 +790,7 @@ export default function ScheduleEditPage() {
                 <Stack spacing={2}>
                   <Autocomplete
                     size="small"
-                    sx={{ minWidth: 260 }}
+                    sx={{ minWidth: { xs: 0, sm: 260 } }}
                     options={groupOptions}
                     getOptionLabel={(opt) => opt.label}
                     value={groupOptions.find((o) => o.id === selectedGroupId) ?? null}
@@ -880,7 +880,7 @@ export default function ScheduleEditPage() {
                 <Stack spacing={2}>
                   <Autocomplete
                     size="small"
-                    sx={{ minWidth: 260 }}
+                    sx={{ minWidth: { xs: 0, sm: 260 } }}
                     options={professors}
                     getOptionLabel={(u) =>
                       u.name ?? u.email ?? String(u.id ?? u._id ?? '')
@@ -950,7 +950,7 @@ export default function ScheduleEditPage() {
                 <Stack spacing={2}>
                   <Autocomplete
                     size="small"
-                    sx={{ minWidth: 260 }}
+                    sx={{ minWidth: { xs: 0, sm: 260 } }}
                     options={rooms}
                     getOptionLabel={(r) => r.name}
                     value={

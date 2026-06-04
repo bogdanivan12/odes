@@ -9,27 +9,33 @@ export interface PageContainerProps {
 }
 
 export default function PageContainer({ children, maxWidth = 2000, padding = { xs: 4, md: 8 }, alignItems = 'center' }: PageContainerProps) {
+  const centered = alignItems === 'center';
   return (
     <Box sx={(theme) => ({
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      width: '100vw',
-      height: '100vh',
+      // Flows inside MainLayout (whose top padding clears the fixed navbar);
+      // on the public landing (no navbar) it simply starts at the top.
+      width: '100%',
+      // Fill the viewport below the navbar without forcing extra scroll.
+      minHeight: 'calc(100vh - 80px)',
       m: 0,
-      p: 0,
-      pt: 4,
       boxSizing: 'border-box',
       display: 'flex',
-      alignItems: alignItems,
-      justifyContent: 'center',
+      flexDirection: 'column',
+      alignItems: alignItems === 'flex-end' ? 'flex-end' : 'center', // horizontal
       backgroundColor: theme.palette.background.default,
       color: theme.palette.text.primary,
-      overflow: 'auto'
+      transition: 'background-color 0.3s ease, color 0.3s ease',
     })}>
-      <Box sx={{ width: '100%', maxWidth: maxWidth, p: padding }}>
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: maxWidth,
+          p: padding,
+          // Auto top/bottom margins center short content vertically but collapse
+          // to 0 when content is tall, so the top never overflows under the navbar.
+          ...(centered ? { my: 'auto' } : {}),
+        }}
+      >
         {children}
       </Box>
     </Box>

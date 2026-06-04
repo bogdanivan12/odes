@@ -277,7 +277,15 @@ export default function CalendarGrid({
                         p: '3px 6px',
                         cursor: 'pointer',
                         overflow: 'hidden',
-                        '&:hover': { bgcolor: alpha(typeColor, 0.2) },
+                        animation: 'odesFadeIn 0.35s ease both',
+                        animationDelay: `${Math.min(slotIdx, 10) * 25}ms`,
+                        transition: 'background-color 150ms ease, transform 150ms ease, box-shadow 150ms ease',
+                        '&:hover': {
+                          bgcolor: alpha(typeColor, 0.2),
+                          transform: 'scale(1.02)',
+                          boxShadow: `0 4px 12px ${alpha(typeColor, 0.25)}`,
+                          zIndex: 2,
+                        },
                       }}
                     >
                       <Typography title={courseName} variant="caption" sx={{ fontWeight: 700, display: 'block', lineHeight: 1.25, fontSize: '0.68rem', mb: 0.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

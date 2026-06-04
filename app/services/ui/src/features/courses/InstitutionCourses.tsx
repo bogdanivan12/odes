@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { staggerSx } from '../../utils/motion';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
@@ -240,17 +241,19 @@ export default function InstitutionCourses() {
           {/* Course list */}
           {!error && filteredCourses.length > 0 && (
             <Stack spacing={1}>
-              {paginatedCourses.map((course) => (
+              {paginatedCourses.map((course, idx) => (
                 <Paper
                   key={course.id}
                   variant="outlined"
                   onClick={() => navigate(courseRoute(course.id))}
                   sx={{
+                    ...staggerSx(idx),
                     borderRadius: 2.5, cursor: 'pointer',
-                    transition: 'border-color 150ms ease, box-shadow 150ms ease',
+                    transition: 'border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease',
                     '&:hover': {
                       borderColor: 'primary.light',
                       boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.08)}`,
+                      transform: 'translateY(-2px)',
                     },
                   }}
                 >

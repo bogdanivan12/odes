@@ -1,4 +1,5 @@
 import { createTheme, type PaletteMode } from '@mui/material/styles';
+import Grow from '@mui/material/Grow';
 
 export function getTheme(mode: PaletteMode) {
   const isDark = mode === 'dark';
@@ -66,16 +67,22 @@ export function getTheme(mode: PaletteMode) {
             fontWeight: 500,
             borderRadius: 8,
             boxShadow: 'none',
-            '&:hover': { boxShadow: 'none' },
+            transition: 'transform 120ms ease, box-shadow 150ms ease, background-color 150ms ease, border-color 150ms ease',
+            '&:active': { transform: 'scale(0.97)' },
           },
           contained: {
-            '&:hover': { boxShadow: 'none' },
+            '&:hover': { boxShadow: `0 4px 14px ${isDark ? 'rgba(0,0,0,0.4)' : 'rgba(99,102,241,0.28)'}`, transform: 'translateY(-1px)' },
+            '&:active': { transform: 'translateY(0) scale(0.98)' },
           },
         },
       },
       MuiPaper: {
         styleOverrides: {
-          root: { backgroundImage: 'none' },
+          root: {
+            backgroundImage: 'none',
+            // Smooth color crossfade when toggling dark/light.
+            transition: 'background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease',
+          },
         },
       },
       MuiChip: {
@@ -94,10 +101,28 @@ export function getTheme(mode: PaletteMode) {
       },
       MuiIconButton: {
         styleOverrides: {
-          root: { borderRadius: 8 },
+          root: {
+            borderRadius: 8,
+            transition: 'transform 120ms ease, background-color 150ms ease, color 150ms ease',
+            '&:active': { transform: 'scale(0.9)' },
+          },
+        },
+      },
+      MuiMenuItem: {
+        styleOverrides: {
+          root: { transition: 'background-color 120ms ease' },
+        },
+      },
+      MuiListItemButton: {
+        styleOverrides: {
+          root: { transition: 'background-color 120ms ease, color 120ms ease' },
         },
       },
       MuiDialog: {
+        defaultProps: {
+          // Dialogs zoom in instead of a plain fade.
+          TransitionComponent: Grow,
+        },
         styleOverrides: {
           paper: { borderRadius: 16 },
         },
@@ -105,6 +130,15 @@ export function getTheme(mode: PaletteMode) {
       MuiAlert: {
         styleOverrides: {
           root: { borderRadius: 8 },
+        },
+      },
+      MuiTablePagination: {
+        styleOverrides: {
+          // Wrap on small screens and drop the "Rows per page" selector on
+          // phones so the controls never overflow horizontally.
+          toolbar: { flexWrap: 'wrap', rowGap: 4, paddingLeft: 8 },
+          selectLabel: { '@media (max-width:600px)': { display: 'none' } },
+          input: { '@media (max-width:600px)': { display: 'none' } },
         },
       },
     },

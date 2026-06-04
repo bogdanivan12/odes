@@ -10,6 +10,7 @@ import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
+import Skeleton from '@mui/material/Skeleton';
 import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid';
 import TextField from '@mui/material/TextField';
@@ -404,15 +405,22 @@ function SearchableList({
       {/* ── Content ── */}
       <Box sx={{ flexGrow: 1, overflow: 'hidden', px: 1.5, pb: 1.5 }}>
         {loading ? (
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ px: 1, py: 1.5 }}>
-            <CircularProgress size={16} />
-            <Typography variant="caption" color="text.secondary">Loading...</Typography>
+          <Stack spacing={0.25} sx={{ px: 0.5, pt: 0.5 }}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Box key={i} sx={{ px: 1.5, py: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Skeleton variant="text" width={`${65 - i * 7}%`} height={20} />
+                  <Skeleton variant="text" width="35%" height={13} />
+                </Box>
+                <Skeleton variant="rounded" width={44} height={20} sx={{ borderRadius: 1, flexShrink: 0 }} />
+              </Box>
+            ))}
           </Stack>
         ) : error ? (
           <Alert severity="error" sx={{ mx: 0.5, mt: 0.5 }}>{error}</Alert>
         ) : filteredItems.length === 0 ? (
           /* ── Empty state ── */
-          <Box sx={{ py: 3.5, px: 1, textAlign: 'center' }}>
+          <Box sx={{ py: 3.5, px: 1, textAlign: 'center', animation: 'fadeInUp 0.4s ease both' }}>
             {emptyIcon && (
               <Box
                 sx={{
@@ -448,7 +456,7 @@ function SearchableList({
           /* ── List ── */
           <Box>
             <Stack spacing={0.25}>
-              {paginatedItems.map((item) => (
+              {paginatedItems.map((item, idx) => (
                 <Box
                   key={item.key}
                   onClick={item.to ? () => navigate(item.to as string) : undefined}
@@ -462,9 +470,11 @@ function SearchableList({
                     justifyContent: 'space-between',
                     gap: 1,
                     borderLeft: '2px solid transparent',
-                    transition: 'all 150ms ease',
+                    animation: 'fadeInUp 0.3s ease both',
+                    animationDelay: `${Math.min(idx, 12) * 30}ms`,
+                    transition: 'background-color 150ms ease, border-color 150ms ease, transform 150ms ease',
                     '&:hover': item.to
-                      ? { bgcolor: alpha(theme.palette.primary.main, 0.06), borderLeftColor: 'primary.main' }
+                      ? { bgcolor: alpha(theme.palette.primary.main, 0.06), borderLeftColor: 'primary.main', transform: 'translateX(2px)' }
                       : undefined,
                   }}
                 >

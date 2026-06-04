@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { staggerSx } from '../../utils/motion';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
@@ -225,7 +226,7 @@ export default function InstitutionMembers() {
           {/* Member list */}
           {!error && filteredMembers.length > 0 && (
             <Stack spacing={1}>
-              {paginatedMembers.map((member) => {
+              {paginatedMembers.map((member, idx) => {
                 const memberId = getMemberId(member);
                 const roles = getRolesForInstitution(member, institutionId).sort(compareAlphabetical);
                 return (
@@ -234,11 +235,13 @@ export default function InstitutionMembers() {
                     variant="outlined"
                     onClick={() => navigate(`${memberRoute(memberId)}?institutionId=${institutionId ?? ''}`)}
                     sx={{
+                      ...staggerSx(idx),
                       borderRadius: 2.5, cursor: 'pointer',
-                      transition: 'border-color 150ms ease, box-shadow 150ms ease',
+                      transition: 'border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease',
                       '&:hover': {
                         borderColor: 'primary.light',
                         boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.08)}`,
+                        transform: 'translateY(-2px)',
                       },
                     }}
                   >
