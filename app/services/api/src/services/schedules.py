@@ -298,6 +298,32 @@ def _timeslots_overlap(
     return slot_a < end_b and slot_b < end_a
 
 
+def _groups_overlap(
+    groups_a: List[str],
+    groups_b: List[str],
+    ancestor_cache: Dict[str, Set[str]],
+) -> bool:
+    """True if any group in A shares a student population with any group in B.
+
+    Two groups overlap in students iff one is the other or an ancestor of the
+    other (i.e. they lie on the same root-to-leaf path).  This mirrors the
+    solver, which conflicts activities only when they share a *leaf* group:
+    an ancestor's activity busies all its descendant leaves.
+
+    Sibling groups (which only share a common ancestor, e.g. two semigroups of
+    the same series) are DISJOINT student populations and must NOT be treated
+    as overlapping - flagging them was the source of spurious edit conflicts.
+    """
+    for ga in groups_a:
+        path_a = ancestor_cache.get(ga, set()) | {ga}
+        for gb in groups_b:
+            path_b = ancestor_cache.get(gb, set()) | {gb}
+            # ga is ancestor-or-self of gb, OR gb is ancestor-or-self of ga.
+            if ga in path_b or gb in path_a:
+                return True
+    return False
+
+
 # ── Public service functions ──────────────────────────────────────────────────
 
 def _run_conflict_check(
@@ -387,8 +413,6 @@ def _run_conflict_check(
         if not act_a:
             continue
         weeks_a = _get_effective_weeks(rec_a, act_a, total_weeks)
-        # Expanded group set = all group_ids + all their ancestors
-        anc_a = set(act_a.group_ids) | set().union(*(ancestor_cache.get(gid, set()) for gid in act_a.group_ids))
         orig_a = original_map[rec_a["id"]]
 
         for rec_b in effective:
@@ -417,7 +441,6 @@ def _run_conflict_check(
                 and _timeslots_overlap(orig_a, act_a, orig_b, act_b, tpd)
             )
 
-            anc_b = set(act_b.group_ids) | set().union(*(ancestor_cache.get(gid, set()) for gid in act_b.group_ids))
             rec_conflicts = conflicts_by_record.setdefault(rec_a["id"], [])
 
             # Room double-booking
@@ -441,9 +464,10 @@ def _run_conflict_check(
                         description="Professor is already assigned to another activity at this timeslot.",
                     ))
 
-            # Group overlap: any group_id from A shares a hierarchy path with any from B
+            # Group overlap: a group from A is ancestor-or-self of a group from B
+            # (or vice versa).  Siblings sharing only a common ancestor do NOT clash.
             if act_a.group_ids and act_b.group_ids:
-                groups_clash = bool(anc_a & anc_b)
+                groups_clash = _groups_overlap(act_a.group_ids, act_b.group_ids, ancestor_cache)
                 if groups_clash:
                     was_group_conflict = originally_overlapping and groups_clash
                     if not was_group_conflict:
