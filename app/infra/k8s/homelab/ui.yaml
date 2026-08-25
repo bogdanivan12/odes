@@ -63,7 +63,20 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
+    # Internal (LAN only, wildcard *.homelab.lan).
     - host: odes.homelab.lan
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: odes-ui
+                port:
+                  number: 80
+    # Public: reachable on the internet via the Cloudflare Tunnel wildcard route
+    # *.pub.webodes.app -> Traefik (see docs/cloudflare-hub.md). No auth gate.
+    - host: odes.pub.webodes.app
       http:
         paths:
           - path: /
