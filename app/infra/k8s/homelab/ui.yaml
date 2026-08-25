@@ -59,6 +59,9 @@ metadata:
     gethomepage.dev/name: ODES
     gethomepage.dev/description: Scheduling UI
     gethomepage.dev/icon: mdi-calendar-clock
+    # Our pods use the plain `app` label (not app.kubernetes.io/name), so tell
+    # Homepage which pods back this tile — otherwise its status shows "NOT FOUND".
+    gethomepage.dev/pod-selector: app=odes-ui
 spec:
   ingressClassName: traefik
   rules:
