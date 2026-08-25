@@ -63,20 +63,10 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    # Internal (LAN only, wildcard *.homelab.lan).
+    # Internal only (LAN, wildcard *.homelab.lan). Public exposure is NOT set here —
+    # the Jenkins deploy-to-k3s pipeline manages it per run (PUBLIC / PRIVATE_TO_ME),
+    # creating a separate <svc>-public Ingress for <host>.pub.webodes.app.
     - host: odes.homelab.lan
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: odes-ui
-                port:
-                  number: 80
-    # Public: reachable on the internet via the Cloudflare Tunnel wildcard route
-    # *.pub.webodes.app -> Traefik (see docs/cloudflare-hub.md). No auth gate.
-    - host: odes.pub.webodes.app
       http:
         paths:
           - path: /
