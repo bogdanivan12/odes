@@ -5,13 +5,17 @@
 # from app/infra/k8s/ui.yaml (which targets the DigitalOcean/nginx production
 # cluster) — do not mix the two.
 #
-# Pipeline params: K8S_MANIFEST_PATH=app/infra/k8s/homelab/ui.yaml, K8S_NAMESPACE=apps
+# No `namespace:` here on purpose — the pipeline applies with `-n apps-<repo>`
+# (e.g. apps-odes) and seeds the Harbor pull secret + default SA there, so no
+# imagePullSecrets are needed either. Public exposure (PUBLIC / PRIVATE_TO_ME) is
+# managed per run by the pipeline, not in this manifest.
+#
+# Pipeline params: K8S_MANIFEST_PATH=app/infra/k8s/homelab/ui.yaml, SERVICE_NAME=odes-ui
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: odes-ui
-  namespace: apps
   labels: { app: odes-ui }
 spec:
   replicas: 1
@@ -21,9 +25,6 @@ spec:
     metadata:
       labels: { app: odes-ui }
     spec:
-      # Private Harbor project — pull secret lives once in the shared `apps` ns.
-      imagePullSecrets:
-        - name: harbor
       containers:
         - name: ui
           image: __IMAGE__
@@ -41,7 +42,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: odes-ui
-  namespace: apps
 spec:
   selector: { app: odes-ui }
   ports:
@@ -52,7 +52,6 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: odes-ui
-  namespace: apps
   # Homepage auto-discovers this and shows a tile on the hub.
   annotations:
     gethomepage.dev/enabled: "true"
@@ -63,9 +62,9 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    # Internal only (LAN, wildcard *.homelab.lan). Public exposure is NOT set here —
-    # the Jenkins deploy-to-k3s pipeline manages it per run (PUBLIC / PRIVATE_TO_ME),
-    # creating a separate <svc>-public Ingress for <host>.pub.webodes.app.
+    # Internal only (LAN, wildcard *.homelab.lan). Public exposure is managed by
+    # the pipeline per run (creates a separate <svc>-public Ingress for
+    # <host>.webodes.app), not here.
     - host: odes.homelab.lan
       http:
         paths:
