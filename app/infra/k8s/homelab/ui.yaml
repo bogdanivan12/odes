@@ -52,13 +52,13 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: odes-ui
-  # Homepage auto-discovers this and shows a tile on the hub.
+  # Homepage auto-discovers this and shows a tile on the hub. The `group` is set by
+  # the deploy pipeline to the repo name (nested under "Apps"), so it's omitted here.
   annotations:
     gethomepage.dev/enabled: "true"
     gethomepage.dev/name: ODES
     gethomepage.dev/description: Scheduling UI
-    gethomepage.dev/group: Apps
-    gethomepage.dev/icon: si-buffer
+    gethomepage.dev/icon: mdi-calendar-clock
 spec:
   ingressClassName: traefik
   rules:
